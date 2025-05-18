@@ -8,7 +8,7 @@ from ..core.base import MCPConfig
 from ..core.llm_prompt import LLMPromptMCP, LLMPromptConfig
 from ..core.jupyter_notebook import JupyterNotebookMCP, JupyterNotebookConfig
 
-app = FastAPI(title="MCP API", version="0.1.0")
+app = FastAPI(title="MCP API", description="Microservice Control Panel API")
 
 # Enable CORS
 app.add_middleware(
@@ -22,17 +22,30 @@ app.add_middleware(
 # In-memory MCP registry (replace with database in production)
 mcp_registry: Dict[str, Any] = {}
 
-class MCPCreateRequest(BaseModel):
-    """Request model for creating a new MCP"""
-    type: str
-    config: Dict[str, Any]
+class MCPRequest(BaseModel):
+    name: str
+    description: Optional[str] = None
+    config: Optional[dict] = None
 
-class MCPExecuteRequest(BaseModel):
-    """Request model for executing an MCP"""
-    inputs: Dict[str, Any]
+@app.get("/")
+async def root():
+    return {"message": "Welcome to MCP API"}
+
+@app.get("/mcps")
+async def get_mcps():
+    # TODO: Implement actual MCP retrieval
+    return {"mcps": []}
 
 @app.post("/mcps")
-async def create_mcp(request: MCPCreateRequest):
+async def create_mcp(mcp: MCPRequest):
+    try:
+        # TODO: Implement actual MCP creation
+        return {"message": f"Created MCP: {mcp.name}", "mcp": mcp.dict()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/mcps")
+async def create_mcp(request: MCPRequest):
     """Create a new MCP instance"""
     mcp_id = str(uuid.uuid4())
     
@@ -66,7 +79,7 @@ async def list_mcps():
     ]
 
 @app.post("/mcps/{mcp_id}/execute")
-async def execute_mcp(mcp_id: str, request: MCPExecuteRequest):
+async def execute_mcp(mcp_id: str, request: MCPRequest):
     """Execute an MCP with given inputs"""
     if mcp_id not in mcp_registry:
         raise HTTPException(status_code=404, detail="MCP not found")

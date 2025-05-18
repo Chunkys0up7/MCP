@@ -3,216 +3,196 @@ import requests
 from typing import Dict, Any
 import json
 
-# API Configuration
-API_BASE_URL = "http://localhost:8000"
+# Configure the page
+st.set_page_config(
+    page_title="MCP Dashboard",
+    page_icon="🤖",
+    layout="wide"
+)
 
-def main():
-    st.title("Microservice Control Panel (MCP)")
-    
-    # Sidebar navigation
-    page = st.sidebar.selectbox(
-        "Navigation",
-        ["MCP Builder", "MCP Registry", "Execute MCP"]
-    )
-    
-    if page == "MCP Builder":
-        render_mcp_builder()
-    elif page == "MCP Registry":
-        render_mcp_registry()
-    else:
-        render_execution_ui()
+# Title and description
+st.title("Microservice Control Panel")
+st.markdown("""
+This dashboard allows you to manage and monitor your microservices.
+""")
 
-def render_mcp_builder():
-    """Render the MCP builder interface"""
-    st.header("MCP Builder")
-    
-    # MCP Type Selection
-    mcp_type = st.selectbox(
-        "Select MCP Type",
-        ["LLM Prompt", "Jupyter Notebook"]
-    )
-    
-    # Basic Information
-    name = st.text_input("MCP Name")
-    description = st.text_area("Description")
-    
-    # Type-specific configuration
-    if mcp_type == "LLM Prompt":
-        config = render_llm_config()
-    else:
-        config = render_notebook_config()
-    
-    if st.button("Create MCP"):
-        if not name:
-            st.error("MCP name is required")
-            return
-        
-        try:
-            response = requests.post(
-                f"{API_BASE_URL}/mcps",
-                json={
-                    "type": mcp_type.lower().replace(" ", "_"),
-                    "config": {
-                        "name": name,
-                        "description": description,
-                        **config
-                    }
-                }
-            )
-            response.raise_for_status()
-            st.success("MCP created successfully!")
-        except Exception as e:
-            st.error(f"Error creating MCP: {str(e)}")
+# Sidebar for navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage MCPs"])
 
-def render_llm_config() -> Dict[str, Any]:
-    """Render LLM-specific configuration"""
-    config = {}
+# API endpoint
+API_URL = "http://localhost:8000"
+
+def create_mcp(name: str, description: str, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a new MCP instance"""
+    try:
+        response = requests.post(
+            f"{API_URL}/mcps",
+            json={
+                "name": name,
+                "description": description,
+                "config": config
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error creating MCP: {str(e)}")
+        return None
+
+def get_mcps() -> list:
+    """Get all MCP instances"""
+    try:
+        response = requests.get(f"{API_URL}/mcps")
+        response.raise_for_status()
+        return response.json()["mcps"]
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching MCPs: {str(e)}")
+        return []
+
+def build_llm_config() -> Dict[str, Any]:
+    """Build LLM configuration through UI"""
+    st.subheader("LLM Configuration")
     
-    # Model Provider
-    config["model_provider"] = st.selectbox(
+    # Model selection
+    model_provider = st.selectbox(
         "Model Provider",
-        ["openai", "anthropic", "huggingface"]
+        ["perplexity", "openai", "anthropic"],
+        key="model_provider"
     )
     
-    # Model Selection
-    if config["model_provider"] == "openai":
-        config["model_name"] = st.selectbox(
+    # Model name based on provider
+    if model_provider == "perplexity":
+        model_name = st.selectbox(
             "Model",
-            ["gpt-3.5-turbo", "gpt-4"]
+            ["pplx-7b-online", "pplx-70b-online", "pplx-7b-chat", "pplx-70b-chat"],
+            key="model_name"
         )
-    elif config["model_provider"] == "anthropic":
-        config["model_name"] = st.selectbox(
+    elif model_provider == "openai":
+        model_name = st.selectbox(
             "Model",
-            ["claude-2", "claude-instant"]
+            ["gpt-3.5-turbo", "gpt-4"],
+            key="model_name"
+        )
+    else:  # anthropic
+        model_name = st.selectbox(
+            "Model",
+            ["claude-2", "claude-instant"],
+            key="model_name"
         )
     
-    # Prompt Template
-    config["prompt_template"] = st.text_area(
+    # Prompt template
+    template = st.text_area(
         "Prompt Template",
-        help="Use {variable_name} for input variables"
+        help="Use {variable_name} for input variables",
+        key="template"
     )
     
-    # Model Parameters
-    config["temperature"] = st.slider("Temperature", 0.0, 1.0, 0.7)
-    config["max_tokens"] = st.number_input("Max Tokens", min_value=1, value=1000)
+    # Extract input variables from template
+    import re
+    input_vars = list(set(re.findall(r'\{([^}]+)\}', template)))
     
-    return config
+    # Model parameters
+    temperature = st.slider("Temperature", 0.0, 1.0, 0.7, key="temperature")
+    max_tokens = st.number_input("Max Tokens", min_value=1, value=1000, key="max_tokens")
+    
+    return {
+        "type": "llm_prompt",
+        "template": template,
+        "input_variables": input_vars,
+        "model_name": model_name,
+        "temperature": temperature,
+        "max_tokens": max_tokens
+    }
 
-def render_notebook_config() -> Dict[str, Any]:
-    """Render Jupyter Notebook-specific configuration"""
-    config = {}
+def build_notebook_config() -> Dict[str, Any]:
+    """Build Jupyter Notebook configuration through UI"""
+    st.subheader("Notebook Configuration")
     
-    # Notebook Path
-    config["notebook_path"] = st.text_input(
+    notebook_path = st.text_input(
         "Notebook Path",
-        help="Path to the Jupyter notebook file"
+        help="Path to the Jupyter notebook file",
+        key="notebook_path"
     )
     
-    # Execution Options
-    config["execute_all"] = st.checkbox("Execute All Cells", value=True)
-    if not config["execute_all"]:
-        config["cells_to_execute"] = st.text_input(
+    execute_all = st.checkbox("Execute All Cells", value=True, key="execute_all")
+    if not execute_all:
+        cells_to_execute = st.text_input(
             "Cells to Execute",
-            help="Comma-separated list of cell numbers"
+            help="Comma-separated list of cell numbers",
+            key="cells_to_execute"
         )
     
-    config["timeout"] = st.number_input(
+    timeout = st.number_input(
         "Timeout (seconds)",
         min_value=60,
-        value=600
+        value=600,
+        key="timeout"
     )
     
-    return config
+    return {
+        "type": "jupyter_notebook",
+        "notebook_path": notebook_path,
+        "execute_all": execute_all,
+        "cells_to_execute": cells_to_execute if not execute_all else None,
+        "timeout": timeout
+    }
 
-def render_mcp_registry():
-    """Render the MCP registry interface"""
-    st.header("MCP Registry")
-    
-    try:
-        response = requests.get(f"{API_BASE_URL}/mcps")
-        response.raise_for_status()
-        mcps = response.json()
-        
+# Main content based on selected page
+if page == "Dashboard":
+    st.header("Dashboard")
+    mcps = get_mcps()
+    if mcps:
+        st.write("Active MCPs:", len(mcps))
         for mcp in mcps:
-            with st.expander(f"{mcp['name']} ({mcp['type']})"):
-                st.write(f"ID: {mcp['id']}")
-                st.write(f"Version: {mcp['version']}")
-                
-                if st.button("Delete", key=f"delete_{mcp['id']}"):
-                    try:
-                        response = requests.delete(f"{API_BASE_URL}/mcps/{mcp['id']}")
-                        response.raise_for_status()
-                        st.success("MCP deleted successfully!")
-                        st.experimental_rerun()
-                    except Exception as e:
-                        st.error(f"Error deleting MCP: {str(e)}")
-    
-    except Exception as e:
-        st.error(f"Error fetching MCPs: {str(e)}")
+            st.write(f"- {mcp['name']}: {mcp.get('description', 'No description')}")
+    else:
+        st.info("No MCPs found. Create one to get started!")
 
-def render_execution_ui():
-    """Render the MCP execution interface"""
-    st.header("Execute MCP")
-    
-    try:
-        # Get available MCPs
-        response = requests.get(f"{API_BASE_URL}/mcps")
-        response.raise_for_status()
-        mcps = response.json()
+elif page == "Create MCP":
+    st.header("Create New MCP")
+    with st.form("create_mcp_form"):
+        # Basic Information
+        name = st.text_input("MCP Name")
+        description = st.text_area("Description")
         
-        if not mcps:
-            st.warning("No MCPs available. Create one first!")
-            return
-        
-        # MCP Selection
-        selected_mcp = st.selectbox(
-            "Select MCP",
-            options=mcps,
-            format_func=lambda x: f"{x['name']} ({x['type']})"
+        # MCP Type Selection
+        mcp_type = st.selectbox(
+            "Select MCP Type",
+            ["LLM Prompt", "Jupyter Notebook"]
         )
         
-        # Input Parameters
-        st.subheader("Input Parameters")
-        inputs = {}
+        # Type-specific configuration
+        if mcp_type == "LLM Prompt":
+            config = build_llm_config()
+        else:
+            config = build_notebook_config()
         
-        # For LLM Prompt MCPs
-        if selected_mcp["type"] == "LLMPromptMCP":
-            prompt_template = selected_mcp.get("config", {}).get("prompt_template", "")
-            input_vars = extract_input_variables(prompt_template)
-            
-            for var in input_vars:
-                inputs[var] = st.text_input(f"Input: {var}")
+        # Show the final JSON configuration
+        st.subheader("Configuration Preview")
+        st.json(config)
         
-        # For Jupyter Notebook MCPs
-        elif selected_mcp["type"] == "JupyterNotebookMCP":
-            inputs["parameters"] = st.text_area(
-                "Notebook Parameters (JSON)",
-                help="Enter parameters as JSON object"
-            )
-        
-        # Execute Button
-        if st.button("Execute"):
-            try:
-                response = requests.post(
-                    f"{API_BASE_URL}/mcps/{selected_mcp['id']}/execute",
-                    json={"inputs": inputs}
-                )
-                response.raise_for_status()
-                result = response.json()
-                
-                st.subheader("Results")
-                st.json(result)
-                
-            except Exception as e:
-                st.error(f"Error executing MCP: {str(e)}")
-    
-    except Exception as e:
-        st.error(f"Error: {str(e)}")
+        submitted = st.form_submit_button("Create MCP")
+        if submitted:
+            if name:
+                try:
+                    result = create_mcp(name, description, config)
+                    if result:
+                        st.success(f"Successfully created MCP: {name}")
+                except Exception as e:
+                    st.error(f"Error creating MCP: {str(e)}")
+            else:
+                st.error("Please provide a name for the MCP")
 
-def extract_input_variables(template: str) -> list[str]:
-    """Extract input variables from prompt template"""
-    import re
-    return list(set(re.findall(r'\{([^}]+)\}', template)))
-
-if __name__ == "__main__":
-    main() 
+elif page == "Manage MCPs":
+    st.header("Manage MCPs")
+    mcps = get_mcps()
+    if mcps:
+        for mcp in mcps:
+            with st.expander(f"{mcp['name']}"):
+                st.write("Description:", mcp.get('description', 'No description'))
+                st.write("Configuration:", mcp.get('config', {}))
+                if st.button(f"Delete {mcp['name']}", key=f"delete_{mcp['name']}"):
+                    st.warning("Delete functionality not implemented yet")
+    else:
+        st.info("No MCPs to manage. Create one first!") 

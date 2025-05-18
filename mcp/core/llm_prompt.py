@@ -1,63 +1,89 @@
 from typing import Any, Dict, Optional
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain.llms.base import BaseLLM
+import os
+from dotenv import load_dotenv
+import requests
+from pydantic import BaseModel
 
 from .base import BaseMCP, MCPConfig
 
-class LLMPromptConfig(MCPConfig):
+# Load environment variables
+load_dotenv()
+
+class LLMPromptConfig(BaseModel):
     """Configuration for LLM Prompt MCP"""
-    model_provider: str = "openai"
+    template: str
+    input_variables: list[str]
     model_name: str = "gpt-3.5-turbo"
-    prompt_template: str
     temperature: float = 0.7
     max_tokens: Optional[int] = None
 
+class PerplexityLLM:
+    """Custom LLM implementation for Perplexity API (plain Python class)"""
+    def __init__(self, model_name: str, temperature: float = 0.7, max_tokens: Optional[int] = None):
+        self.model_name = model_name
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self.api_key = os.getenv("PERPLEXITY_API_KEY")
+        if not self.api_key:
+            raise ValueError("PERPLEXITY_API_KEY environment variable not set")
+
+    def call(self, prompt: str) -> str:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": self.model_name,
+            "prompt": prompt,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens
+        }
+        response = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers=headers,
+            json=data
+        )
+        if response.status_code != 200:
+            raise Exception(f"Perplexity API error: {response.text}")
+        return response.json()["choices"][0]["message"]["content"]
+
 class LLMPromptMCP(BaseMCP):
     """MCP for executing LLM prompts"""
-    
     def __init__(self, config: LLMPromptConfig):
         super().__init__(config)
         self.llm = self._get_llm()
-        self.prompt_template = PromptTemplate(
-            template=config.prompt_template,
-            input_variables=self._extract_input_variables(config.prompt_template)
+        self.prompt = PromptTemplate(
+            template=config.template,
+            input_variables=config.input_variables
         )
-    
-    def _get_llm(self) -> BaseLLM:
-        """Get the configured LLM instance"""
-        if self.config.model_provider == "openai":
-            return ChatOpenAI(
+
+    def _get_llm(self):
+        if self.config.model_name == "perplexity":
+            return PerplexityLLM(
                 model_name=self.config.model_name,
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens
             )
         else:
-            raise ValueError(f"Unsupported model provider: {self.config.model_provider}")
-    
-    def _extract_input_variables(self, template: str) -> list[str]:
-        """Extract input variables from prompt template"""
-        # Simple implementation - could be enhanced with proper parsing
-        import re
-        return list(set(re.findall(r'\{([^}]+)\}', template)))
-    
+            raise ValueError(f"Unsupported model: {self.config.model_name}")
+
+    def format(self, **kwargs) -> str:
+        """Format the prompt with given variables"""
+        return self.prompt.format(**kwargs)
+
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the LLM prompt with given inputs
-        
-        Args:
-            inputs: Dictionary of input parameters for the prompt template
-            
-        Returns:
-            Dictionary containing the LLM response
-        """
-        # Format prompt with inputs
-        formatted_prompt = self.prompt_template.format(**inputs)
-        
-        # Execute against LLM
-        response = await self.llm.agenerate([formatted_prompt])
-        
-        return {
-            "result": response.generations[0][0].text,
-            "model": self.config.model_name,
-            "prompt": formatted_prompt
-        } 
+        """Execute the prompt with given inputs"""
+        try:
+            formatted_prompt = self.format(**inputs)
+            response = self.llm.call(formatted_prompt)
+            return {
+                "result": response,
+                "model": self.config.model_name,
+                "prompt": formatted_prompt
+            }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "status": "error"
+            } 
