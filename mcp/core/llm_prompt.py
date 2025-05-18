@@ -9,59 +9,122 @@ from .base import BaseMCP, MCPConfig
 # Load environment variables
 load_dotenv()
 
-class LLMPromptConfig(BaseModel):
+class LLMPromptConfig(MCPConfig):
     """Configuration for LLM Prompt MCP"""
-    name: str
-    description: Optional[str] = None
     template: str
     input_variables: list[str]
-    model_name: str = "pplx-7b-chat"
+    model_name: str = "claude-3-sonnet-20240229"  # Default model name
     temperature: float = 0.7
     max_tokens: Optional[int] = None
 
-class PerplexityLLM:
-    """Custom LLM implementation for Perplexity API"""
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Ensure model_name is preserved from input data
+        if "model_name" in data:
+            self.model_name = data["model_name"]
+
+class ClaudeLLM:
+    """Custom LLM implementation for Claude API"""
     def __init__(self, model_name: str, temperature: float = 0.7, max_tokens: Optional[int] = None):
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.api_key = os.getenv("PERPLEXITY_API_KEY")
+        self.api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError(
-                "PERPLEXITY_API_KEY environment variable not set. "
+                "ANTHROPIC_API_KEY environment variable not set. "
                 "Please set your API key in one of these ways:\n"
-                "1. Create a .env file in the project root with: PERPLEXITY_API_KEY=your_api_key_here\n"
-                "2. Set it as an environment variable: set PERPLEXITY_API_KEY=your_api_key_here (Windows) or export PERPLEXITY_API_KEY=your_api_key_here (Linux/Mac)"
+                "1. Create a .env file in the project root with: ANTHROPIC_API_KEY=your_api_key_here\n"
+                "2. Set it as an environment variable: set ANTHROPIC_API_KEY=your_api_key_here (Windows) or export ANTHROPIC_API_KEY=your_api_key_here (Linux/Mac)"
             )
+        # Test API connectivity at initialization
+        self.test_connection()
 
-    def call(self, prompt: str) -> str:
+    def test_connection(self):
+        """Test API connectivity by sending a simple message"""
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
         }
         data = {
             "model": self.model_name,
-            "prompt": prompt,
-            "temperature": self.temperature,
-            "max_tokens": self.max_tokens
+            "max_tokens": 100,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Hello, this is a connection test."
+                }
+            ]
         }
+        
         try:
             response = requests.post(
-                "https://api.perplexity.ai/chat/completions",
+                "https://api.anthropic.com/v1/messages",
                 headers=headers,
                 json=data
             )
+            
             if response.status_code == 401:
                 raise ValueError(
-                    "Invalid Perplexity API key. Please check your API key and make sure it's correct.\n"
-                    "You can set it in one of these ways:\n"
-                    "1. Create a .env file in the project root with: PERPLEXITY_API_KEY=your_api_key_here\n"
-                    "2. Set it as an environment variable: set PERPLEXITY_API_KEY=your_api_key_here (Windows) or export PERPLEXITY_API_KEY=your_api_key_here (Linux/Mac)"
+                    "Invalid Claude API key. Please check your API key and make sure it's correct."
                 )
-            response.raise_for_status()  # Raise an exception for other bad status codes
-            return response.json()["choices"][0]["message"]["content"]
+            elif response.status_code == 400:
+                error_detail = response.json().get('error', {}).get('message', 'Unknown error')
+                raise ValueError(f"Invalid request: {error_detail}")
+            
+            response.raise_for_status()
+            print(f"Successfully connected to Claude API using model: {self.model_name}")
+            return True
         except requests.exceptions.RequestException as e:
-            raise Exception(f"Perplexity API error: {str(e)}")
+            print(f"Error testing API connection: {str(e)}")
+            raise Exception(f"Failed to connect to Claude API: {str(e)}")
+
+    def call(self, prompt: str) -> str:
+        headers = {
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        data = {
+            "model": self.model_name,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        }
+        
+        # Only add optional parameters if they are set
+        if self.temperature is not None:
+            data["temperature"] = self.temperature
+        if self.max_tokens is not None:
+            data["max_tokens"] = self.max_tokens
+
+        try:
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers=headers,
+                json=data
+            )
+            
+            # Handle different error cases
+            if response.status_code == 401:
+                raise ValueError(
+                    "Invalid Claude API key. Please check your API key and make sure it's correct.\n"
+                    "You can set it in one of these ways:\n"
+                    "1. Create a .env file in the project root with: ANTHROPIC_API_KEY=your_api_key_here\n"
+                    "2. Set it as an environment variable: set ANTHROPIC_API_KEY=your_api_key_here (Windows) or export ANTHROPIC_API_KEY=your_api_key_here (Linux/Mac)"
+                )
+            elif response.status_code == 400:
+                error_detail = response.json().get('error', {}).get('message', 'Unknown error')
+                raise ValueError(f"Invalid request: {error_detail}")
+            
+            response.raise_for_status()
+            return response.json()["content"][0]["text"]
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Claude API error: {str(e)}")
 
 class LLMPromptMCP(BaseMCP):
     """MCP for executing LLM prompts"""
@@ -71,7 +134,6 @@ class LLMPromptMCP(BaseMCP):
         self._description = config.description
         self.llm = self._get_llm()
         self.template = config.template
-        self.input_variables = config.input_variables
 
     @property
     def name(self) -> str:
@@ -82,31 +144,38 @@ class LLMPromptMCP(BaseMCP):
         return self._description
 
     def _get_llm(self):
-        if self.config.model_name.startswith("pplx-"):
-            return PerplexityLLM(
-                model_name=self.config.model_name,
+        # Get the model name from config
+        model_name = self.config.model_name
+        print(f"Using model: {model_name}")
+        
+        # Only allow valid Claude models
+        supported_models = [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240229"
+        ]
+        
+        if model_name in supported_models:
+            return ClaudeLLM(
+                model_name=model_name,
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens
             )
         else:
-            raise ValueError(f"Unsupported model: {self.config.model_name}")
-
-    def format(self, **kwargs) -> str:
-        """Format the prompt with given variables"""
-        prompt = self.template
-        for key, value in kwargs.items():
-            prompt = prompt.replace(f"{{{key}}}", str(value))
-        return prompt
+            print(f"Unsupported model: {model_name}")
+            raise ValueError(
+                f"Unsupported model: {model_name}. "
+                f"Supported models are: {', '.join(supported_models)}"
+            )
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the prompt with given inputs"""
+        """Execute the prompt"""
         try:
-            formatted_prompt = self.format(**inputs)
-            response = self.llm.call(formatted_prompt)
+            response = self.llm.call(self.template)
             return {
                 "result": response,
                 "model": self.config.model_name,
-                "prompt": formatted_prompt
+                "prompt": self.template
             }
         except Exception as e:
             return {
