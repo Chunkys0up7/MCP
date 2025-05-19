@@ -1,10 +1,14 @@
 import os
 import tempfile
+import subprocess
+import venv
+import json
 from typing import Any, Dict, List, Optional
 import papermill as pm
 import nbformat
+from pathlib import Path
 
-from .base import BaseMCP, MCPConfig
+from .base import BaseMCPServer, MCPConfig
 
 class JupyterNotebookConfig(MCPConfig):
     """Configuration for Jupyter Notebook MCP.
@@ -23,7 +27,7 @@ class JupyterNotebookConfig(MCPConfig):
     cells_to_execute: Optional[List[int]] = None
     timeout: int = 600  # seconds
 
-class JupyterNotebookMCP(BaseMCP):
+class JupyterNotebookMCP(BaseMCPServer):
     """MCP for executing Jupyter notebooks.
     
     This class implements the MCP interface for executing Jupyter notebooks,
@@ -58,9 +62,11 @@ class JupyterNotebookMCP(BaseMCP):
             
         Returns:
             Dict[str, Any]: Dictionary containing:
-                - results: Output from executed cells
+                - output: Combined output from all cells
+                - results: Detailed cell outputs
                 - execution_time: Total execution time
                 - success: Whether execution was successful
+                - error: Error message if execution failed
                 
         Raises:
             Exception: If notebook execution fails.
@@ -85,16 +91,28 @@ class JupyterNotebookMCP(BaseMCP):
             # Extract results from executed cells
             results = self._extract_results(nb)
             
+            # Combine all outputs into a single string
+            combined_output = []
+            for cell_result in results.values():
+                for output in cell_result.get('outputs', []):
+                    if isinstance(output, str):
+                        combined_output.append(output)
+            
             return {
+                "output": "\n".join(combined_output),
                 "results": results,
                 "execution_time": self._get_execution_time(nb),
                 "success": True
             }
             
         except Exception as e:
+            import traceback
+            error_msg = f"Notebook execution failed: {str(e)}\n{traceback.format_exc()}"
             return {
-                "error": str(e),
-                "success": False
+                "error": error_msg,
+                "success": False,
+                "output": None,
+                "results": None
             }
             
         finally:
@@ -123,13 +141,24 @@ class JupyterNotebookMCP(BaseMCP):
                 outputs = []
                 for output in cell.outputs:
                     if output.output_type == 'execute_result':
-                        outputs.append(output.data.get('text/plain', ''))
+                        # Handle different output types
+                        if 'text/plain' in output.data:
+                            outputs.append(output.data['text/plain'])
+                        elif 'text/html' in output.data:
+                            outputs.append(output.data['text/html'])
+                        elif 'image/png' in output.data:
+                            outputs.append("[Image output]")
+                        elif 'application/json' in output.data:
+                            outputs.append(output.data['application/json'])
                     elif output.output_type == 'stream':
                         outputs.append(output.text)
+                    elif output.output_type == 'error':
+                        outputs.append(f"Error: {output.ename}: {output.evalue}")
                 
                 results[f"cell_{cell.execution_count}"] = {
                     "outputs": outputs,
-                    "execution_count": cell.execution_count
+                    "execution_count": cell.execution_count,
+                    "source": cell.source
                 }
         
         return results

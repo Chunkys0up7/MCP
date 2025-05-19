@@ -3,8 +3,11 @@ import os
 from dotenv import load_dotenv
 import requests
 from pydantic import BaseModel
+import anthropic
+import json
+from pathlib import Path
 
-from .base import BaseMCP, MCPConfig
+from .base import BaseMCPServer, MCPConfig
 
 # Load environment variables
 load_dotenv()
@@ -192,7 +195,7 @@ class ClaudeLLM:
         except requests.exceptions.RequestException as e:
             raise Exception(f"Claude API error: {str(e)}")
 
-class LLMPromptMCP(BaseMCP):
+class LLMPromptMCP(BaseMCPServer):
     """MCP for executing LLM prompts with advanced features.
     
     This class implements the MCP interface for LLM prompts, providing

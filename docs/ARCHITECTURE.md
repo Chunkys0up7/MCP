@@ -1,146 +1,294 @@
-# MCP Architecture Documentation
+# MCP Architecture
 
-## Overview
-MCP (Modular Control Protocol) is a framework for creating and chaining modular components that can perform various tasks, with a focus on LLM (Large Language Model) interactions and data processing.
+This document describes the architecture of the MCP (Model Control Panel) system.
+
+## Table of Contents
+
+1. [System Overview](#system-overview)
+2. [Core Components](#core-components)
+3. [Data Flow](#data-flow)
+4. [Security Architecture](#security-architecture)
+5. [Performance Architecture](#performance-architecture)
+6. [Extension Points](#extension-points)
+
+## System Overview
+
+MCP is designed as a modular, extensible system for managing and executing various types of model-based tasks. The system follows a layered architecture:
+
+```
+┌─────────────────┐
+│      UI Layer   │
+├─────────────────┤
+│   API Layer     │
+├─────────────────┤
+│   Core Layer    │
+└─────────────────┘
+```
+
+### Key Design Principles
+
+1. **Modularity**: Each component has a single responsibility
+2. **Extensibility**: Easy to add new MCP types
+3. **Type Safety**: Strong typing throughout the system
+4. **Error Handling**: Comprehensive error management
+5. **Configuration**: Flexible configuration system
 
 ## Core Components
 
-### Base Classes
+### 1. Core Layer
 
-#### BaseMCP
-The foundation class for all MCP components.
-- **Purpose**: Provides common functionality and interface for all MCPs
-- **Key Methods**:
-  - `execute()`: Abstract method that must be implemented by all MCPs
-  - `name`: Property to get the MCP's name
-  - `description`: Property to get the MCP's description
+#### Types (`core/types.py`)
+- Base configuration classes
+- MCP type definitions
+- Type validation
 
-#### MCPConfig
-Base configuration class for MCPs.
-- **Purpose**: Defines the configuration structure for MCPs
-- **Key Attributes**:
-  - `name`: Name of the MCP
-  - `description`: Optional description of the MCP's purpose
-  - `type`: Type of the MCP
+#### Configuration (`core/config.py`)
+- Environment variable handling
+- Configuration validation
+- Default settings
 
-### LLM Integration
+### 2. API Layer
 
-#### LLMPromptConfig
-Configuration class for LLM-based MCPs.
-- **Purpose**: Defines how LLM prompts should be configured and executed
-- **Key Attributes**:
-  - `template`: The prompt template with variable placeholders
-  - `input_variables`: List of required input variables
-  - `model_name`: LLM model to use (default: "claude-3-sonnet-20240229")
-  - `temperature`: Controls randomness in responses (0.0-1.0)
-  - `max_tokens`: Maximum tokens in response
-  - `system_message`: Optional system message to guide LLM behavior
-  - `output_format`: Optional schema for structured output
-  - `chain_of_thought`: Enable step-by-step reasoning
-  - `context`: Optional persistent context for the MCP
+#### Client (`api/client.py`)
+- API communication
+- Request handling
+- Response processing
 
-#### ClaudeLLM
-Implementation of LLM interface for Claude API.
-- **Purpose**: Handles communication with Claude API
-- **Key Methods**:
-  - `test_connection()`: Validates API connectivity
-  - `call()`: Sends prompt to Claude API and returns response
-- **Features**:
-  - Error handling for API issues
-  - Support for different Claude models
-  - Configurable temperature and token limits
+#### Execution (`api/execution.py`)
+- Task execution
+- Resource management
+- Error handling
 
-#### LLMPromptMCP
-MCP implementation for LLM prompts.
-- **Purpose**: Executes LLM prompts with advanced features
-- **Key Methods**:
-  - `_format_prompt()`: Formats template with input variables
-  - `_build_messages()`: Constructs API message array
-  - `_parse_output()`: Validates and structures LLM output
-  - `execute()`: Main execution method
-- **Features**:
-  - Variable interpolation
-  - System message support
-  - Chain of thought prompting
-  - Output validation
-  - Context management
+### 3. UI Layer
+
+#### Widgets (`ui/widgets/`)
+- Configuration UI components
+- Type-specific widgets
+- Common UI elements
+
+#### App (`ui/app.py`)
+- Main application
+- Navigation
+- State management
 
 ## Data Flow
 
-1. **Input Processing**:
-   - MCP receives input data
-   - Input variables are validated
-   - Template is formatted with input data
+### 1. Configuration Flow
 
-2. **Prompt Execution**:
-   - System message is added if configured
-   - Chain of thought is enabled if requested
-   - Prompt is sent to LLM
-
-3. **Output Processing**:
-   - Response is parsed
-   - Output is validated against schema
-   - Structured result is returned
-
-## Chaining MCPs
-
-MCPs can be chained together by:
-1. Using output from one MCP as input to another
-2. Maintaining context between executions
-3. Structuring output to match next MCP's input requirements
-
-Example:
-```python
-# First MCP analyzes data
-analysis_result = await analysis_mcp.execute({"data": data})
-
-# Second MCP uses analysis for visualization
-viz_result = await viz_mcp.execute({"analysis": analysis_result})
+```
+User Input → UI Widgets → Configuration Objects → Validation → Execution
 ```
 
-## Error Handling
+### 2. Execution Flow
 
-The system implements comprehensive error handling:
-- API connectivity issues
-- Invalid configurations
-- Missing required variables
-- Output validation failures
-- JSON parsing errors
+```
+Configuration → API Client → External Services → Response Processing → UI Update
+```
 
-## Configuration
+### 3. Error Flow
 
-MCPs are configured through:
-1. Configuration objects (e.g., LLMPromptConfig)
-2. Environment variables (e.g., API keys)
-3. Runtime parameters
+```
+Error → Error Handler → Logging → User Notification
+```
 
-## Best Practices
+## Security Architecture
 
-1. **Prompt Design**:
-   - Use clear, specific templates
-   - Include examples when helpful
-   - Structure output format carefully
+### 1. Authentication
 
-2. **Error Handling**:
-   - Always validate inputs
-   - Handle API errors gracefully
-   - Provide clear error messages
+- API key management
+- Environment variable security
+- Secure storage
 
-3. **Performance**:
-   - Cache results when possible
-   - Use appropriate model sizes
-   - Set reasonable token limits
+### 2. Authorization
 
-4. **Security**:
-   - Never expose API keys
-   - Validate all inputs
-   - Sanitize outputs
+- Access control
+- Resource limits
+- Rate limiting
 
-## Future Enhancements
+### 3. Data Security
 
-Planned improvements:
-1. Support for more LLM providers
-2. Enhanced caching mechanisms
-3. Advanced prompt templates
-4. Better error recovery
-5. Monitoring and logging 
+- Input validation
+- Output sanitization
+- Secure communication
+
+## Performance Architecture
+
+### 1. Caching
+
+- Response caching
+- Configuration caching
+- Resource caching
+
+### 2. Concurrency
+
+- Async execution
+- Thread pool management
+- Resource limits
+
+### 3. Resource Management
+
+- Memory management
+- CPU utilization
+- I/O optimization
+
+## Extension Points
+
+### 1. New MCP Types
+
+```python
+class NewMCPConfig(BaseMCPConfig):
+    type: MCPType = MCPType.NEW_TYPE
+    # Configuration fields
+```
+
+### 2. Custom UI Components
+
+```python
+def build_custom_config() -> CustomConfig:
+    """Build custom configuration UI."""
+    # Implementation
+```
+
+### 3. API Extensions
+
+```python
+class ExtendedMCPClient(MCPClient):
+    async def execute_custom(self, config: CustomConfig) -> Dict[str, Any]:
+        """Execute custom task."""
+        # Implementation
+```
+
+## Component Interactions
+
+### 1. UI to Core
+
+```
+UI Widgets → Configuration Objects → Validation → Core Services
+```
+
+### 2. Core to API
+
+```
+Core Services → API Client → External Services → Response Processing
+```
+
+### 3. API to External Services
+
+```
+API Client → Authentication → External API → Response Handling
+```
+
+## Error Handling Architecture
+
+### 1. Error Hierarchy
+
+```
+MCPError
+├── ConfigurationError
+├── ExecutionError
+└── APIError
+```
+
+### 2. Error Flow
+
+```
+Error → Error Handler → Logging → User Notification
+```
+
+### 3. Recovery Strategies
+
+- Retry mechanisms
+- Fallback options
+- Graceful degradation
+
+## Logging Architecture
+
+### 1. Log Levels
+
+- DEBUG: Detailed information
+- INFO: General information
+- WARNING: Potential issues
+- ERROR: Error conditions
+- CRITICAL: Critical failures
+
+### 2. Log Flow
+
+```
+Event → Logger → Handlers → Output
+```
+
+### 3. Log Management
+
+- Log rotation
+- Log aggregation
+- Log analysis
+
+## Testing Architecture
+
+### 1. Test Types
+
+- Unit tests
+- Integration tests
+- End-to-end tests
+- Performance tests
+
+### 2. Test Flow
+
+```
+Test Case → Test Runner → Assertions → Report
+```
+
+### 3. Test Coverage
+
+- Code coverage
+- Branch coverage
+- Path coverage
+
+## Deployment Architecture
+
+### 1. Package Structure
+
+```
+mcp/
+├── mcp/
+│   ├── core/
+│   ├── api/
+│   ├── ui/
+│   └── utils/
+├── tests/
+├── docs/
+└── examples/
+```
+
+### 2. Dependencies
+
+- Production dependencies
+- Development dependencies
+- Optional dependencies
+
+### 3. Installation
+
+- pip installation
+- Development setup
+- Configuration
+
+## Future Architecture
+
+### 1. Planned Features
+
+- Distributed execution
+- Plugin system
+- Web API
+- CLI interface
+
+### 2. Scalability
+
+- Horizontal scaling
+- Load balancing
+- Resource optimization
+
+### 3. Integration
+
+- External service integration
+- Plugin ecosystem
+- API extensions 
