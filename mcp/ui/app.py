@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from typing import Dict, Any
 import json
+import os
 
 # Configure the page
 st.set_page_config(
@@ -87,8 +88,8 @@ def build_llm_config() -> Dict[str, Any]:
     
     # Simple prompt template
     template = st.text_area(
-        "Prompt",
-        help="Enter your prompt here",
+        "Prompt Template",
+        help="Enter your prompt template here. Use {variable_name} for input variables.",
         key="template"
     )
     
@@ -107,7 +108,6 @@ def build_llm_config() -> Dict[str, Any]:
     
     return {
         "type": "llm_prompt",
-        "name": st.session_state.get("mcp_name", ""),
         "template": template,
         "input_variables": input_variables,
         "system_prompt": system_prompt,
@@ -120,32 +120,194 @@ def build_notebook_config() -> Dict[str, Any]:
     """Build Jupyter Notebook configuration through UI"""
     st.subheader("Notebook Configuration")
     
-    notebook_path = st.text_input(
-        "Notebook Path",
-        help="Path to the Jupyter notebook file",
-        key="notebook_path"
+    # File source selection
+    file_source = st.radio(
+        "Notebook Source",
+        ["Use Existing File", "Create New Notebook"],
+        key="notebook_source"
     )
+    
+    if file_source == "Use Existing File":
+        notebook_path = st.text_input(
+            "Notebook Path",
+            help="Path to the Jupyter notebook file",
+            key="notebook_path"
+        )
+    else:
+        # Create new notebook
+        notebook_name = st.text_input(
+            "Notebook Name",
+            help="Name for the new notebook (without .ipynb extension)",
+            key="new_notebook_name"
+        )
+        
+        # Basic notebook template
+        notebook_content = {
+            "cells": [
+                {
+                    "cell_type": "markdown",
+                    "metadata": {},
+                    "source": ["# New Notebook\n\nAdd your cells below."]
+                },
+                {
+                    "cell_type": "code",
+                    "execution_count": None,
+                    "metadata": {},
+                    "source": ["# Your first code cell"],
+                    "outputs": []
+                }
+            ],
+            "metadata": {
+                "kernelspec": {
+                    "display_name": "Python 3",
+                    "language": "python",
+                    "name": "python3"
+                }
+            },
+            "nbformat": 4,
+            "nbformat_minor": 4
+        }
+        
+        # Save notebook button
+        if st.button("Save Notebook"):
+            if notebook_name:
+                notebook_path = f"mcp/notebooks/{notebook_name}.ipynb"
+                os.makedirs(os.path.dirname(notebook_path), exist_ok=True)
+                with open(notebook_path, 'w') as f:
+                    json.dump(notebook_content, f, indent=2)
+                st.success(f"Notebook saved to {notebook_path}")
+            else:
+                st.error("Please provide a notebook name")
     
     execute_all = st.checkbox("Execute All Cells", value=True, key="execute_all")
     if not execute_all:
         cells_to_execute = st.text_input(
             "Cells to Execute",
-            help="Comma-separated list of cell numbers",
+            help="Comma-separated list of cell numbers (e.g., 1,2,3)",
             key="cells_to_execute"
         )
+    
+    # Input variables configuration
+    st.subheader("Input Variables")
+    input_vars = st.text_area(
+        "Input Variables (one per line)",
+        help="Enter input variable names that will be available in the notebook",
+        key="notebook_input_variables"
+    )
+    input_variables = [var.strip() for var in input_vars.split('\n') if var.strip()]
     
     timeout = st.number_input(
         "Timeout (seconds)",
         min_value=60,
         value=600,
-        key="timeout"
+        help="Maximum execution time for the notebook",
+        key="notebook_timeout"
     )
     
     return {
         "type": "jupyter_notebook",
-        "notebook_path": notebook_path,
+        "notebook_path": notebook_path if file_source == "Use Existing File" else f"mcp/notebooks/{notebook_name}.ipynb",
         "execute_all": execute_all,
         "cells_to_execute": cells_to_execute if not execute_all else None,
+        "input_variables": input_variables,
+        "timeout": timeout
+    }
+
+def build_python_script_config() -> Dict[str, Any]:
+    """Build Python Script configuration through UI"""
+    st.subheader("Python Script Configuration")
+    
+    # File source selection
+    file_source = st.radio(
+        "Script Source",
+        ["Use Existing File", "Create New Script"],
+        key="script_source"
+    )
+    
+    if file_source == "Use Existing File":
+        script_path = st.text_input(
+            "Script Path",
+            help="Path to the Python script file",
+            key="script_path"
+        )
+    else:
+        # Create new script
+        script_name = st.text_input(
+            "Script Name",
+            help="Name for the new script (without .py extension)",
+            key="new_script_name"
+        )
+        
+        # Script editor
+        st.subheader("Script Editor")
+        script_content = st.text_area(
+            "Script Content",
+            value="""# Your Python script
+import sys
+
+def main():
+    # Your code here
+    print("Hello, World!")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+""",
+            height=400,
+            key="script_content"
+        )
+        
+        # Save script button
+        if st.button("Save Script"):
+            if script_name:
+                script_path = f"mcp/scripts/{script_name}.py"
+                os.makedirs(os.path.dirname(script_path), exist_ok=True)
+                with open(script_path, 'w') as f:
+                    f.write(script_content)
+                st.success(f"Script saved to {script_path}")
+            else:
+                st.error("Please provide a script name")
+    
+    # Requirements configuration
+    st.subheader("Python Requirements")
+    requirements = st.text_area(
+        "Package Requirements",
+        help="List of Python package requirements (one per line, e.g., requests==2.31.0)",
+        key="requirements"
+    )
+    
+    # Input variables configuration
+    st.subheader("Input Variables")
+    input_vars = st.text_area(
+        "Input Variables",
+        help="List of input variables that will be available in the script (one per line)",
+        key="script_input_variables"
+    )
+    input_variables = [var.strip() for var in input_vars.split('\n') if var.strip()]
+    
+    # Execution settings
+    st.subheader("Execution Settings")
+    virtual_env = st.checkbox(
+        "Use Virtual Environment",
+        value=True,
+        help="Whether to execute the script in a virtual environment",
+        key="virtual_env"
+    )
+    
+    timeout = st.number_input(
+        "Timeout (seconds)",
+        min_value=60,
+        value=600,
+        help="Maximum execution time for the script",
+        key="script_timeout"
+    )
+    
+    return {
+        "type": "python_script",
+        "script_path": script_path if file_source == "Use Existing File" else f"mcp/scripts/{script_name}.py",
+        "requirements": [r.strip() for r in requirements.split("\n") if r.strip()],
+        "input_variables": input_variables,
+        "virtual_env": virtual_env,
         "timeout": timeout
     }
 
@@ -177,29 +339,38 @@ if page == "Dashboard":
 
 elif page == "Create MCP":
     st.header("Create New MCP")
-    with st.form("create_mcp_form"):
-        # Basic Information
-        name = st.text_input("MCP Name")
-        st.session_state["mcp_name"] = name  # Store the name in session state
-        description = st.text_area("Description")
-        
-        # MCP Type Selection
-        mcp_type = st.selectbox(
-            "Select MCP Type",
-            ["LLM Prompt", "Jupyter Notebook"]
-        )
-        
-        # Type-specific configuration
-        if mcp_type == "LLM Prompt":
+    
+    # Basic Information
+    name = st.text_input("MCP Name")
+    st.session_state["mcp_name"] = name  # Store the name in session state
+    description = st.text_area("Description")
+    
+    # MCP Type Selection
+    mcp_type = st.selectbox(
+        "Select MCP Type",
+        ["LLM Prompt", "Jupyter Notebook", "Python Script"]
+    )
+    
+    # Type-specific configuration
+    config = None
+    if mcp_type == "LLM Prompt":
+        with st.form("llm_config_form"):
             config = build_llm_config()
-        else:
+            submitted = st.form_submit_button("Create MCP")
+    elif mcp_type == "Jupyter Notebook":
+        with st.form("notebook_config_form"):
             config = build_notebook_config()
-        
-        # Show the final JSON configuration
+            submitted = st.form_submit_button("Create MCP")
+    else:  # Python Script
+        with st.form("python_script_config_form"):
+            config = build_python_script_config()
+            submitted = st.form_submit_button("Create MCP")
+    
+    # Show the final JSON configuration
+    if config:
         st.subheader("Configuration Preview")
         st.json(config)
         
-        submitted = st.form_submit_button("Create MCP")
         if submitted:
             if name:
                 try:

@@ -10,6 +10,7 @@ from pathlib import Path
 from ..core.base import MCPConfig
 from ..core.llm_prompt import LLMPromptMCP, LLMPromptConfig
 from ..core.jupyter_notebook import JupyterNotebookMCP, JupyterNotebookConfig
+from ..core.python_script import PythonScriptMCP, PythonScriptConfig
 
 app = FastAPI(title="MCP API", description="Microservice Control Panel API")
 
@@ -36,16 +37,15 @@ def load_mcps() -> Dict[str, Any]:
             for mcp_id, mcp_data in data.items():
                 if mcp_data["type"] == "llm_prompt":
                     try:
-                        print(f"Loading MCP {mcp_id} with config: {mcp_data['config']}")
-                        # Create config with model name from storage
                         config = LLMPromptConfig(**mcp_data["config"])
-                        print(f"Created config with model name: {config.model_name}")
-                        # Create MCP instance with config
                         mcp_data["instance"] = LLMPromptMCP(config)
-                        print(f"Successfully created MCP instance for {mcp_id}")
                     except ValueError as e:
-                        print(f"Error creating MCP instance for {mcp_id}: {str(e)}")
-                        # Skip this MCP if there's an error
+                        continue
+                elif mcp_data["type"] == "jupyter_notebook":
+                    try:
+                        config = JupyterNotebookConfig(**mcp_data["config"])
+                        mcp_data["instance"] = JupyterNotebookMCP(config)
+                    except ValueError as e:
                         continue
             return data
     print("[DEBUG] MCP_STORAGE_FILE does not exist!")
@@ -130,8 +130,51 @@ async def create_mcp(request: MCPRequest):
                 "config": request.config
             }
         elif request.type == "jupyter_notebook":
-            # TODO: Implement notebook MCP
-            raise HTTPException(status_code=501, detail="Notebook MCP not implemented yet")
+            if not request.config:
+                raise HTTPException(status_code=400, detail="Config is required for Jupyter Notebook MCP")
+            
+            config = JupyterNotebookConfig(**request.config)
+            mcp = JupyterNotebookMCP(config)
+            mcp_registry[mcp_id] = {
+                "id": mcp_id,
+                "name": request.name,
+                "description": request.description,
+                "type": request.type,
+                "config": request.config,
+                "instance": mcp
+            }
+            # Save to storage
+            save_mcps(mcp_registry)
+            return {
+                "id": mcp_id,
+                "name": request.name,
+                "type": request.type,
+                "description": request.description,
+                "config": request.config
+            }
+        elif request.type == "python_script":
+            if not request.config:
+                raise HTTPException(status_code=400, detail="Config is required for Python Script MCP")
+            
+            config = PythonScriptConfig(**request.config)
+            mcp = PythonScriptMCP(config)
+            mcp_registry[mcp_id] = {
+                "id": mcp_id,
+                "name": request.name,
+                "description": request.description,
+                "type": request.type,
+                "config": request.config,
+                "instance": mcp
+            }
+            # Save to storage
+            save_mcps(mcp_registry)
+            return {
+                "id": mcp_id,
+                "name": request.name,
+                "type": request.type,
+                "description": request.description,
+                "config": request.config
+            }
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported MCP type: {request.type}")
     except ValueError as e:
@@ -155,6 +198,10 @@ async def execute_mcp(mcp_id: str, inputs: Dict[str, Any]):
         result = await mcp["instance"].execute(inputs)
         return result
     except Exception as e:
+        import traceback
+        print("\n[ERROR] Exception during MCP execution:")
+        traceback.print_exc()
+        print(f"[ERROR] Exception message: {e}\n")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/mcps/{mcp_id}")
