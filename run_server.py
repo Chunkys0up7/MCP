@@ -32,6 +32,8 @@ def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
                 host="127.0.0.1",
                 port=port,
                 reload=True,
+                reload_dirs=["mcp"],
+                reload_delay=1.0,
                 log_level="info",
                 timeout_keep_alive=30,  # Increase keep-alive timeout
                 limit_concurrency=100,  # Limit concurrent connections

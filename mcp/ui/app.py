@@ -163,16 +163,11 @@ def render_test_mcps() -> None:
                         if hasattr(result, 'success') and result.success:
                             st.success("Execution completed!")
                             if getattr(result, 'result', None):
-                                st.markdown(f"**Result:**\n\n```
-{result.result}\n```")
+                                st.markdown(f"**Result:**\n\n```\n{result.result}\n```")
                             if getattr(result, 'stdout', None):
-                                st.markdown(f"<details><summary>Show stdout</summary>\n\n```
-{result.stdout}\n```
-</details>", unsafe_allow_html=True)
+                                st.markdown(f"<details><summary>Show stdout</summary>\n\n```\n{result.stdout}\n```\n</details>", unsafe_allow_html=True)
                             if getattr(result, 'stderr', None):
-                                st.markdown(f"<details><summary>Show stderr</summary>\n\n```
-{result.stderr}\n```
-</details>", unsafe_allow_html=True)
+                                st.markdown(f"<details><summary>Show stderr</summary>\n\n```\n{result.stderr}\n```\n</details>", unsafe_allow_html=True)
                         else:
                             error_msg = getattr(result, 'error', 'Unknown error')
                             st.code(f"[ERROR] Execution failed with error: {error_msg}", language="text")
