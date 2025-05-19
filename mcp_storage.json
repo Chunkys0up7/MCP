@@ -135,5 +135,42 @@
       "model_id": "claude-3-sonnet-20240229",
       "context_type": "memory"
     }
+  },
+  "e7292a1d-885d-45df-8eff-e2407dd45e4a": {
+    "id": "e7292a1d-885d-45df-8eff-e2407dd45e4a",
+    "name": "Test Python Script",
+    "description": "Test Python script MCP",
+    "type": "python_script",
+    "config": {
+      "type": "python_script",
+      "name": "Test Python Script",
+      "script_path": "mcp/scripts/hello_world.py",
+      "requirements": [
+        "requests==2.31.0"
+      ],
+      "input_variables": [
+        "name",
+        "language"
+      ],
+      "virtual_env": true,
+      "timeout": 600,
+      "model_id": "python",
+      "context_type": "file"
+    }
+  },
+  "957cb4a4-339c-4027-b7a0-20eec244d9c7": {
+    "id": "957cb4a4-339c-4027-b7a0-20eec244d9c7",
+    "name": "Test Notebook",
+    "description": "Test Jupyter notebook MCP",
+    "type": "jupyter_notebook",
+    "config": {
+      "type": "jupyter_notebook",
+      "name": "Test Notebook",
+      "notebook_path": "mcp/notebooks/example.ipynb",
+      "execute_all": true,
+      "timeout": 600,
+      "model_id": "jupyter",
+      "context_type": "file"
+    }
   }
 }

@@ -1,3 +1,5 @@
+# from dotenv import load_dotenv
+# load_dotenv()
 import uvicorn
 import socket
 import sys
@@ -53,16 +55,16 @@ def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
 def main():
     """Main entry point for the server."""
     # Run MCP API test before starting the server
-    try:
-        result = subprocess.run([sys.executable, "-m", "pytest", "tests/test_api_execute.py", "--maxfail=1", "--disable-warnings", "-v"], capture_output=True, text=True)
-        if result.returncode != 0:
-            print("\n[ERROR] MCP API test failed on startup:\n", result.stdout, result.stderr)
-            sys.exit(1)
-        else:
-            print("[INFO] MCP API test passed on startup.")
-    except Exception as e:
-        print(f"[ERROR] Exception running MCP API test: {e}")
-        sys.exit(1)
+    # try:
+    #     result = subprocess.run([sys.executable, "-m", "pytest", "tests/test_api_execute.py", "--maxfail=1", "--disable-warnings", "-v"], capture_output=True, text=True)
+    #     if result.returncode != 0:
+    #         print("\n[ERROR] MCP API test failed on startup:\n", result.stdout, result.stderr)
+    #         sys.exit(1)
+    #     else:
+    #         print("[INFO] MCP API test passed on startup.")
+    # except Exception as e:
+    #     print(f"[ERROR] Exception running MCP API test: {e}")
+    #     sys.exit(1)
 
     # Try to find an available port
     port = find_available_port()

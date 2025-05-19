@@ -1,8 +1,14 @@
 import requests
 import pytest
+import os
 from mcp.core.types import MCPType, LLMPromptConfig
 
 API_BASE_URL = "http://localhost:8000"
+API_KEY = os.getenv("MCP_API_KEY", "test_api_key")  # Use environment variable or default for testing
+HEADERS = {
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+}
 
 def test_llm_prompt_execution():
     """Test LLM prompt MCP execution flow."""
@@ -23,7 +29,7 @@ def test_llm_prompt_execution():
     }
     
     # Create server
-    create_resp = requests.post(f"{API_BASE_URL}/context", json=config)
+    create_resp = requests.post(f"{API_BASE_URL}/context", json=config, headers=HEADERS)
     assert create_resp.status_code == 200, f"Failed to create MCP: {create_resp.text}"
     server_data = create_resp.json()
     server_id = server_data["id"]
@@ -31,7 +37,7 @@ def test_llm_prompt_execution():
     try:
         # Execute server
         inputs = {"topic": "programming"}
-        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs)
+        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs, headers=HEADERS)
         assert execute_resp.status_code == 200, f"Failed to execute MCP: {execute_resp.text}"
         result = execute_resp.json()
         
@@ -43,7 +49,7 @@ def test_llm_prompt_execution():
         
     finally:
         # Clean up
-        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}")
+        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}", headers=HEADERS)
         assert delete_resp.status_code == 200, f"Failed to delete MCP: {delete_resp.text}"
 
 def test_python_script_execution():
@@ -65,7 +71,7 @@ def test_python_script_execution():
     }
     
     # Create server
-    create_resp = requests.post(f"{API_BASE_URL}/context", json=config)
+    create_resp = requests.post(f"{API_BASE_URL}/context", json=config, headers=HEADERS)
     assert create_resp.status_code == 200, f"Failed to create MCP: {create_resp.text}"
     server_data = create_resp.json()
     server_id = server_data["id"]
@@ -73,7 +79,7 @@ def test_python_script_execution():
     try:
         # Execute server
         inputs = {"name": "Test User", "language": "Python"}
-        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs)
+        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs, headers=HEADERS)
         assert execute_resp.status_code == 200, f"Failed to execute MCP: {execute_resp.text}"
         result = execute_resp.json()
         
@@ -85,7 +91,7 @@ def test_python_script_execution():
         
     finally:
         # Clean up
-        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}")
+        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}", headers=HEADERS)
         assert delete_resp.status_code == 200, f"Failed to delete MCP: {delete_resp.text}"
 
 def test_jupyter_notebook_execution():
@@ -105,7 +111,7 @@ def test_jupyter_notebook_execution():
     }
     
     # Create server
-    create_resp = requests.post(f"{API_BASE_URL}/context", json=config)
+    create_resp = requests.post(f"{API_BASE_URL}/context", json=config, headers=HEADERS)
     assert create_resp.status_code == 200, f"Failed to create MCP: {create_resp.text}"
     server_data = create_resp.json()
     server_id = server_data["id"]
@@ -113,7 +119,7 @@ def test_jupyter_notebook_execution():
     try:
         # Execute server
         inputs = {}  # No inputs required for this example notebook
-        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs)
+        execute_resp = requests.post(f"{API_BASE_URL}/context/{server_id}/execute", json=inputs, headers=HEADERS)
         assert execute_resp.status_code == 200, f"Failed to execute MCP: {execute_resp.text}"
         result = execute_resp.json()
         
@@ -125,5 +131,5 @@ def test_jupyter_notebook_execution():
         
     finally:
         # Clean up
-        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}")
+        delete_resp = requests.delete(f"{API_BASE_URL}/context/{server_id}", headers=HEADERS)
         assert delete_resp.status_code == 200, f"Failed to delete MCP: {delete_resp.text}" 
