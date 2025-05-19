@@ -3,6 +3,8 @@ import requests
 from typing import Dict, Any
 import json
 import os
+import time
+from pathlib import Path
 
 # Configure the page
 st.set_page_config(
@@ -23,6 +25,41 @@ page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage MCPs", "Cha
 
 # API endpoint
 API_URL = "http://localhost:8000"
+
+# Add WebSocket error handling
+def handle_websocket_error(func):
+    """Decorator to handle WebSocket errors and implement reconnection logic."""
+    def wrapper(*args, **kwargs):
+        max_retries = 3
+        retry_delay = 1  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if "WebSocketClosedError" in str(e) or "StreamClosedError" in str(e):
+                    if attempt < max_retries - 1:
+                        st.warning(f"Connection lost. Retrying in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # Exponential backoff
+                    else:
+                        st.error("Failed to establish connection after multiple attempts. Please refresh the page.")
+                        raise
+                else:
+                    raise
+    return wrapper
+
+def get_api_url():
+    """Get the API URL, trying different ports if needed"""
+    ports = range(8000, 9000)
+    for port in ports:
+        try:
+            response = requests.get(f"http://localhost:{port}/mcps")
+            if response.status_code == 200:
+                return f"http://localhost:{port}"
+        except requests.exceptions.RequestException:
+            continue
+    return "http://localhost:8000"  # Default fallback
 
 def create_mcp(name: str, description: str, config: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new MCP instance"""
@@ -61,23 +98,15 @@ def build_llm_config() -> Dict[str, Any]:
     st.subheader("LLM Configuration")
     
     # Model selection
-    model_provider = st.selectbox(
-        "Model Provider",
-        ["perplexity"],
-        key="model_provider"
+    model_name = st.selectbox(
+        "Model",
+        [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240229"
+        ],
+        key="model_name"
     )
-    
-    # Model name based on provider
-    if model_provider == "perplexity":
-        model_name = st.selectbox(
-            "Model",
-            [
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240229"
-            ],
-            key="model_name"
-        )
     
     # System prompt
     system_prompt = st.text_area(
@@ -141,41 +170,91 @@ def build_notebook_config() -> Dict[str, Any]:
             key="new_notebook_name"
         )
         
-        # Basic notebook template
-        notebook_content = {
-            "cells": [
-                {
-                    "cell_type": "markdown",
-                    "metadata": {},
-                    "source": ["# New Notebook\n\nAdd your cells below."]
-                },
-                {
-                    "cell_type": "code",
-                    "execution_count": None,
-                    "metadata": {},
-                    "source": ["# Your first code cell"],
-                    "outputs": []
-                }
-            ],
-            "metadata": {
-                "kernelspec": {
-                    "display_name": "Python 3",
-                    "language": "python",
-                    "name": "python3"
-                }
-            },
-            "nbformat": 4,
-            "nbformat_minor": 4
-        }
+        # Notebook editor with cells
+        st.subheader("Notebook Editor")
+        
+        # Initialize cells in session state if not present
+        if 'notebook_cells' not in st.session_state:
+            st.session_state.notebook_cells = [
+                {"type": "markdown", "content": "# New Notebook\n\nAdd your cells below."},
+                {"type": "code", "content": "# Your first code cell"}
+            ]
+        
+        # Add new cell button
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Add Code Cell"):
+                st.session_state.notebook_cells.append({"type": "code", "content": ""})
+        with col2:
+            if st.button("Add Markdown Cell"):
+                st.session_state.notebook_cells.append({"type": "markdown", "content": ""})
+        
+        # Display and edit cells
+        for i, cell in enumerate(st.session_state.notebook_cells):
+            st.subheader(f"Cell {i+1} ({cell['type']})")
+            # Cell type selector
+            cell_type = st.radio(
+                "Cell Type",
+                ["code", "markdown"],
+                index=0 if cell["type"] == "code" else 1,
+                key=f"cell_type_{i}"
+            )
+            
+            # Cell content editor
+            cell_content = st.text_area(
+                "Cell Content",
+                value=cell["content"],
+                height=150,
+                key=f"cell_content_{i}"
+            )
+            
+            # Update cell in session state
+            st.session_state.notebook_cells[i] = {
+                "type": cell_type,
+                "content": cell_content
+            }
+            
+            # Delete cell button
+            if st.button("Delete Cell", key=f"delete_cell_{i}"):
+                st.session_state.notebook_cells.pop(i)
+                st.rerun()
+            
+            st.markdown("---")  # Add a separator between cells
         
         # Save notebook button
         if st.button("Save Notebook"):
             if notebook_name:
-                notebook_path = f"mcp/notebooks/{notebook_name}.ipynb"
-                os.makedirs(os.path.dirname(notebook_path), exist_ok=True)
-                with open(notebook_path, 'w') as f:
-                    json.dump(notebook_content, f, indent=2)
-                st.success(f"Notebook saved to {notebook_path}")
+                try:
+                    # Convert cells to notebook format
+                    notebook_content = {
+                        "cells": [
+                            {
+                                "cell_type": cell["type"],
+                                "metadata": {},
+                                "source": [cell["content"]],
+                                "execution_count": None,
+                                "outputs": []
+                            }
+                            for cell in st.session_state.notebook_cells
+                        ],
+                        "metadata": {
+                            "kernelspec": {
+                                "display_name": "Python 3",
+                                "language": "python",
+                                "name": "python3"
+                            }
+                        },
+                        "nbformat": 4,
+                        "nbformat_minor": 4
+                    }
+                    
+                    notebook_path = f"mcp/notebooks/{notebook_name}.ipynb"
+                    os.makedirs(os.path.dirname(notebook_path), exist_ok=True)
+                    with open(notebook_path, 'w') as f:
+                        json.dump(notebook_content, f, indent=2)
+                    st.success(f"Notebook saved to {notebook_path}")
+                except Exception as e:
+                    st.error(f"Error saving notebook: {str(e)}")
             else:
                 st.error("Please provide a notebook name")
     
@@ -260,11 +339,14 @@ if __name__ == "__main__":
         # Save script button
         if st.button("Save Script"):
             if script_name:
-                script_path = f"mcp/scripts/{script_name}.py"
-                os.makedirs(os.path.dirname(script_path), exist_ok=True)
-                with open(script_path, 'w') as f:
-                    f.write(script_content)
-                st.success(f"Script saved to {script_path}")
+                try:
+                    script_path = f"mcp/scripts/{script_name}.py"
+                    os.makedirs(os.path.dirname(script_path), exist_ok=True)
+                    with open(script_path, 'w') as f:
+                        f.write(script_content)
+                    st.success(f"Script saved to {script_path}")
+                except Exception as e:
+                    st.error(f"Error saving script: {str(e)}")
             else:
                 st.error("Please provide a script name")
     
@@ -311,18 +393,246 @@ if __name__ == "__main__":
         "timeout": timeout
     }
 
+@handle_websocket_error
 def execute_mcp(mcp_id: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
     """Execute an MCP instance with given inputs"""
     try:
         response = requests.post(
-            f"{API_URL}/mcps/{mcp_id}/execute",
+            f"http://127.0.0.1:8000/api/mcps/{mcp_id}/execute",
             json=inputs
         )
         response.raise_for_status()
-        return response.json()
+        result = response.json()
+        
+        if "error" in result:
+            st.error(f"Error executing MCP: {result['error']}")
+            return None
+        elif "result" in result:
+            # LLM prompt response
+            return result
+        else:
+            # Generic response
+            return {
+                "result": result,
+                "success": True
+            }
     except requests.exceptions.RequestException as e:
         st.error(f"Error executing MCP: {str(e)}")
         return None
+
+def build_ai_assistant(mcp_type: str, current_config: Dict[str, Any] = None) -> None:
+    """
+    Build AI assistant component to help users create MCPs.
+    Visually enhanced: shows MCP type badge, uses a styled container, and clarifies that help is specific to the MCP type.
+    Args:
+        mcp_type (str): The type of MCP being created (LLM Prompt, Jupyter Notebook, Python Script).
+        current_config (Dict[str, Any], optional): The current MCP configuration.
+    """
+    # Sidebar container for the assistant
+    with st.sidebar:
+        with st.container():
+            # MCP type badge and description
+            mcp_type_map = {
+                "LLM Prompt": ("🧠 LLM Prompt", "Help for language model prompt MCPs."),
+                "Jupyter Notebook": ("📓 Jupyter Notebook", "Help for notebook-based MCPs."),
+                "Python Script": ("🐍 Python Script", "Help for Python script MCPs.")
+            }
+            badge, desc = mcp_type_map.get(mcp_type, ("❓ Unknown", "Help for this MCP type."))
+            st.markdown(f"<div style='display:flex;align-items:center;gap:0.5em;'><span style='background:#262730;color:#fff;padding:0.2em 0.7em;border-radius:1em;font-weight:bold;font-size:1em;'>{badge}</span><span style='color:#aaa;font-size:0.9em;'>{desc}</span></div>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin:0.5em 0;' />", unsafe_allow_html=True)
+            st.markdown("<span style='color:#aaa;font-size:0.9em;'>AI Assistant help is <b>specific to the type of MCP</b> you are creating.</span>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Initialize chat history in session state if not present
+            if 'assistant_messages' not in st.session_state:
+                st.session_state.assistant_messages = []
+            if 'last_assistant_response' not in st.session_state:
+                st.session_state.last_assistant_response = None
+
+            # Display chat history with icons
+            for message in st.session_state.assistant_messages:
+                icon = "🧑‍💻" if message["role"] == "user" else "🤖"
+                st.markdown(f"<div style='margin-bottom:0.5em;'><span style='font-size:1.2em;'>{icon}</span> <span style='background:#23242b;padding:0.5em 0.8em;border-radius:0.7em;color:#fff;'>{message['content']}</span></div>", unsafe_allow_html=True)
+
+            # Input form
+            with st.form(key="assistant_form"):
+                user_input = st.text_input("Ask for help", key="assistant_input")
+                submit_button = st.form_submit_button("Send")
+
+            if submit_button and user_input:
+                # Prevent repeated generic questions
+                if (st.session_state.last_assistant_response and 
+                    user_input.lower() in ["help me", "help", "what can you do", "show options"]):
+                    st.warning("I've already shown you the available help topics. Please ask a specific question about what you'd like to know more about.")
+                    return
+                # Add user message
+                st.session_state.assistant_messages.append({"role": "user", "content": user_input})
+                # Generate response
+                if mcp_type == "LLM Prompt":
+                    response = generate_llm_prompt_help(user_input, current_config)
+                elif mcp_type == "Jupyter Notebook":
+                    response = generate_notebook_help(user_input, current_config)
+                else:
+                    response = generate_script_help(user_input, current_config)
+                st.session_state.last_assistant_response = response
+                st.session_state.assistant_messages.append({"role": "assistant", "content": response})
+                st.rerun()
+
+def generate_llm_prompt_help(user_input: str, current_config: Dict[str, Any] = None) -> str:
+    """Generate help for LLM prompt creation"""
+    # Common help topics
+    help_topics = {
+        "template": "Your prompt template should be clear and specific. Use {variable_name} for input variables.",
+        "system_prompt": "The system prompt helps set the context and behavior of the model. Make it specific to your use case.",
+        "input_variables": "Input variables should be descriptive and match the {variable_name} placeholders in your template.",
+        "model": "Choose the model based on your needs:\n- Opus: Best for complex tasks\n- Sonnet: Good balance of capability and speed\n- Haiku: Fastest, good for simple tasks",
+        "temperature": "Temperature controls randomness:\n- 0.0-0.3: Very focused and deterministic\n- 0.4-0.7: Balanced creativity\n- 0.8-1.0: More creative and varied",
+        "max_tokens": "Max tokens limits response length. Consider your use case:\n- Short responses: 100-500\n- Medium responses: 500-2000\n- Long responses: 2000+"
+    }
+    
+    # Analyze user input for keywords
+    input_lower = user_input.lower()
+    response = []
+    
+    # Check for specific help requests
+    if "template" in input_lower or "prompt" in input_lower:
+        response.append(help_topics["template"])
+    if "system" in input_lower:
+        response.append(help_topics["system_prompt"])
+    if "input" in input_lower or "variable" in input_lower:
+        response.append(help_topics["input_variables"])
+    if "model" in input_lower:
+        response.append(help_topics["model"])
+    if "temperature" in input_lower:
+        response.append(help_topics["temperature"])
+    if "token" in input_lower or "length" in input_lower:
+        response.append(help_topics["max_tokens"])
+    
+    # If no specific help was requested, provide general guidance
+    if not response:
+        if input_lower in ["help me", "help", "what can you do", "show options"]:
+            response = [
+                "I can help you with:\n",
+                "- Writing effective prompt templates",
+                "- Setting up system prompts",
+                "- Defining input variables",
+                "- Choosing the right model",
+                "- Configuring temperature and max tokens",
+                "\nPlease ask a specific question about any of these topics!"
+            ]
+        else:
+            response = [
+                "I'm not sure what you're asking about. Could you please be more specific?",
+                "For example, you could ask about:",
+                "- How to write a good prompt template",
+                "- What temperature setting to use",
+                "- How to define input variables",
+                "- Which model to choose for your use case"
+            ]
+    
+    return "\n".join(response)
+
+def generate_notebook_help(user_input: str, current_config: Dict[str, Any] = None) -> str:
+    """Generate help for notebook creation"""
+    # Common help topics
+    help_topics = {
+        "structure": "A good notebook structure includes:\n- Introduction and setup cells\n- Data loading and preprocessing\n- Analysis and visualization\n- Results and conclusions",
+        "cells": "Use different cell types effectively:\n- Markdown cells for documentation\n- Code cells for execution\n- Raw cells for special content",
+        "execution": "Execution settings:\n- Execute All: Runs all cells in sequence\n- Specific Cells: Run only selected cells\n- Timeout: Set appropriate execution time",
+        "variables": "Input variables should be:\n- Clearly named\n- Documented in markdown\n- Used consistently throughout the notebook",
+        "dependencies": "Make sure to include all required packages in your notebook's first code cell"
+    }
+    
+    # Analyze user input for keywords
+    input_lower = user_input.lower()
+    response = []
+    
+    # Check for specific help requests
+    if "structure" in input_lower or "organize" in input_lower:
+        response.append(help_topics["structure"])
+    if "cell" in input_lower:
+        response.append(help_topics["cells"])
+    if "execute" in input_lower or "run" in input_lower:
+        response.append(help_topics["execution"])
+    if "variable" in input_lower or "input" in input_lower:
+        response.append(help_topics["variables"])
+    if "package" in input_lower or "dependency" in input_lower:
+        response.append(help_topics["dependencies"])
+    
+    # If no specific help was requested, provide general guidance
+    if not response:
+        if input_lower in ["help me", "help", "what can you do", "show options"]:
+            response = [
+                "I can help you with:\n",
+                "- Structuring your notebook",
+                "- Using different cell types",
+                "- Setting up execution",
+                "- Managing input variables",
+                "- Handling dependencies",
+                "\nPlease ask a specific question about any of these topics!"
+            ]
+        else:
+            response = [
+                "I'm not sure what you're asking about. Could you please be more specific?",
+                "For example, you could ask about:",
+                "- How to structure your notebook",
+                "- How to use different cell types",
+                "- How to set up execution",
+                "- How to manage input variables"
+            ]
+    
+    return "\n".join(response)
+
+def generate_script_help(user_input: str, current_config: Dict[str, Any] = None) -> str:
+    """Generate help for Python script creation"""
+    # Common help topics
+    help_topics = {
+        "structure": "A well-structured script includes:\n- Imports at the top\n- Configuration and constants\n- Main function\n- Helper functions\n- if __name__ == '__main__' block",
+        "requirements": "List all required packages with versions:\n- Use requirements.txt format\n- Specify exact versions for stability\n- Include all dependencies",
+        "variables": "Input variables should be:\n- Clearly typed\n- Documented with docstrings\n- Validated when possible",
+        "virtual_env": "Virtual environment benefits:\n- Isolated dependencies\n- Reproducible environment\n- Clean execution",
+        "timeout": "Set appropriate timeout based on:\n- Script complexity\n- Expected execution time\n- Resource requirements"
+    }
+    
+    # Analyze user input for keywords
+    input_lower = user_input.lower()
+    response = []
+    
+    # Check for specific help requests
+    if "structure" in input_lower or "organize" in input_lower:
+        response.append(help_topics["structure"])
+    if "requirement" in input_lower or "package" in input_lower:
+        response.append(help_topics["requirements"])
+    if "variable" in input_lower or "input" in input_lower:
+        response.append(help_topics["variables"])
+    if "virtual" in input_lower or "environment" in input_lower:
+        response.append(help_topics["virtual_env"])
+    if "timeout" in input_lower or "execution" in input_lower:
+        response.append(help_topics["timeout"])
+    
+    # If no specific help was requested, provide general guidance
+    if not response:
+        if input_lower in ["help me", "help", "what can you do", "show options"]:
+            response = [
+                "I can help you with:\n",
+                "- Structuring your Python script",
+                "- Managing requirements",
+                "- Handling input variables",
+                "- Setting up virtual environments",
+                "- Configuring execution settings",
+                "\nPlease ask a specific question about any of these topics!"
+            ]
+        else:
+            response = [
+                "I'm not sure what you're asking about. Could you please be more specific?",
+                "For example, you could ask about:",
+                "- How to structure your script",
+                "- How to manage requirements",
+                "- How to handle input variables",
+                "- How to set up a virtual environment"
+            ]
+    
+    return "\n".join(response)
 
 # Main content based on selected page
 if page == "Dashboard":
@@ -358,13 +668,14 @@ elif page == "Create MCP":
             config = build_llm_config()
             submitted = st.form_submit_button("Create MCP")
     elif mcp_type == "Jupyter Notebook":
-        with st.form("notebook_config_form"):
-            config = build_notebook_config()
-            submitted = st.form_submit_button("Create MCP")
+        config = build_notebook_config()
+        submitted = st.button("Create MCP")
     else:  # Python Script
-        with st.form("python_script_config_form"):
-            config = build_python_script_config()
-            submitted = st.form_submit_button("Create MCP")
+        config = build_python_script_config()
+        submitted = st.button("Create MCP")
+    
+    # Add AI Assistant
+    build_ai_assistant(mcp_type, config)
     
     # Show the final JSON configuration
     if config:
@@ -399,14 +710,26 @@ elif page == "Manage MCPs":
                     with st.spinner("Executing..."):
                         result = execute_mcp(mcp['id'], mcp_inputs)
                         if result:
-                            if "error" in result:
+                            if "error" in result and result["error"]:
                                 st.error(f"Error: {result['error']}")
                             else:
                                 st.success("Execution completed!")
-                                st.write("Result:")
-                                st.write(result.get('result', 'No result'))
-                                st.write("Model:", result.get('model', 'Unknown'))
-                                st.write("Prompt:", result.get('prompt', 'Unknown'))
+                                
+                                # Display the main result
+                                st.subheader("Results")
+                                if isinstance(result.get('result'), dict):
+                                    for key, value in result['result'].items():
+                                        st.write(f"**{key}**: {value}")
+                                else:
+                                    st.write("Result:", result.get('result', 'No result'))
+                                
+                                # Display standard output/error in separate sections
+                                if result.get('stdout'):
+                                    st.subheader("Standard Output")
+                                    st.code(result['stdout'])
+                                if result.get('stderr'):
+                                    st.subheader("Error Output")
+                                    st.code(result['stderr'])
                 if mcp['type'] == 'jupyter_notebook':
                     if st.button(f"Execute {mcp['name']} Notebook", key=f"execute_nb_{mcp['id']}"):
                         with st.spinner("Executing notebook..."):
