@@ -7,22 +7,24 @@ A simple hello world example that demonstrates:
 
 import requests
 import sys
+import json
 from datetime import datetime
 
 def main():
     try:
-        # Use the input variables
-        name = name if 'name' in globals() else "World"
-        language = language if 'language' in globals() else "en"
+        # Get input variables with defaults
+        name = globals().get('name', "World")
+        language = globals().get('language', "en")
         
         # Get current time
         current_time = datetime.now().strftime("%H:%M:%S")
         
-        # Print a greeting
+        # Create greeting
         greeting = f"Hello, {name}! The current time is {current_time}"
         print(greeting)
         
         # Try to get a random fact (demonstrates using requirements)
+        fact = None
         try:
             response = requests.get("https://uselessfacts.jsph.pl/api/v2/facts/random")
             response.raise_for_status()
@@ -31,11 +33,25 @@ def main():
         except requests.exceptions.RequestException as e:
             print(f"\nCouldn't fetch a random fact: {str(e)}")
         
-        # Return success
-        return 0
+        # Return results as dictionary
+        result = {
+            "status": "success",
+            "greeting": greeting,
+            "fact": fact,
+            "timestamp": current_time
+        }
+        print(json.dumps(result))  # Print the result as JSON
+        return result
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
-        return 1
+        error_msg = f"Error: {str(e)}"
+        print(error_msg, file=sys.stderr)
+        result = {
+            "status": "error",
+            "error": error_msg
+        }
+        print(json.dumps(result))  # Print the error as JSON
+        return result
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    result = main()
+    sys.exit(0 if result["status"] == "success" else 1) 

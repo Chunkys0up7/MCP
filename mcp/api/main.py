@@ -47,6 +47,12 @@ def load_mcps() -> Dict[str, Any]:
                         mcp_data["instance"] = JupyterNotebookMCP(config)
                     except ValueError as e:
                         continue
+                elif mcp_data["type"] == "python_script":
+                    try:
+                        config = PythonScriptConfig(**mcp_data["config"])
+                        mcp_data["instance"] = PythonScriptMCP(config)
+                    except ValueError as e:
+                        continue
             return data
     print("[DEBUG] MCP_STORAGE_FILE does not exist!")
     return {}
