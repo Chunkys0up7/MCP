@@ -1,0 +1,33 @@
+{
+    "chains": {
+        "hello-world-demo": {
+            "id": "hello-world-demo",
+            "name": "Hello World Demo Chain",
+            "description": "A simple demo chain that greets in multiple languages",
+            "execution_mode": "Sequential",
+            "steps": [
+                {
+                    "mcp_id": "fbb419c9-8b55-4cd8-ad12-31173555c7b1",
+                    "inputs": {
+                        "name": "World",
+                        "language": "en"
+                    }
+                },
+                {
+                    "mcp_id": "fbb419c9-8b55-4cd8-ad12-31173555c7b1",
+                    "inputs": {
+                        "name": "World",
+                        "language": "es"
+                    }
+                },
+                {
+                    "mcp_id": "fbb419c9-8b55-4cd8-ad12-31173555c7b1",
+                    "inputs": {
+                        "name": "World",
+                        "language": "fr"
+                    }
+                }
+            ]
+        }
+    }
+} 

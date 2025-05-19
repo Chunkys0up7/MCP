@@ -1,7 +1,33 @@
 import streamlit as st
-import requests
-from typing import Dict, Any
 import json
+from typing import Dict, Any, List
+import os
+import sys
+from pathlib import Path
+import time
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Add the project root to Python path
+project_root = str(Path(__file__).parent.parent.parent)
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from mcp.core.models import MCPResult
+from mcp.api.client import MCPClient
+from mcp.core.config import config
+from mcp.core.types import MCPType, LLMPromptConfig, JupyterNotebookConfig, PythonScriptConfig
+from mcp.mcp_types.llm_prompt import LLMPromptMCP
+from mcp.mcp_types.jupyter import JupyterNotebookMCP
+from mcp.mcp_types.python_script import PythonScriptMCP
+from mcp.ui.widgets.chain_builder import ChainBuilder
+from mcp.ui.widgets.chain_executor import ChainExecutor
+
+# Initialize the MCP client
+client = MCPClient(base_url=config.api_base_url)
 
 # Configure the page
 st.set_page_config(
@@ -11,223 +37,226 @@ st.set_page_config(
 )
 
 # Title and description
-st.title("Microservice Control Panel")
+st.title("Model Context Protocol Dashboard")
 st.markdown("""
-This dashboard allows you to manage and monitor your microservices.
+This dashboard allows you to manage and monitor your MCP servers.
 """)
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage MCPs"])
+page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"])
 
-# API endpoint
-API_URL = "http://localhost:8000"
+def render_dashboard() -> None:
+    """Display the dashboard page with a summary of active MCPs."""
+    st.header("Dashboard")
+    servers = client.get_servers()
+    
+    if not servers:
+        st.info("No MCPs found. Create one to get started!")
+        return
+    
+    st.write(f"Active MCPs: {len(servers)}")
+    for server in servers:
+        with st.expander(f"{server['name']} ({server['type']})"):
+            st.write("Description:", server.get('description', 'No description'))
+            st.write("Configuration:", server.get('config', {}))
 
-def create_mcp(name: str, description: str, config: Dict[str, Any]) -> Dict[str, Any]:
-    """Create a new MCP instance"""
-    try:
-        response = requests.post(
-            f"{API_URL}/mcps",
-            json={
-                "name": name,
-                "description": description,
-                "type": config["type"],
-                "config": config
-            }
-        )
-        if response.status_code == 400:
-            st.error(f"Error creating MCP: {response.json().get('detail', 'Unknown error')}")
-            return None
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error creating MCP: {str(e)}")
-        return None
+def render_create_mcp() -> None:
+    """Display the page for creating a new MCP."""
+    st.header("Create New MCP")
+    
+    # Basic Information
+    name = st.text_input("MCP Name")
+    description = st.text_area("Description")
+    
+    # MCP Type Selection
+    mcp_type = st.selectbox(
+        "Select MCP Type",
+        [t.value for t in MCPType]
+    )
+    
+    # Type-specific configuration
+    if mcp_type == MCPType.LLM_PROMPT:
+        config = build_llm_config()
+    elif mcp_type == MCPType.JUPYTER_NOTEBOOK:
+        config = build_notebook_config()
+    else:  # Python Script
+        config = build_script_config()
+    
+    if st.button("Create MCP"):
+        if not name:
+            st.error("Please provide a name for the MCP")
+            return
+        
+        try:
+            # Create appropriate MCP instance
+            if mcp_type == MCPType.LLM_PROMPT:
+                mcp = LLMPromptMCP(config)
+            elif mcp_type == MCPType.JUPYTER_NOTEBOOK:
+                mcp = JupyterNotebookMCP(config)
+            else:
+                mcp = PythonScriptMCP(config)
+            
+            if mcp.create():
+                st.success(f"Successfully created MCP: {name}")
+            else:
+                st.error("Failed to create MCP")
+        except Exception as e:
+            st.error(f"Error creating MCP: {str(e)}")
 
-def get_mcps() -> list:
-    """Get all MCP instances"""
-    try:
-        response = requests.get(f"{API_URL}/mcps")
-        response.raise_for_status()
-        data = response.json()
-        return data.get("mcps", [])
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error fetching MCPs: {str(e)}")
-        return []
+def render_manage_mcps() -> None:
+    """Display the page for managing (deleting) MCPs."""
+    st.header("Manage MCPs")
+    servers = client.get_servers()
+    
+    if not servers:
+        st.info("No MCPs to manage. Create one first!")
+        return
+    
+    for server in servers:
+        with st.expander(f"{server['name']} ({server['type']})"):
+            st.write("Description:", server.get('description', 'No description'))
+            st.write("Type:", server.get('type', 'Unknown'))
+            
+            # Delete button
+            if st.button("Delete", key=f"delete_{server['id']}"):
+                if client.delete_server(server['id']):
+                    st.success(f"Server {server['name']} deleted successfully!")
+                    st.experimental_rerun()
+                else:
+                    st.error("Failed to delete server")
+
+def render_test_mcps() -> None:
+    """Display the page for testing MCPs and viewing results."""
+    st.header("Test MCPs")
+    servers = client.get_servers()
+    
+    if not servers:
+        st.info("No MCPs to test. Create one first!")
+        return
+    
+    for server in servers:
+        with st.expander(f"{server['name']} ({server['type']})"):
+            st.write("Description:", server.get('description', 'No description'))
+            st.write("Type:", server.get('type', 'Unknown'))
+            
+            # Always show input fields for execution
+            inputs = {}
+            input_vars = server['config'].get('input_variables', [])
+            if input_vars:
+                st.subheader("Execute MCP")
+                for var in input_vars:
+                    inputs[var] = st.text_input(
+                        f"Input: {var}",
+                        key=f"input_{server['id']}_{var}"
+                    )
+            else:
+                st.info("No input variables required for this MCP.")
+            
+            if st.button("Execute", key=f"execute_{server['id']}"):
+                st.write("Button pressed!")
+                with st.spinner("Executing..."):
+                    try:
+                        st.code(f"[DEBUG] Executing MCP {server['name']} with inputs: {inputs}", language="text")
+                        st.code(f"[DEBUG] Server config: {server['config']}", language="text")
+                        data = client.execute_server(server['id'], inputs)
+                        st.code(f"[DEBUG] Raw backend response: {data}", language="text")
+                        result = MCPResult(**data) if isinstance(data, dict) else data
+                        if hasattr(result, 'success') and result.success:
+                            st.success("Execution completed!")
+                            if getattr(result, 'result', None):
+                                st.markdown(f"**Result:**\n\n```\n{result.result}\n```")
+                            if getattr(result, 'stdout', None):
+                                st.markdown(f"<details><summary>Show stdout</summary>\n\n```\n{result.stdout}\n```\n</details>", unsafe_allow_html=True)
+                            if getattr(result, 'stderr', None):
+                                st.markdown(f"<details><summary>Show stderr</summary>\n\n```\n{result.stderr}\n```\n</details>", unsafe_allow_html=True)
+                        else:
+                            error_msg = getattr(result, 'error', 'Unknown error')
+                            st.code(f"[ERROR] Execution failed with error: {error_msg}", language="text")
+                            st.error(f"Error: {error_msg}")
+                    except Exception as e:
+                        st.code(f"[EXCEPTION] Execution failed: {str(e)}", language="text")
+                        import traceback
+                        st.code(traceback.format_exc(), language="python")
+
+def render_chain_builder() -> None:
+    """Display the chain builder interface."""
+    chain_builder = ChainBuilder()
+    chain_builder.render()
+
+def render_chain_executor() -> None:
+    """Display the chain executor interface."""
+    chain_executor = ChainExecutor()
+    chain_executor.render()
 
 def build_llm_config() -> Dict[str, Any]:
-    """Build LLM configuration through UI"""
-    st.subheader("LLM Configuration")
-    
-    # Model selection
-    model_provider = st.selectbox(
-        "Model Provider",
-        ["perplexity"],
-        key="model_provider"
-    )
-    
-    # Model name based on provider
-    if model_provider == "perplexity":
-        model_name = st.selectbox(
-            "Model",
-            [
-                "claude-3-opus-20240229",
-                "claude-3-sonnet-20240229",
-                "claude-3-haiku-20240229"
-            ],
-            key="model_name"
-        )
-    
-    # Simple prompt template
+    """Build configuration for LLM Prompt MCP."""
     template = st.text_area(
-        "Prompt",
-        help="Enter your prompt here",
-        key="template"
+        "Prompt Template",
+        help="Use {variable_name} for input variables"
     )
     
-    # Model parameters
-    temperature = st.slider("Temperature", 0.0, 1.0, 0.7, key="temperature")
-    max_tokens = st.number_input("Max Tokens", min_value=1, value=1000, key="max_tokens")
+    input_vars = st.text_input(
+        "Input Variables (comma-separated)",
+        help="List of required input variables, e.g., text,tone,style"
+    )
+    input_variables = [var.strip() for var in input_vars.split(",")] if input_vars else []
+    
+    model_name = st.selectbox(
+        "Model",
+        ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240229"],
+        index=1
+    )
+    
+    temperature = st.slider(
+        "Temperature",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.7,
+        step=0.1,
+        help="Higher values make output more random, lower values more deterministic"
+    )
+    
+    max_tokens = st.number_input(
+        "Max Tokens",
+        min_value=100,
+        max_value=4000,
+        value=1000,
+        help="Maximum number of tokens in the response"
+    )
+    
+    system_prompt = st.text_area(
+        "System Prompt (Optional)",
+        help="Optional system message to guide LLM behavior"
+    )
     
     return {
         "type": "llm_prompt",
-        "name": st.session_state.get("mcp_name", ""),
         "template": template,
-        "input_variables": [],  # No variables needed
+        "input_variables": input_variables,
         "model_name": model_name,
         "temperature": temperature,
-        "max_tokens": max_tokens
+        "max_tokens": max_tokens,
+        "system_prompt": system_prompt if system_prompt else None
     }
-
-def build_notebook_config() -> Dict[str, Any]:
-    """Build Jupyter Notebook configuration through UI"""
-    st.subheader("Notebook Configuration")
-    
-    notebook_path = st.text_input(
-        "Notebook Path",
-        help="Path to the Jupyter notebook file",
-        key="notebook_path"
-    )
-    
-    execute_all = st.checkbox("Execute All Cells", value=True, key="execute_all")
-    if not execute_all:
-        cells_to_execute = st.text_input(
-            "Cells to Execute",
-            help="Comma-separated list of cell numbers",
-            key="cells_to_execute"
-        )
-    
-    timeout = st.number_input(
-        "Timeout (seconds)",
-        min_value=60,
-        value=600,
-        key="timeout"
-    )
-    
-    return {
-        "type": "jupyter_notebook",
-        "notebook_path": notebook_path,
-        "execute_all": execute_all,
-        "cells_to_execute": cells_to_execute if not execute_all else None,
-        "timeout": timeout
-    }
-
-def execute_mcp(mcp_id: str, inputs: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute an MCP instance with given inputs"""
-    try:
-        response = requests.post(
-            f"{API_URL}/mcps/{mcp_id}/execute",
-            json=inputs
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error executing MCP: {str(e)}")
-        return None
 
 # Main content based on selected page
 if page == "Dashboard":
-    st.header("Dashboard")
-    mcps = get_mcps()
-    if mcps:
-        st.write(f"Active MCPs: {len(mcps)}")
-        for mcp in mcps:
-            with st.expander(f"{mcp['name']} ({mcp['type']})"):
-                st.write("Description:", mcp.get('description', 'No description'))
-                st.write("Configuration:", mcp.get('config', {}))
-    else:
-        st.info("No MCPs found. Create one to get started!")
-
+    render_dashboard()
 elif page == "Create MCP":
-    st.header("Create New MCP")
-    with st.form("create_mcp_form"):
-        # Basic Information
-        name = st.text_input("MCP Name")
-        st.session_state["mcp_name"] = name  # Store the name in session state
-        description = st.text_area("Description")
-        
-        # MCP Type Selection
-        mcp_type = st.selectbox(
-            "Select MCP Type",
-            ["LLM Prompt", "Jupyter Notebook"]
-        )
-        
-        # Type-specific configuration
-        if mcp_type == "LLM Prompt":
-            config = build_llm_config()
-        else:
-            config = build_notebook_config()
-        
-        # Show the final JSON configuration
-        st.subheader("Configuration Preview")
-        st.json(config)
-        
-        submitted = st.form_submit_button("Create MCP")
-        if submitted:
-            if name:
-                try:
-                    result = create_mcp(name, description, config)
-                    if result:
-                        st.success(f"Successfully created MCP: {name}")
-                except Exception as e:
-                    st.error(f"Error creating MCP: {str(e)}")
-            else:
-                st.error("Please provide a name for the MCP")
+    render_create_mcp()
+elif page == "Manage":
+    render_manage_mcps()
+elif page == "Test":
+    render_test_mcps()
+elif page == "Chain Builder":
+    render_chain_builder()
+elif page == "Chain Executor":
+    render_chain_executor()
 
-elif page == "Manage MCPs":
-    st.header("Manage MCPs")
-    mcps = get_mcps()
-    if mcps:
-        for mcp in mcps:
-            with st.expander(f"{mcp['name']}"):
-                st.write("Description:", mcp.get('description', 'No description'))
-                st.write("Type:", mcp.get('type', 'Unknown'))
-                
-                # Execution interface
-                st.subheader("Execute MCP")
-                if mcp['type'] == 'llm_prompt':
-                    if st.button(f"Execute {mcp['name']}", key=f"execute_{mcp['id']}"):
-                        with st.spinner("Executing..."):
-                            result = execute_mcp(mcp['id'], {})
-                            if result:
-                                if "error" in result:
-                                    st.error(f"Error: {result['error']}")
-                                else:
-                                    st.success("Execution completed!")
-                                    st.write("Result:")
-                                    st.write(result.get('result', 'No result'))
-                                    st.write("Model:", result.get('model', 'Unknown'))
-                                    st.write("Prompt:", result.get('prompt', 'Unknown'))
-                
-                elif mcp['type'] == 'jupyter_notebook':
-                    if st.button(f"Execute {mcp['name']}", key=f"execute_{mcp['id']}"):
-                        with st.spinner("Executing notebook..."):
-                            result = execute_mcp(mcp['id'], {})
-                            if result:
-                                st.success("Notebook execution completed!")
-                                st.json(result)
-                
-                if st.button(f"Delete {mcp['name']}", key=f"delete_{mcp['id']}"):
-                    st.warning("Delete functionality not implemented yet")
-    else:
-        st.info("No MCPs to manage. Create one first!") 
+# Sidebar with monitoring links
+st.sidebar.title("Monitoring")
+st.sidebar.markdown("### Dashboards")
+st.sidebar.markdown("[Health Check](http://localhost:8000/health)")
+st.sidebar.markdown("[Server Stats](http://localhost:8000/stats)")
+st.sidebar.markdown("[Prometheus Metrics](http://localhost:8000/metrics)") 
