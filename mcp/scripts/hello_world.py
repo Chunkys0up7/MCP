@@ -3,55 +3,74 @@ A simple hello world example that demonstrates:
 1. Using input variables
 2. Using external packages (requests)
 3. Basic error handling
+4. Unicode character support
 """
 
 import requests
 import sys
 import json
 from datetime import datetime
+import locale
 
-def main():
-    try:
-        # Get input variables with defaults
-        name = globals().get('name', "World")
-        language = globals().get('language', "en")
+# Set default encoding to UTF-8
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+def main(name: str, language: str) -> dict:
+    """Generate a hello world message in the specified language.
+    
+    Args:
+        name (str): The name to greet
+        language (str): The language to use for the greeting
         
-        # Get current time
-        current_time = datetime.now().strftime("%H:%M:%S")
-        
-        # Create greeting
-        greeting = f"Hello, {name}! The current time is {current_time}"
-        print(greeting)
-        
-        # Try to get a random fact (demonstrates using requirements)
-        fact = None
-        try:
-            response = requests.get("https://uselessfacts.jsph.pl/api/v2/facts/random")
-            response.raise_for_status()
-            fact = response.json()["text"]
-            print(f"\nRandom fact: {fact}")
-        except requests.exceptions.RequestException as e:
-            print(f"\nCouldn't fetch a random fact: {str(e)}")
-        
-        # Return results as dictionary
-        result = {
-            "status": "success",
-            "greeting": greeting,
-            "fact": fact,
-            "timestamp": current_time
-        }
-        print(json.dumps(result))  # Print the result as JSON
-        return result
-    except Exception as e:
-        error_msg = f"Error: {str(e)}"
-        print(error_msg, file=sys.stderr)
-        result = {
-            "status": "error",
-            "error": error_msg
-        }
-        print(json.dumps(result))  # Print the error as JSON
-        return result
+    Returns:
+        dict: The greeting message and metadata
+    """
+    greetings = {
+        "en": f"Hello, {name}!",
+        "es": f"¡Hola, {name}!",
+        "fr": f"Bonjour, {name}!",
+        "de": f"Hallo, {name}!",
+        "it": f"Ciao, {name}!",
+        "pt": f"Olá, {name}!",
+        "ru": f"Привет, {name}!",
+        "zh": f"你好，{name}！",
+        "ja": f"こんにちは、{name}さん！",
+        "ko": f"안녕하세요, {name}님!"
+    }
+    
+    # Default to English if language not found
+    greeting = greetings.get(language.lower(), f"Hello, {name}!")
+    
+    # Return a dictionary with the greeting and metadata
+    return {
+        "greeting": greeting,
+        "language": language,
+        "name": name,
+        "timestamp": datetime.now().isoformat()
+    }
 
 if __name__ == "__main__":
-    result = main()
-    sys.exit(0 if result["status"] == "success" else 1) 
+    # Get command line arguments
+    if len(sys.argv) != 3:
+        print(json.dumps({
+            "error": "Usage: python hello_world.py <name> <language>"
+        }, ensure_ascii=False))
+        sys.exit(1)
+        
+    name = sys.argv[1]
+    language = sys.argv[2]
+    
+    try:
+        result = main(name, language)
+        # Ensure we're using UTF-8 for JSON output and handle any encoding issues
+        try:
+            print(json.dumps(result, ensure_ascii=False))
+        except UnicodeEncodeError:
+            # Fallback to ASCII with escaped Unicode if UTF-8 fails
+            print(json.dumps(result, ensure_ascii=True))
+    except Exception as e:
+        print(json.dumps({
+            "error": str(e)
+        }, ensure_ascii=False))
+        sys.exit(1) 

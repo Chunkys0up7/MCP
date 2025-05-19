@@ -1,32 +1,34 @@
 {
   "8d9449f6-ae5e-40d9-93ee-4627e46a1438": {
     "id": "8d9449f6-ae5e-40d9-93ee-4627e46a1438",
-    "name": "joke Number 2000",
-    "description": null,
+    "name": "Text Analyzer",
+    "description": "Analyzes text and extracts key points",
     "type": "llm_prompt",
     "config": {
       "type": "llm_prompt",
-      "name": "joke Number 2000",
-      "template": "tell a funny joke",
-      "input_variables": [],
+      "name": "Text Analyzer",
+      "template": "Analyze the following text and extract key points. Focus on main ideas, important details, and relationships between concepts:\n\n{text}\n\nProvide a structured analysis with:\n1. Main themes\n2. Key points\n3. Supporting details\n4. Relationships between ideas",
+      "input_variables": ["text"],
       "model_name": "claude-3-sonnet-20240229",
-      "temperature": 0.7,
-      "max_tokens": 1000
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "system_prompt": "You are an expert text analyst. Your task is to analyze text and extract key points in a structured format. Focus on identifying main themes, important details, and relationships between concepts."
     }
   },
   "0473b193-81db-417a-a993-ed3890265d59": {
     "id": "0473b193-81db-417a-a993-ed3890265d59",
-    "name": "New Joke Bot",
-    "description": "",
+    "name": "Text Summarizer",
+    "description": "Generates concise summaries from text analysis",
     "type": "llm_prompt",
     "config": {
       "type": "llm_prompt",
-      "name": "New Joke Bot",
-      "template": "tell me a joke",
-      "input_variables": [],
+      "name": "Text Summarizer",
+      "template": "Based on the following text analysis, create a concise summary that captures the main points and their relationships:\n\n{text}\n\nProvide a summary that:\n1. Highlights the most important themes\n2. Preserves key relationships between ideas\n3. Maintains the logical flow of the analysis\n4. Is suitable for visualization",
+      "input_variables": ["text"],
       "model_name": "claude-3-sonnet-20240229",
-      "temperature": 0.7,
-      "max_tokens": 1000
+      "temperature": 0.3,
+      "max_tokens": 1000,
+      "system_prompt": "You are an expert summarizer. Your task is to create concise, well-structured summaries that preserve the key information and relationships from the input text. Focus on making the summary suitable for further processing and visualization."
     }
   },
   "example-notebook": {

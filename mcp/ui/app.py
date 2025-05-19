@@ -23,6 +23,8 @@ from mcp.core.types import MCPType, LLMPromptConfig, JupyterNotebookConfig, Pyth
 from mcp.mcp_types.llm_prompt import LLMPromptMCP
 from mcp.mcp_types.jupyter import JupyterNotebookMCP
 from mcp.mcp_types.python_script import PythonScriptMCP
+from mcp.ui.widgets.chain_builder import ChainBuilder
+from mcp.ui.widgets.chain_executor import ChainExecutor
 
 # Initialize the MCP client
 client = MCPClient(base_url=config.api_base_url)
@@ -42,7 +44,7 @@ This dashboard allows you to manage and monitor your MCP servers.
 
 # Sidebar for navigation
 st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain MCPs"])
+page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"])
 
 def render_dashboard() -> None:
     """Display the dashboard page with a summary of active MCPs."""
@@ -177,76 +179,66 @@ def render_test_mcps() -> None:
                         import traceback
                         st.code(traceback.format_exc(), language="python")
 
-def render_chain_mcps() -> None:
-    """Display the page for chaining MCPs together."""
-    st.header("Chain MCPs")
-    servers = client.get_servers()
+def render_chain_builder() -> None:
+    """Display the chain builder interface."""
+    chain_builder = ChainBuilder()
+    chain_builder.render()
+
+def render_chain_executor() -> None:
+    """Display the chain executor interface."""
+    chain_executor = ChainExecutor()
+    chain_executor.render()
+
+def build_llm_config() -> Dict[str, Any]:
+    """Build configuration for LLM Prompt MCP."""
+    template = st.text_area(
+        "Prompt Template",
+        help="Use {variable_name} for input variables"
+    )
     
-    if len(servers) < 2:
-        st.info("You need at least two MCPs to create a chain.")
-        return
+    input_vars = st.text_input(
+        "Input Variables (comma-separated)",
+        help="List of required input variables, e.g., text,tone,style"
+    )
+    input_variables = [var.strip() for var in input_vars.split(",")] if input_vars else []
     
-    # Server selection
-    server_names = [f"{s['name']} ({s['type']})" for s in servers]
-    mcp1_idx = st.selectbox("Select first MCP", range(len(servers)), format_func=lambda i: server_names[i])
-    mcp2_idx = st.selectbox("Select second MCP", range(len(servers)), format_func=lambda i: server_names[i])
+    model_name = st.selectbox(
+        "Model",
+        ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240229"],
+        index=1
+    )
     
-    mcp1 = servers[mcp1_idx]
-    mcp2 = servers[mcp2_idx]
+    temperature = st.slider(
+        "Temperature",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.7,
+        step=0.1,
+        help="Higher values make output more random, lower values more deterministic"
+    )
     
-    st.write(f"Chaining '{mcp1['name']}' → '{mcp2['name']}'")
+    max_tokens = st.number_input(
+        "Max Tokens",
+        min_value=100,
+        max_value=4000,
+        value=1000,
+        help="Maximum number of tokens in the response"
+    )
     
-    # Input fields for first MCP
-    mcp1_inputs = {}
-    if mcp1['config'].get('input_variables'):
-        st.subheader(f"Inputs for {mcp1['name']}")
-        for var in mcp1['config']['input_variables']:
-            mcp1_inputs[var] = st.text_input(
-                f"{mcp1['name']} input: {var}",
-                key=f"chain_{mcp1['id']}_{var}"
-            )
+    system_prompt = st.text_area(
+        "System Prompt (Optional)",
+        help="Optional system message to guide LLM behavior"
+    )
     
-    if st.button("Run First MCP"):
-        with st.spinner("Running first MCP..."):
-            result = client.execute_server(mcp1['id'], mcp1_inputs)
-            if result.success:
-                st.success("First MCP executed!")
-                st.json(result.dict())
-                st.session_state['last_chain_result'] = result
-            else:
-                st.error(f"Error: {result.error}")
-    
-    # Map first MCP output to second MCP input
-    if 'last_chain_result' in st.session_state:
-        result = st.session_state['last_chain_result']
-        st.subheader(f"Map output from {mcp1['name']} to inputs for {mcp2['name']}")
-        
-        mcp2_inputs = {}
-        if mcp2['config'].get('input_variables'):
-            for var in mcp2['config']['input_variables']:
-                options = list(result.result.keys())
-                selected = st.selectbox(
-                    f"Map to {var}",
-                    options + ["<manual input>"],
-                    key=f"chain_map_{var}"
-                )
-                
-                if selected != "<manual input>":
-                    mcp2_inputs[var] = result.result[selected]
-                else:
-                    mcp2_inputs[var] = st.text_input(
-                        f"Manual input for {var}",
-                        key=f"chain_manual_{var}"
-                    )
-        
-        if st.button("Run Second MCP"):
-            with st.spinner("Running second MCP..."):
-                result = client.execute_server(mcp2['id'], mcp2_inputs)
-                if result.success:
-                    st.success("Second MCP executed!")
-                    st.json(result.dict())
-                else:
-                    st.error(f"Error: {result.error}")
+    return {
+        "type": "llm_prompt",
+        "template": template,
+        "input_variables": input_variables,
+        "model_name": model_name,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "system_prompt": system_prompt if system_prompt else None
+    }
 
 # Main content based on selected page
 if page == "Dashboard":
@@ -257,8 +249,10 @@ elif page == "Manage":
     render_manage_mcps()
 elif page == "Test":
     render_test_mcps()
-elif page == "Chain MCPs":
-    render_chain_mcps()
+elif page == "Chain Builder":
+    render_chain_builder()
+elif page == "Chain Executor":
+    render_chain_executor()
 
 # Sidebar with monitoring links
 st.sidebar.title("Monitoring")
