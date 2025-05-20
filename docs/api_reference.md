@@ -28,11 +28,12 @@ class MCPType(Enum):
 
 ```python
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 class BaseMCPConfig(BaseModel):
     type: MCPType
     input_variables: List[str]
+    metadata: Optional[Dict[str, Any]] = None
 ```
 
 ### LLMPromptConfig
@@ -44,6 +45,9 @@ class LLMPromptConfig(BaseMCPConfig):
     model_name: str
     temperature: float
     max_tokens: int
+    stop_sequences: Optional[List[str]] = None
+    presence_penalty: Optional[float] = None
+    frequency_penalty: Optional[float] = None
 ```
 
 ### JupyterNotebookConfig
@@ -54,6 +58,8 @@ class JupyterNotebookConfig(BaseMCPConfig):
     execute_all: bool
     cells_to_execute: Optional[List[int]]
     timeout: int
+    kernel_name: Optional[str] = None
+    allow_errors: bool = False
 ```
 
 ### PythonScriptConfig
@@ -64,6 +70,21 @@ class PythonScriptConfig(BaseMCPConfig):
     requirements: List[str]
     virtual_env: bool
     timeout: int
+    python_version: Optional[str] = None
+    working_dir: Optional[str] = None
+```
+
+### AssistantConfig
+
+```python
+class AssistantConfig(BaseMCPConfig):
+    model_name: str
+    system_prompt: str
+    temperature: float
+    max_tokens: int
+    tools: List[str]
+    memory_enabled: bool = True
+    memory_limit: Optional[int] = None
 ```
 
 ## Configuration
@@ -77,6 +98,9 @@ class Config(BaseModel):
     notebooks_dir: str = "notebooks"
     scripts_dir: str = "scripts"
     logs_dir: str = "logs"
+    cache_dir: str = "cache"
+    max_retries: int = 3
+    retry_delay: int = 5
 ```
 
 ### Environment Variables
@@ -86,6 +110,9 @@ class Config(BaseModel):
 - `MCP_NOTEBOOKS_DIR`: Custom notebooks directory
 - `MCP_SCRIPTS_DIR`: Custom scripts directory
 - `MCP_LOGS_DIR`: Custom logs directory
+- `MCP_CACHE_DIR`: Custom cache directory
+- `MCP_MAX_RETRIES`: Maximum number of retries
+- `MCP_RETRY_DELAY`: Delay between retries in seconds
 
 ## UI Components
 
@@ -113,6 +140,14 @@ def build_script_config() -> PythonScriptConfig:
     # Implementation details...
 ```
 
+### Assistant Configuration Widget
+
+```python
+def build_assistant_config() -> AssistantConfig:
+    """Build AI Assistant configuration through UI."""
+    # Implementation details...
+```
+
 ## API Client
 
 ### MCPClient
@@ -122,6 +157,7 @@ class MCPClient:
     def __init__(self, config: Config):
         self.config = config
         self.logger = setup_logging()
+        self.cache = setup_cache()
 
     async def execute_llm_prompt(self, config: LLMPromptConfig) -> str:
         """Execute an LLM prompt."""
@@ -133,6 +169,10 @@ class MCPClient:
 
     async def execute_script(self, config: PythonScriptConfig) -> Dict[str, Any]:
         """Execute a Python script."""
+        # Implementation details...
+
+    async def execute_assistant(self, config: AssistantConfig) -> Dict[str, Any]:
+        """Execute an AI assistant task."""
         # Implementation details...
 ```
 
@@ -150,6 +190,18 @@ def setup_logging(
     # Implementation details...
 ```
 
+### Caching
+
+```python
+def setup_cache(
+    cache_dir: Optional[str] = None,
+    max_size: int = 1000,
+    ttl: int = 3600
+) -> Cache:
+    """Set up caching for the application."""
+    # Implementation details...
+```
+
 ### Error Handling
 
 ```python
@@ -164,6 +216,10 @@ class ConfigurationError(MCPError):
 class ExecutionError(MCPError):
     """Execution-related errors."""
     pass
+
+class CacheError(MCPError):
+    """Cache-related errors."""
+    pass
 ```
 
 ## Type Definitions
@@ -176,6 +232,8 @@ from typing import Dict, Any, List, Optional, Union
 # Common type aliases
 JSON = Dict[str, Any]
 VariableMap = Dict[str, Any]
+CacheKey = str
+CacheValue = Any
 ```
 
 ## Best Practices
@@ -186,6 +244,7 @@ VariableMap = Dict[str, Any]
 2. Include detailed error messages
 3. Log errors appropriately
 4. Handle cleanup in finally blocks
+5. Implement retry mechanisms for transient errors
 
 ### Configuration
 
@@ -193,6 +252,7 @@ VariableMap = Dict[str, Any]
 2. Validate configuration on startup
 3. Use type hints for configuration objects
 4. Document all configuration options
+5. Implement configuration caching
 
 ### Logging
 
@@ -200,10 +260,13 @@ VariableMap = Dict[str, Any]
 2. Include context in log messages
 3. Rotate log files
 4. Don't log sensitive information
+5. Implement structured logging
 
 ### Security
 
 1. Validate all input
 2. Use secure defaults
 3. Implement rate limiting
-4. Monitor resource usage 
+4. Monitor resource usage
+5. Implement proper authentication and authorization
+``` 

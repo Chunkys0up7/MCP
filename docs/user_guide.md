@@ -1,180 +1,380 @@
 # MCP User Guide
 
-This guide provides detailed instructions for using MCP to manage and execute various types of model-based tasks.
+This guide provides information for users of the MCP system.
 
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [LLM Prompts](#llm-prompts)
-3. [Jupyter Notebooks](#jupyter-notebooks)
-4. [Python Scripts](#python-scripts)
-5. [AI Assistant](#ai-assistant)
-6. [Troubleshooting](#troubleshooting)
+2. [Basic Usage](#basic-usage)
+3. [Advanced Features](#advanced-features)
+4. [Configuration](#configuration)
+5. [Troubleshooting](#troubleshooting)
+6. [Best Practices](#best-practices)
+7. [Caching Guide](#caching-guide)
 
 ## Getting Started
 
-### Prerequisites
-
-- Python 3.8 or higher
-- pip (Python package manager)
-- API key for your chosen LLM provider
-
 ### Installation
 
-1. Install MCP using pip:
+1. Install MCP:
 ```bash
 pip install mcp
 ```
 
-2. Set up your environment variables:
+2. Set up environment variables:
 ```bash
 export MCP_API_KEY=your_api_key
-export MCP_DEBUG=true  # Optional, for debug mode
+export MCP_DEBUG=true
 ```
 
-3. Start the MCP interface:
+3. Create configuration file:
 ```bash
-mcp
+cp config.yaml.example config.yaml
 ```
 
-## LLM Prompts
+### Quick Start
 
-### Creating a New LLM Prompt
-
-1. Select "LLM Prompt" from the MCP type dropdown
-2. Configure the following settings:
-   - Model: Choose from available models
-   - System Prompt: Optional system prompt to guide model behavior
-   - Prompt Template: Your prompt template with variables
-   - Input Variables: List of variables used in the template
-   - Temperature: Controls response randomness (0.0-1.0)
-   - Max Tokens: Maximum response length
-
-### Using Variables
-
-In your prompt template, use curly braces to reference variables:
-```
-Analyze the following text: {text}
-Consider the context: {context}
+1. Create a new MCP project:
+```bash
+mcp init my_project
+cd my_project
 ```
 
-### Best Practices
+2. Run the application:
+```bash
+mcp run
+```
 
-- Keep system prompts concise and focused
-- Use clear variable names
-- Test prompts with different temperatures
-- Monitor token usage
+## Basic Usage
 
-## Jupyter Notebooks
+### LLM Prompts
 
-### Creating a New Notebook
+1. Create a prompt configuration:
+```python
+from mcp.core.types import LLMPromptConfig
 
-1. Select "Jupyter Notebook" from the MCP type dropdown
-2. Choose between:
-   - Using an existing notebook
-   - Creating a new notebook
+config = LLMPromptConfig(
+    type="llm_prompt",
+    template="Hello, {name}!",
+    model_name="gpt-3.5-turbo",
+    temperature=0.7,
+    max_tokens=100
+)
+```
 
-### Notebook Editor
+2. Execute the prompt:
+```python
+from mcp.api.client import MCPClient
 
-The notebook editor provides:
-- Code and markdown cell support
-- Cell execution controls
-- Variable injection
-- Timeout settings
+client = MCPClient()
+response = await client.execute_llm_prompt(config, {"name": "World"})
+```
 
-### Execution Settings
+### Jupyter Notebooks
 
-- Execute All Cells: Run the entire notebook
-- Selected Cells: Run specific cells
-- Input Variables: Variables available in the notebook
-- Timeout: Maximum execution time
+1. Create a notebook configuration:
+```python
+from mcp.core.types import JupyterNotebookConfig
 
-## Python Scripts
+config = JupyterNotebookConfig(
+    type="jupyter_notebook",
+    notebook_path="notebooks/example.ipynb",
+    execute_all=True,
+    timeout=600
+)
+```
 
-### Creating a New Script
+2. Execute the notebook:
+```python
+response = await client.execute_notebook(config)
+```
 
-1. Select "Python Script" from the MCP type dropdown
-2. Choose between:
-   - Using an existing script
-   - Creating a new script
+### Python Scripts
 
-### Script Configuration
+1. Create a script configuration:
+```python
+from mcp.core.types import PythonScriptConfig
 
-- Requirements: Python package dependencies
-- Input Variables: Variables available in the script
-- Virtual Environment: Isolated execution environment
-- Timeout: Maximum execution time
+config = PythonScriptConfig(
+    type="python_script",
+    script_path="scripts/example.py",
+    requirements=["requests"],
+    virtual_env=True,
+    timeout=300
+)
+```
 
-### Best Practices
+2. Execute the script:
+```python
+response = await client.execute_script(config)
+```
 
-- Include proper error handling
-- Use type hints
-- Document your code
-- Test thoroughly
+### AI Assistant
 
-## AI Assistant
+1. Create an assistant configuration:
+```python
+from mcp.core.types import AssistantConfig
 
-### Using the AI Assistant
+config = AssistantConfig(
+    type="ai_assistant",
+    model_name="gpt-4",
+    system_prompt="You are a helpful assistant.",
+    temperature=0.7,
+    max_tokens=1000,
+    tools=["search", "calculator"]
+)
+```
 
-1. Select "AI Assistant" from the MCP type dropdown
-2. Configure the assistant:
-   - Model selection
-   - System prompt
-   - Context management
-   - Response settings
+2. Execute the assistant:
+```python
+response = await client.execute_assistant(config)
+```
 
-### Features
+## Advanced Features
 
-- Context-aware responses
-- Code generation
-- Documentation assistance
-- Error analysis
+### Caching
+
+1. Enable caching:
+```yaml
+cache:
+  enabled: true
+  max_size: 1000
+  ttl: 3600
+```
+
+2. Use cache in code:
+```python
+from mcp.utils.cache import get_cache
+
+cache = get_cache()
+await cache.set("key", value)
+value = await cache.get("key")
+```
+
+### Concurrency
+
+1. Configure concurrency:
+```yaml
+execution:
+  max_concurrent: 5
+  pool_size: 10
+```
+
+2. Use async execution:
+```python
+async def execute_tasks():
+    tasks = [
+        client.execute_llm_prompt(config1),
+        client.execute_notebook(config2)
+    ]
+    results = await asyncio.gather(*tasks)
+```
+
+### Error Handling
+
+1. Handle errors:
+```python
+try:
+    response = await client.execute_llm_prompt(config)
+except MCPError as e:
+    logger.error(f"Error: {e}")
+    # Handle error
+```
+
+2. Retry on failure:
+```python
+from mcp.utils.retry import retry
+
+@retry(max_retries=3, delay=5)
+async def execute_with_retry():
+    return await client.execute_llm_prompt(config)
+```
+
+## Configuration
+
+### Environment Variables
+
+- `MCP_API_KEY`: Your API key
+- `MCP_DEBUG`: Enable debug mode
+- `MCP_NOTEBOOKS_DIR`: Notebooks directory
+- `MCP_SCRIPTS_DIR`: Scripts directory
+- `MCP_LOGS_DIR`: Logs directory
+- `MCP_CACHE_DIR`: Cache directory
+
+### Configuration File
+
+```yaml
+# API Configuration
+api:
+  key: ${MCP_API_KEY}
+  timeout: 600
+  max_retries: 3
+
+# Debug Settings
+debug: false
+
+# Directory Configuration
+directories:
+  notebooks: notebooks
+  scripts: scripts
+  logs: logs
+  cache: cache
+
+# Execution Settings
+execution:
+  default_timeout: 600
+  max_concurrent: 5
+  virtual_env: true
+
+# Logging Configuration
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/mcp.log
+
+# Cache Configuration
+cache:
+  enabled: true
+  max_size: 1000
+  ttl: 3600
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **API Key Issues**
-   - Verify your API key is set correctly
+   - Check API key validity
+   - Verify environment variable
    - Check API key permissions
-   - Ensure proper environment variable setup
 
-2. **Execution Errors**
-   - Check timeout settings
-   - Verify input variables
-   - Review error logs
+2. **Timeout Issues**
+   - Increase timeout value
+   - Check resource usage
+   - Monitor execution time
 
-3. **Notebook Issues**
-   - Verify kernel installation
-   - Check cell dependencies
-   - Review execution order
+3. **Cache Issues**
+   - Clear cache
+   - Check cache permissions
+   - Verify cache configuration
 
-### Getting Help
+4. **Memory Issues**
+   - Monitor memory usage
+   - Reduce batch size
+   - Use streaming
 
-- Check the [API Reference](api_reference.md)
-- Review [Configuration](configuration.md)
-- Submit issues on GitHub
-- Join the community forum
+### Debug Mode
 
-## Advanced Topics
+1. Enable debug mode:
+```bash
+export MCP_DEBUG=true
+```
 
-### Custom MCP Types
+2. Check logs:
+```bash
+tail -f logs/mcp.log
+```
 
-1. Create a new MCP type class
-2. Implement required interfaces
-3. Add UI components
-4. Register the type
+## Best Practices
 
-### Performance Optimization
+### Performance
 
-- Use appropriate timeout values
-- Optimize prompt templates
-- Manage resource usage
-- Implement caching
+1. **Caching**
+   - Use appropriate cache
+   - Set proper TTL
+   - Monitor cache usage
 
-### Security Considerations
+2. **Concurrency**
+   - Use async/await
+   - Manage resources
+   - Handle timeouts
 
-- Secure API key storage
-- Input validation
-- Resource limits
-- Access control 
+3. **Resource Management**
+   - Clean up resources
+   - Monitor usage
+   - Handle errors
+
+### Security
+
+1. **API Keys**
+   - Keep keys secure
+   - Rotate regularly
+   - Use restrictions
+
+2. **Data Handling**
+   - Validate input
+   - Sanitize output
+   - Encrypt sensitive data
+
+3. **Access Control**
+   - Use proper auth
+   - Implement rate limiting
+   - Monitor access
+
+## Caching Guide
+
+### Cache Types
+
+1. **File Cache**
+   - Persistent storage
+   - Disk-based
+   - Good for large data
+
+2. **Memory Cache**
+   - Fast access
+   - Limited size
+   - Good for small data
+
+3. **Redis Cache**
+   - Distributed
+   - Scalable
+   - Good for production
+
+### Cache Usage
+
+1. **Basic Operations**
+```python
+# Set cache
+await cache.set("key", value)
+
+# Get cache
+value = await cache.get("key")
+
+# Delete cache
+await cache.delete("key")
+```
+
+2. **Advanced Operations**
+```python
+# Set with TTL
+await cache.set("key", value, ttl=3600)
+
+# Get with default
+value = await cache.get("key", default=None)
+
+# Clear cache
+await cache.clear()
+```
+
+### Cache Best Practices
+
+1. **Key Design**
+   - Use meaningful keys
+   - Include version
+   - Consider namespace
+
+2. **TTL Management**
+   - Set appropriate TTL
+   - Handle expiration
+   - Update on change
+
+3. **Error Handling**
+   - Handle cache misses
+   - Handle cache errors
+   - Implement fallback
+
+4. **Performance**
+   - Use compression
+   - Batch operations
+   - Monitor usage
+``` 

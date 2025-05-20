@@ -29,4 +29,16 @@ python-jose>=3.3.0
 # Testing
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
-pytest-cov>=4.1.0 
+pytest-cov>=4.1.0
+
+# Database
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+asyncpg>=0.29.0
+
+# Redis for caching
+redis>=5.0.1
+
+# React Flow integration
+streamlit-component-lib>=1.0.0 

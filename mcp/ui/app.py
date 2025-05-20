@@ -25,15 +25,32 @@ from mcp.mcp_types.jupyter import JupyterNotebookMCP
 from mcp.mcp_types.python_script import PythonScriptMCP
 from mcp.ui.widgets.chain_builder import ChainBuilder
 from mcp.ui.widgets.chain_executor import ChainExecutor
+from ..config.settings import settings
+from ..config.logging import setup_logging
+from ..db.session import SessionLocal
+from ..db.operations import DatabaseOperations
+from ..cache.redis_manager import RedisCacheManager
+
+# Initialize logging
+setup_logging()
+
+# Initialize Redis cache
+cache = RedisCacheManager(
+    host=settings.redis.host,
+    port=settings.redis.port,
+    db=settings.redis.db,
+    password=settings.redis.password
+)
 
 # Initialize the MCP client
 client = MCPClient(base_url=config.api_base_url)
 
 # Configure the page
 st.set_page_config(
-    page_title="MCP Dashboard",
-    page_icon="🤖",
-    layout="wide"
+    page_title=settings.streamlit.page_title,
+    page_icon=settings.streamlit.page_icon,
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # Title and description
@@ -45,6 +62,23 @@ This dashboard allows you to manage and monitor your MCP servers.
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"])
+
+def init_session_state():
+    """Initialize session state variables."""
+    if "user_id" not in st.session_state:
+        st.session_state.user_id = None
+    if "chain_id" not in st.session_state:
+        st.session_state.chain_id = None
+    if "chain_data" not in st.session_state:
+        st.session_state.chain_data = None
+
+def get_db():
+    """Get database session."""
+    db = SessionLocal()
+    try:
+        return db
+    finally:
+        db.close()
 
 def render_dashboard() -> None:
     """Display the dashboard page with a summary of active MCPs."""
@@ -181,8 +215,31 @@ def render_test_mcps() -> None:
 
 def render_chain_builder() -> None:
     """Display the chain builder interface."""
-    chain_builder = ChainBuilder()
-    chain_builder.render()
+    st.title("Chain Builder")
+    
+    # Chain selection
+    chain_name = st.text_input("Chain Name")
+    
+    if st.button("Create New Chain"):
+        if chain_name:
+            db = get_db()
+            db_ops = DatabaseOperations(db)
+            
+            # Create new chain
+            chain = db_ops.create_chain(
+                name=chain_name,
+                workflow={"nodes": [], "edges": []}
+            )
+            
+            st.session_state.chain_id = chain.id
+            st.success(f"Created new chain: {chain_name}")
+        else:
+            st.error("Please enter a chain name")
+    
+    # Chain editor
+    if st.session_state.chain_id:
+        st.subheader("Chain Editor")
+        # TODO: Implement chain editor with React Flow
 
 def render_chain_executor() -> None:
     """Display the chain executor interface."""
@@ -259,4 +316,8 @@ st.sidebar.title("Monitoring")
 st.sidebar.markdown("### Dashboards")
 st.sidebar.markdown("[Health Check](http://localhost:8000/health)")
 st.sidebar.markdown("[Server Stats](http://localhost:8000/stats)")
-st.sidebar.markdown("[Prometheus Metrics](http://localhost:8000/metrics)") 
+st.sidebar.markdown("[Prometheus Metrics](http://localhost:8000/metrics)")
+
+if __name__ == "__main__":
+    init_session_state()
+    render_dashboard() 

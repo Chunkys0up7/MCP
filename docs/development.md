@@ -1,39 +1,39 @@
 # MCP Development Guide
 
-This guide provides information for developers who want to contribute to MCP.
+This guide provides information for developers working on the MCP project.
 
 ## Table of Contents
 
 1. [Development Setup](#development-setup)
-2. [Project Structure](#project-structure)
-3. [Adding New Features](#adding-new-features)
-4. [Testing](#testing)
-5. [Code Style](#code-style)
-6. [Documentation](#documentation)
-7. [Release Process](#release-process)
+2. [Code Structure](#code-structure)
+3. [Testing](#testing)
+4. [Documentation](#documentation)
+5. [Contributing](#contributing)
+6. [Best Practices](#best-practices)
+7. [Caching Development](#caching-development)
 
 ## Development Setup
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- pip
-- virtualenv or conda
+- Python 3.9 or higher
 - Git
+- Virtual environment tool (venv, conda, etc.)
+- Code editor with Python support
 
-### Setup Steps
+### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/mcp.git
+git clone https://github.com/your-org/mcp.git
 cd mcp
 ```
 
 2. Create and activate a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-venv\Scripts\activate  # Windows
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+.venv\Scripts\activate     # Windows
 ```
 
 3. Install development dependencies:
@@ -46,240 +46,287 @@ pip install -r requirements-dev.txt
 pre-commit install
 ```
 
-## Project Structure
+### Configuration
+
+1. Create a `.env` file:
+```bash
+cp .env.example .env
+```
+
+2. Update the environment variables:
+```bash
+MCP_API_KEY=your_api_key
+MCP_DEBUG=true
+```
+
+## Code Structure
+
+### Core Components
 
 ```
 mcp/
-├── mcp/
-│   ├── core/           # Core functionality
-│   ├── ui/             # UI components
-│   ├── api/            # API client
-│   ├── utils/          # Utilities
-│   └── __init__.py
-├── tests/              # Test files
-├── docs/               # Documentation
-├── examples/           # Example code
-├── requirements.txt    # Production dependencies
-├── requirements-dev.txt # Development dependencies
-└── setup.py           # Package configuration
+├── api/              # API layer
+│   ├── client.py     # API client
+│   ├── execution.py  # Execution handling
+│   └── assistant.py  # AI assistant
+├── core/             # Core functionality
+│   ├── types.py      # Type definitions
+│   ├── config.py     # Configuration
+│   └── models.py     # Data models
+├── ui/               # User interface
+│   ├── app.py        # Main application
+│   └── widgets/      # UI components
+└── utils/            # Utilities
+    ├── cache.py      # Caching
+    ├── logging.py    # Logging
+    └── monitoring.py # Monitoring
 ```
 
-## Adding New Features
+### Key Files
 
-### 1. Create a New MCP Type
-
-1. Define the configuration class in `core/types.py`:
-```python
-class NewMCPConfig(BaseMCPConfig):
-    type: MCPType = MCPType.NEW_TYPE
-    # Add your configuration fields
-```
-
-2. Add the type to `MCPType` enum:
-```python
-class MCPType(Enum):
-    NEW_TYPE = "new_type"
-    # ... existing types ...
-```
-
-3. Create UI component in `ui/widgets/`:
-```python
-def build_new_type_config() -> NewMCPConfig:
-    """Build new type configuration through UI."""
-    # Implementation
-```
-
-4. Add execution logic in `api/client.py`:
-```python
-async def execute_new_type(self, config: NewMCPConfig) -> Dict[str, Any]:
-    """Execute new type."""
-    # Implementation
-```
-
-### 2. Adding New UI Features
-
-1. Create new UI component in `ui/widgets/`
-2. Add component to main UI in `ui/app.py`
-3. Update documentation
-4. Add tests
-
-### 3. Adding New API Features
-
-1. Add new method to `MCPClient`
-2. Implement error handling
-3. Add logging
-4. Add tests
-5. Update documentation
+- `mcp/api/client.py`: API client implementation
+- `mcp/core/types.py`: Type definitions
+- `mcp/core/config.py`: Configuration management
+- `mcp/ui/app.py`: Main application
+- `mcp/utils/cache.py`: Caching implementation
 
 ## Testing
 
+### Test Structure
+
+```
+tests/
+├── api/              # API tests
+├── core/             # Core tests
+├── ui/               # UI tests
+└── utils/            # Utility tests
+```
+
 ### Running Tests
 
+1. Run all tests:
 ```bash
-# Run all tests
 pytest
+```
 
-# Run specific test file
-pytest tests/test_specific.py
+2. Run specific test file:
+```bash
+pytest tests/api/test_client.py
+```
 
-# Run with coverage
+3. Run with coverage:
+```bash
 pytest --cov=mcp
 ```
 
-### Writing Tests
+### Test Types
 
-1. Create test file in `tests/`
-2. Use pytest fixtures
-3. Mock external dependencies
-4. Test edge cases
-5. Test error conditions
+1. Unit Tests
+   - Test individual components
+   - Mock external dependencies
+   - Fast execution
 
-Example test:
-```python
-def test_new_feature():
-    # Arrange
-    config = NewMCPConfig(...)
-    
-    # Act
-    result = execute_new_feature(config)
-    
-    # Assert
-    assert result == expected
+2. Integration Tests
+   - Test component interactions
+   - Use test databases
+   - Test API endpoints
+
+3. End-to-End Tests
+   - Test complete workflows
+   - Use real services
+   - Test UI interactions
+
+4. Cache Tests
+   - Test cache operations
+   - Test cache invalidation
+   - Test cache consistency
+
+## Documentation
+
+### Documentation Structure
+
+```
+docs/
+├── api_reference.md    # API documentation
+├── configuration.md    # Configuration guide
+├── development.md      # Development guide
+├── user_guide.md       # User guide
+└── ARCHITECTURE.md     # Architecture overview
 ```
 
-## Code Style
+### Building Documentation
 
-### Python Style Guide
+1. Install documentation dependencies:
+```bash
+pip install -r requirements-docs.txt
+```
+
+2. Build documentation:
+```bash
+mkdocs build
+```
+
+3. Serve documentation locally:
+```bash
+mkdocs serve
+```
+
+## Contributing
+
+### Development Workflow
+
+1. Create a new branch:
+```bash
+git checkout -b feature/new-feature
+```
+
+2. Make changes and commit:
+```bash
+git add .
+git commit -m "feat: add new feature"
+```
+
+3. Push changes:
+```bash
+git push origin feature/new-feature
+```
+
+4. Create pull request
+
+### Code Style
 
 - Follow PEP 8
 - Use type hints
 - Write docstrings
-- Keep functions small
 - Use meaningful names
-
-### Pre-commit Hooks
-
-The project uses pre-commit hooks for:
-- Black (code formatting)
-- isort (import sorting)
-- flake8 (linting)
-- mypy (type checking)
-
-### Running Linters
-
-```bash
-# Run all linters
-pre-commit run --all-files
-
-# Run specific linter
-pre-commit run black --all-files
-```
-
-## Documentation
-
-### Writing Documentation
-
-1. Update relevant docstrings
-2. Update README.md
-3. Update user guide
-4. Update API reference
-5. Add examples
-
-### Building Documentation
-
-```bash
-# Build documentation
-cd docs
-make html
-
-# Serve documentation
-python -m http.server -d _build/html
-```
-
-## Release Process
-
-### 1. Version Bumping
-
-1. Update version in `setup.py`
-2. Update CHANGELOG.md
-3. Create version tag
-
-### 2. Testing
-
-1. Run all tests
-2. Run linters
-3. Build documentation
-4. Test installation
-
-### 3. Release
-
-1. Create GitHub release
-2. Upload to PyPI
-3. Update documentation
-4. Announce release
-
-### 4. Post-release
-
-1. Update development version
-2. Create new development branch
-3. Update documentation
-
-## Contributing Guidelines
-
-### Pull Request Process
-
-1. Create feature branch
-2. Write tests
-3. Update documentation
-4. Run linters
-5. Submit PR
-
-### Code Review
-
-1. All PRs require review
-2. All tests must pass
-3. Documentation must be updated
-4. Code must be linted
 
 ### Commit Messages
 
-Follow conventional commits:
-- feat: New feature
-- fix: Bug fix
-- docs: Documentation
-- style: Formatting
-- refactor: Code restructuring
-- test: Testing
-- chore: Maintenance
+- Use conventional commits
+- Be descriptive
+- Reference issues
 
 ## Best Practices
 
-### Code Quality
+### Code Organization
 
-1. Write clean, maintainable code
-2. Use type hints
-3. Write tests
-4. Document code
-5. Follow style guide
+1. **Modularity**
+   - Single responsibility
+   - Clear interfaces
+   - Loose coupling
+
+2. **Type Safety**
+   - Use type hints
+   - Validate inputs
+   - Handle errors
+
+3. **Testing**
+   - Write tests first
+   - Maintain coverage
+   - Test edge cases
+
+4. **Documentation**
+   - Keep docs updated
+   - Use examples
+   - Document APIs
 
 ### Performance
 
-1. Profile code
-2. Optimize bottlenecks
-3. Use caching
-4. Monitor resources
+1. **Caching**
+   - Use appropriate cache
+   - Set proper TTL
+   - Handle cache misses
 
-### Security
+2. **Concurrency**
+   - Use async/await
+   - Manage resources
+   - Handle timeouts
 
-1. Validate input
-2. Handle errors
-3. Secure sensitive data
-4. Follow security best practices
+3. **Resource Management**
+   - Clean up resources
+   - Monitor usage
+   - Handle errors
 
-### Testing
+## Caching Development
 
-1. Write unit tests
-2. Write integration tests
-3. Test edge cases
-4. Test error conditions
-5. Maintain test coverage 
+### Cache Types
+
+1. **File Cache**
+```python
+from mcp.utils.cache import FileCache
+
+cache = FileCache(
+    directory="cache",
+    ttl=3600,
+    compression=True
+)
+```
+
+2. **Memory Cache**
+```python
+from mcp.utils.cache import MemoryCache
+
+cache = MemoryCache(
+    max_size=1000,
+    ttl=3600
+)
+```
+
+3. **Redis Cache**
+```python
+from mcp.utils.cache import RedisCache
+
+cache = RedisCache(
+    host="localhost",
+    port=6379,
+    ttl=3600
+)
+```
+
+### Cache Usage
+
+1. **Basic Usage**
+```python
+# Set cache
+await cache.set("key", value)
+
+# Get cache
+value = await cache.get("key")
+
+# Delete cache
+await cache.delete("key")
+```
+
+2. **Advanced Usage**
+```python
+# Set with TTL
+await cache.set("key", value, ttl=3600)
+
+# Get with default
+value = await cache.get("key", default=None)
+
+# Clear cache
+await cache.clear()
+```
+
+### Cache Best Practices
+
+1. **Key Design**
+   - Use meaningful keys
+   - Include version
+   - Consider namespace
+
+2. **TTL Management**
+   - Set appropriate TTL
+   - Handle expiration
+   - Update on change
+
+3. **Error Handling**
+   - Handle cache misses
+   - Handle cache errors
+   - Implement fallback
+
+4. **Performance**
+   - Use compression
+   - Batch operations
+   - Monitor usage 

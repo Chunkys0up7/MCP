@@ -10,6 +10,7 @@ This document describes the architecture of the MCP (Model Control Panel) system
 4. [Security Architecture](#security-architecture)
 5. [Performance Architecture](#performance-architecture)
 6. [Extension Points](#extension-points)
+7. [Caching Architecture](#caching-architecture)
 
 ## System Overview
 
@@ -22,6 +23,8 @@ MCP is designed as a modular, extensible system for managing and executing vario
 │   API Layer     │
 ├─────────────────┤
 │   Core Layer    │
+├─────────────────┤
+│  Cache Layer    │
 └─────────────────┘
 ```
 
@@ -32,6 +35,8 @@ MCP is designed as a modular, extensible system for managing and executing vario
 3. **Type Safety**: Strong typing throughout the system
 4. **Error Handling**: Comprehensive error management
 5. **Configuration**: Flexible configuration system
+6. **Caching**: Efficient caching mechanisms
+7. **Security**: Robust security measures
 
 ## Core Components
 
@@ -41,11 +46,19 @@ MCP is designed as a modular, extensible system for managing and executing vario
 - Base configuration classes
 - MCP type definitions
 - Type validation
+- Metadata handling
 
 #### Configuration (`core/config.py`)
 - Environment variable handling
 - Configuration validation
 - Default settings
+- Configuration versioning
+
+#### Models (`core/models.py`)
+- Data models
+- Validation rules
+- Type definitions
+- Model relationships
 
 ### 2. API Layer
 
@@ -53,11 +66,19 @@ MCP is designed as a modular, extensible system for managing and executing vario
 - API communication
 - Request handling
 - Response processing
+- Retry mechanisms
 
 #### Execution (`api/execution.py`)
 - Task execution
 - Resource management
 - Error handling
+- Queue management
+
+#### Assistant (`api/assistant.py`)
+- AI assistant integration
+- Tool management
+- Memory handling
+- Context management
 
 ### 3. UI Layer
 
@@ -65,11 +86,27 @@ MCP is designed as a modular, extensible system for managing and executing vario
 - Configuration UI components
 - Type-specific widgets
 - Common UI elements
+- State management
 
 #### App (`ui/app.py`)
 - Main application
 - Navigation
 - State management
+- Theme handling
+
+### 4. Cache Layer
+
+#### Cache Manager (`utils/cache.py`)
+- Cache configuration
+- Storage management
+- TTL handling
+- Compression
+
+#### Cache Types
+- File cache
+- Memory cache
+- Redis cache
+- Distributed cache
 
 ## Data Flow
 
@@ -91,6 +128,12 @@ Configuration → API Client → External Services → Response Processing → U
 Error → Error Handler → Logging → User Notification
 ```
 
+### 4. Cache Flow
+
+```
+Request → Cache Check → Cache Hit/Miss → Response/Execution → Cache Update
+```
+
 ## Security Architecture
 
 ### 1. Authentication
@@ -98,18 +141,21 @@ Error → Error Handler → Logging → User Notification
 - API key management
 - Environment variable security
 - Secure storage
+- Token validation
 
 ### 2. Authorization
 
 - Access control
 - Resource limits
 - Rate limiting
+- Role-based access
 
 ### 3. Data Security
 
 - Input validation
 - Output sanitization
 - Secure communication
+- Data encryption
 
 ## Performance Architecture
 
@@ -118,18 +164,21 @@ Error → Error Handler → Logging → User Notification
 - Response caching
 - Configuration caching
 - Resource caching
+- Distributed caching
 
 ### 2. Concurrency
 
 - Async execution
 - Thread pool management
 - Resource limits
+- Queue management
 
 ### 3. Resource Management
 
 - Memory management
 - CPU utilization
 - I/O optimization
+- Connection pooling
 
 ## Extension Points
 
@@ -158,6 +207,15 @@ class ExtendedMCPClient(MCPClient):
         # Implementation
 ```
 
+### 4. Cache Extensions
+
+```python
+class CustomCache(Cache):
+    async def get(self, key: str) -> Any:
+        """Get value from cache."""
+        # Implementation
+```
+
 ## Component Interactions
 
 ### 1. UI to Core
@@ -178,6 +236,12 @@ Core Services → API Client → External Services → Response Processing
 API Client → Authentication → External API → Response Handling
 ```
 
+### 4. Cache Interactions
+
+```
+Request → Cache Manager → Storage → Response
+```
+
 ## Error Handling Architecture
 
 ### 1. Error Hierarchy
@@ -186,7 +250,8 @@ API Client → Authentication → External API → Response Handling
 MCPError
 ├── ConfigurationError
 ├── ExecutionError
-└── APIError
+├── APIError
+└── CacheError
 ```
 
 ### 2. Error Flow
@@ -200,6 +265,7 @@ Error → Error Handler → Logging → User Notification
 - Retry mechanisms
 - Fallback options
 - Graceful degradation
+- Circuit breaking
 
 ## Logging Architecture
 
@@ -222,6 +288,7 @@ Event → Logger → Handlers → Output
 - Log rotation
 - Log aggregation
 - Log analysis
+- Structured logging
 
 ## Testing Architecture
 
@@ -231,6 +298,7 @@ Event → Logger → Handlers → Output
 - Integration tests
 - End-to-end tests
 - Performance tests
+- Cache tests
 
 ### 2. Test Flow
 
@@ -243,6 +311,7 @@ Test Case → Test Runner → Assertions → Report
 - Code coverage
 - Branch coverage
 - Path coverage
+- Cache coverage
 
 ## Deployment Architecture
 
@@ -250,27 +319,27 @@ Test Case → Test Runner → Assertions → Report
 
 ```
 mcp/
-├── mcp/
-│   ├── core/
-│   ├── api/
-│   ├── ui/
-│   └── utils/
+├── api/
+├── core/
+├── ui/
+├── utils/
 ├── tests/
-├── docs/
-└── examples/
+└── docs/
 ```
 
 ### 2. Dependencies
 
-- Production dependencies
+- Core dependencies
 - Development dependencies
-- Optional dependencies
+- Test dependencies
+- Documentation dependencies
 
-### 3. Installation
+### 3. Build Process
 
-- pip installation
-- Development setup
-- Configuration
+- Package building
+- Documentation generation
+- Test execution
+- Deployment preparation
 
 ## Future Architecture
 
