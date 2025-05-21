@@ -15,11 +15,13 @@ from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 import time
 from collections import defaultdict
+from dotenv import load_dotenv
 
 from ..core.base import BaseMCPServer
 from ..core.llm_prompt import LLMPromptMCP
 from ..core.jupyter_notebook import JupyterNotebookMCP
 from ..core.python_script import PythonScriptMCP
+from ..core.ai_assistant import AIAssistantMCP
 
 # Import Config models and MCPType Enum from mcp.core.types
 from mcp.core.types import (
@@ -37,6 +39,7 @@ from mcp.db.session import SessionLocal
 from mcp.cache.redis_manager import RedisCacheManager
 
 # API Key management
+load_dotenv()
 API_KEY_NAME = "X-API-Key"
 API_KEY = os.getenv("MCP_API_KEY", secrets.token_urlsafe(32))
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
@@ -119,8 +122,7 @@ def load_mcp_servers() -> Dict[str, Dict[str, Any]]:
                 mcp_instance = PythonScriptMCP(config_obj)
             elif mcp_type_str == MCPType.AI_ASSISTANT.value:
                 config_obj = AIAssistantConfig(**config_data)
-                # mcp_instance = AIAssistantMCP(config_obj) # No implementation yet
-                print(f"[WARN] AI Assistant MCP type ({mcp_type_str}) loaded, but no executor is implemented.")
+                mcp_instance = AIAssistantMCP(config_obj)
             else:
                 print(f"[WARN] Unknown MCP type '{mcp_type_str}' for server ID {server_id}. Skipping.")
                 continue
@@ -218,8 +220,7 @@ async def create_mcp_server(request: MCPCreationRequest, api_key: str = Depends(
             mcp_instance = PythonScriptMCP(config_obj)
         elif request.type == MCPType.AI_ASSISTANT:
             config_obj = AIAssistantConfig(**config_init_data)
-            # mcp_instance = AIAssistantMCP(config_obj) # No implementation yet
-            print(f"[WARN] AI Assistant MCP type ({request.type.value}) created, but no executor is implemented.")
+            mcp_instance = AIAssistantMCP(config_obj)
         else:
             # This case should ideally be caught by Pydantic validation of MCPType enum in MCPCreationRequest
             raise HTTPException(status_code=400, detail=f"Unsupported MCP server type: {request.type.value}")

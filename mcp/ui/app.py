@@ -21,10 +21,11 @@ if project_root not in sys.path:
 from mcp.core.models import MCPResult
 from mcp.api.client import MCPClient
 from mcp.core.config import config
-from mcp.core.types import MCPType, LLMPromptConfig, JupyterNotebookConfig, PythonScriptConfig
+from mcp.core.types import MCPType, LLMPromptConfig, JupyterNotebookConfig, PythonScriptConfig, AIAssistantConfig
 from mcp.mcp_types.llm_prompt import LLMPromptMCP
 from mcp.mcp_types.jupyter import JupyterNotebookMCP
 from mcp.mcp_types.python_script import PythonScriptMCP
+from mcp.mcp_types.ai_assistant import AIAssistantMCP
 from mcp.ui.widgets.chain_builder import ChainBuilder
 from mcp.ui.widgets.chain_executor import ChainExecutor
 from mcp.config.settings import settings
@@ -284,19 +285,24 @@ def render_create_mcp() -> None:
     description = st.text_area("Description")
     
     # MCP Type Selection
-    mcp_type = st.selectbox(
+    mcp_type_str = st.selectbox(
         "Select MCP Type",
         [t.value for t in MCPType]
     )
     
-    # Type-specific configuration
-    if mcp_type == MCPType.LLM_PROMPT:
-        config = build_llm_config()
-    elif mcp_type == MCPType.JUPYTER_NOTEBOOK:
-        config = build_notebook_config()
-    else:  # Python Script
-        config = build_script_config()
-    
+    config_payload: Dict[str, Any] = {}
+    if mcp_type_str == MCPType.LLM_PROMPT.value:
+        config_payload = build_llm_config()
+    elif mcp_type_str == MCPType.JUPYTER_NOTEBOOK.value:
+        config_payload = build_notebook_config()
+    elif mcp_type_str == MCPType.PYTHON_SCRIPT.value:
+        config_payload = build_script_config()
+    elif mcp_type_str == MCPType.AI_ASSISTANT.value:
+        config_payload = build_ai_assistant_config()
+    # else: # Should not happen if MCPType enum is exhaustive for UI options
+        # st.error(f"Unknown MCP type selected: {mcp_type_str}")
+        # return 
+
     if st.button("Create MCP"):
         if not name:
             st.error("Please provide a name for the MCP")
@@ -311,21 +317,24 @@ def render_create_mcp() -> None:
                 **config_payload # from build_..._config functions
             }
 
-            if mcp_type == MCPType.LLM_PROMPT:
+            if mcp_type_str == MCPType.LLM_PROMPT.value:
                 data_for_pydantic['type'] = MCPType.LLM_PROMPT
                 mcp_config_object = LLMPromptConfig(**data_for_pydantic)
                 mcp_facade = LLMPromptMCP(config=mcp_config_object, client=client)
-            elif mcp_type == MCPType.JUPYTER_NOTEBOOK:
+            elif mcp_type_str == MCPType.JUPYTER_NOTEBOOK.value:
                 data_for_pydantic['type'] = MCPType.JUPYTER_NOTEBOOK
                 mcp_config_object = JupyterNotebookConfig(**data_for_pydantic)
                 mcp_facade = JupyterNotebookMCP(config=mcp_config_object, client=client)
-            elif mcp_type == MCPType.PYTHON_SCRIPT:
+            elif mcp_type_str == MCPType.PYTHON_SCRIPT.value:
                 data_for_pydantic['type'] = MCPType.PYTHON_SCRIPT
                 mcp_config_object = PythonScriptConfig(**data_for_pydantic)
                 mcp_facade = PythonScriptMCP(config=mcp_config_object, client=client)
-            # TODO: Add AIAssistantConfig handling if UI supports its creation
+            elif mcp_type_str == MCPType.AI_ASSISTANT.value:
+                data_for_pydantic['type'] = MCPType.AI_ASSISTANT
+                mcp_config_object = AIAssistantConfig(**data_for_pydantic)
+                mcp_facade = AIAssistantMCP(config=mcp_config_object, client=client)
             else:
-                st.error(f"Unsupported MCP Type: {mcp_type}")
+                st.error(f"Unsupported MCP Type for creation: {mcp_type_str}")
                 return
 
             if mcp_facade and mcp_facade.create():
@@ -339,7 +348,7 @@ def render_create_mcp() -> None:
             st.error(f"API Error: {str(apie)}")
         except Exception as e: # Catch other errors like Pydantic validation during config object creation
             st.error(f"Error creating MCP: {str(e)}")
-            logger.error(f"Failed to create MCP {name} of type {mcp_type}: {traceback.format_exc()}")
+            logger.error(f"Failed to create MCP {name} of type {mcp_type_str}: {traceback.format_exc()}")
 
 def render_manage_mcps() -> None:
     """Display the page for managing (deleting) MCPs."""
@@ -573,6 +582,68 @@ def build_script_config() -> Dict[str, Any]:
         "virtual_env": virtual_env,
         "timeout": timeout,
         "input_variables": input_variables
+    }
+
+def build_ai_assistant_config() -> Dict[str, Any]:
+    """Build configuration for AI Assistant MCP."""
+    # st.subheader("AI Assistant Configuration") # Subheader might be too much if page already says "Create MCP"
+    
+    model_name = st.selectbox(
+        "Assistant Model Name", # Differentiate from LLM Prompt model name
+        options=["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
+        index=2, # Default to Haiku
+        key="assistant_model_name",
+        help="Select the Claude model for the assistant."
+    )
+    
+    system_prompt = st.text_area(
+        "Assistant System Prompt", # Differentiate
+        value="You are a helpful assistant.",
+        key="assistant_system_prompt",
+        help="The system prompt that defines the assistant's behavior and personality."
+    )
+    
+    temperature = st.slider(
+        "Assistant Temperature", # Differentiate
+        min_value=0.0, max_value=1.0, value=0.7, step=0.01,
+        key="assistant_temperature",
+        help="Controls randomness. Lower is more deterministic."
+    )
+    
+    max_tokens = st.number_input(
+        "Assistant Max Tokens per Response", # Differentiate
+        min_value=50, max_value=4096, value=1000,
+        key="assistant_max_tokens",
+        help="Maximum number of tokens the assistant can generate in a single response."
+    )
+    
+    memory_size = st.number_input(
+        "Assistant Memory Size (Number of Turns)", # Differentiate
+        min_value=0, max_value=50, value=10,
+        key="assistant_memory_size",
+        help="Number of past conversational turns (user + assistant message) to keep in memory. 0 for no memory."
+    )
+
+    # For Tools, Tool Choice, Response Format - advanced features
+    # These can be added as st.text_area for JSON input if complex, or simpler widgets if predefined.
+    # For now, we'll omit them from the UI form for simplicity, Pydantic defaults will apply.
+    # Example for tools (if we were to add it):
+    # tools_json = st.text_area("Tools (JSON format)", key="assistant_tools", value="[]", height=150, help='e.g., [{"name": "search", "description": "Searches the web", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}]')
+    # try:
+    #     tools = json.loads(tools_json) if tools_json else []
+    # except json.JSONDecodeError:
+    #     st.warning("Invalid JSON for tools. Please check syntax.")
+    #     tools = []
+
+    return {
+        "model_name": model_name,
+        "system_prompt": system_prompt,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "memory_size": memory_size,
+        # "tools": tools, # If added
+        # "tool_choice": "auto", # Or get from UI
+        # "response_format": None # Or get from UI
     }
 
 # Main content based on selected page
