@@ -1,211 +1,111 @@
-import React, { useState, useCallback } from 'react';
-import { Box, IconButton, Paper, Drawer, useTheme, useMediaQuery, Typography, Button } from '@mui/material';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import Toolbar from './Toolbar';
-import PropertiesPanel from '../node-config/PropertiesPanel';
-import ExecutionConsole from '../execution-monitor/ExecutionConsole';
-import ChainInfo from './ChainInfo';
-import ChainConfig from './ChainConfig';
+import React from 'react';
+import { Box, Drawer, Typography } from '@mui/material';
+import { useChainStore } from '../../../infrastructure/state/chainStore';
+import { useNotification } from '../../../infrastructure/context/NotificationContext';
 import MCPLibrary from './MCPLibrary';
 import WorkflowDesign from './WorkflowDesign';
-import { useChainOperations } from '../../../infrastructure/hooks/useChainOperations';
-import { useChainStore } from '../../../infrastructure/state/chainStore';
-import type { Node } from 'reactflow';
-import type { MCPItem } from '../../../infrastructure/types/node';
+import PropertiesPanel from './PropertiesPanel';
+import { MCPItem } from '../../../infrastructure/types/node';
+import type { Node, NodeChange, EdgeChange } from 'reactflow';
 
-const DRAWER_WIDTH = 300;
-const CONSOLE_HEIGHT = 200;
+const drawerWidth = 240;
 
-const WorkspaceLayout: React.FC = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [isConsoleCollapsed, setIsConsoleCollapsed] = useState(false);
-  const [isPropertiesOpen, setIsPropertiesOpen] = useState(!isMobile);
-  const [isLibraryOpen, setIsLibraryOpen] = useState(!isMobile);
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-  const { chainInfo, chainConfig } = useChainStore();
+export const WorkspaceLayout: React.FC = () => {
+  const { nodes, edges, addNode, removeNode, removeEdge, updateNode, setSelectedNode, selectedNode } = useChainStore();
+  const { showSuccess } = useNotification();
 
-  const {
-    nodes,
-    edges,
-    isLoading,
-    handleLoadChain,
-    handleSaveChain,
-    handleExecuteChain,
-    handleAddMCP,
-    handleUpdateNode,
-    handleAddEdge,
-    handleRemoveNode,
-    handleRemoveEdge,
-  } = useChainOperations();
+  const handleAddMCP = (item: MCPItem) => {
+    addNode({
+      id: `${item.type}-${Date.now()}`,
+      type: item.type,
+      position: { x: 100, y: 100 },
+      data: { ...item },
+    });
+    showSuccess('Node added successfully');
+  };
 
-  const toggleConsole = useCallback(() => {
-    setIsConsoleCollapsed(prev => !prev);
-  }, []);
+  const handleNodeDelete = (nodeId: string) => {
+    removeNode(nodeId);
+    showSuccess('Node deleted successfully');
+  };
 
-  const toggleProperties = useCallback(() => {
-    setIsPropertiesOpen(prev => !prev);
-  }, []);
+  const handleEdgeDelete = (edgeId: string) => {
+    removeEdge(edgeId);
+    showSuccess('Edge deleted successfully');
+  };
 
-  const toggleLibrary = useCallback(() => {
-    setIsLibraryOpen(prev => !prev);
-  }, []);
-
-  const handleNodeSelect = useCallback((node: Node | null) => {
+  const handleNodeSelect = (node: Node | null) => {
     setSelectedNode(node);
-    if (node && isMobile) {
-      setIsPropertiesOpen(true);
-    }
-  }, [isMobile]);
+  };
+
+  const handleNodeUpdate = (nodeId: string, data: Record<string, unknown>) => {
+    updateNode(nodeId, data);
+    showSuccess('Node updated successfully');
+  };
+
+  const handleNodesChange = (changes: NodeChange[]) => {
+    // Handle node changes
+  };
+
+  const handleEdgesChange = (changes: EdgeChange[]) => {
+    // Handle edge changes
+  };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
-      {/* Header */}
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        bgcolor: 'background.default', 
-        p: 2, 
-        pb: 1,
-        borderBottom: 1,
-        borderColor: 'divider'
-      }}>
-        <IconButton 
-          sx={{ 
-            color: 'text.primary',
-            mr: 2
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h2" sx={{ flex: 1, textAlign: 'center', pr: 6 }}>
-          Chain Builder
-        </Typography>
-      </Box>
-
-      {/* Main Content */}
-      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* MCP Library Drawer */}
-        <Drawer
-          variant={isMobile ? 'temporary' : 'persistent'}
-          open={isLibraryOpen}
-          onClose={toggleLibrary}
-          sx={{
-            width: DRAWER_WIDTH,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              boxSizing: 'border-box',
-              borderRight: 1,
-              borderColor: 'divider',
-            },
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h3">
-              MCP Library
-            </Typography>
-          </Box>
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            MCP Library
+          </Typography>
           <MCPLibrary onAddMCP={handleAddMCP} />
-        </Drawer>
-
-        {/* Main Canvas */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-          <Box sx={{ 
-            flex: 1, 
-            position: 'relative',
-            height: '100%',
-            minHeight: 0,
-            '& .react-flow': {
-              height: '100%',
-              width: '100%',
-              bgcolor: 'background.default',
-            }
-          }}>
-            <WorkflowDesign
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={handleUpdateNode}
-              onEdgesChange={handleAddEdge}
-              onNodeDelete={handleRemoveNode}
-              onEdgeDelete={handleRemoveEdge}
-              onNodeSelect={handleNodeSelect}
-            />
-          </Box>
         </Box>
-
-        {/* Properties Panel Drawer */}
-        <Drawer
-          variant={isMobile ? 'temporary' : 'persistent'}
-          anchor="right"
-          open={isPropertiesOpen}
-          onClose={toggleProperties}
-          sx={{
-            width: DRAWER_WIDTH,
-            flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              boxSizing: 'border-box',
-              borderLeft: 1,
-              borderColor: 'divider',
-            },
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h3">
-              {selectedNode ? 'Node Properties' : 'Chain Properties'}
-            </Typography>
-          </Box>
-          {selectedNode ? (
-            <PropertiesPanel node={selectedNode} />
-          ) : (
-            <Box sx={{ p: 2 }}>
-              <ChainInfo />
-              {chainInfo && chainConfig && (
-                <ChainConfig nodeId={chainInfo.id} config={chainConfig} />
-              )}
-            </Box>
+      </Drawer>
+      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+        <WorkflowDesign
+          nodes={nodes}
+          edges={edges}
+          onNodeDelete={handleNodeDelete}
+          onEdgeDelete={handleEdgeDelete}
+          onNodeSelect={handleNodeSelect}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
+        />
+      </Box>
+      <Drawer
+        variant="permanent"
+        anchor="right"
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Properties
+          </Typography>
+          {selectedNode && (
+            <PropertiesPanel
+              node={selectedNode}
+              onUpdate={handleNodeUpdate}
+            />
           )}
-        </Drawer>
-      </Box>
-
-      {/* Execution Console */}
-      <Box sx={{ position: 'relative' }}>
-        <IconButton
-          onClick={toggleConsole}
-          sx={{
-            position: 'absolute',
-            top: -20,
-            right: 20,
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            '&:hover': { bgcolor: 'background.paper' },
-          }}
-        >
-          {isConsoleCollapsed ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-        </IconButton>
-        <Paper
-          sx={{
-            height: isConsoleCollapsed ? 0 : CONSOLE_HEIGHT,
-            transition: 'height 0.3s ease-in-out',
-            overflow: 'hidden',
-            borderTop: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-            <Typography variant="h3">
-              Execution Console
-            </Typography>
-          </Box>
-          <ExecutionConsole />
-        </Paper>
-      </Box>
+        </Box>
+      </Drawer>
     </Box>
   );
-};
-
-export default WorkspaceLayout; 
+}; 

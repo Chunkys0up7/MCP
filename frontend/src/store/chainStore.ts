@@ -1,41 +1,64 @@
 import { create } from 'zustand';
 import type { Node } from 'reactflow';
-import type { ChainState, ChainNode, ChainEdge, ChainConfig } from '../types';
+import type { ChainState, ChainNode, ChainEdge, ChainConfig, ChainInfo } from '../types';
 import { ChainServiceImpl } from '../services/chainService';
 import { handleError } from '../utils/errorHandling';
 import { captureException } from '../monitoring/error';
 
+interface ChainStore extends ChainState {
+  setNodes: (nodes: ChainNode[]) => void;
+  setEdges: (edges: ChainEdge[]) => void;
+  addNode: (node: ChainNode) => void;
+  updateNode: (nodeId: string, data: Record<string, unknown>) => void;
+  removeNode: (nodeId: string) => void;
+  addEdge: (edge: ChainEdge) => void;
+  removeEdge: (edgeId: string) => void;
+  clear: () => void;
+  loadChain: (id: string) => Promise<void>;
+  saveChain: () => Promise<void>;
+  executeChain: () => Promise<void>;
+  stopExecution: () => Promise<void>;
+  clearError: () => void;
+  setSelectedNode: (node: Node | null) => void;
+}
+
 // Initial state
 const initialState: Omit<ChainState, 'chainService'> = {
-  chainInfo: {
-    id: '',
-    name: 'New Chain',
-    description: '',
-    version: '1.0.0',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  chainConfig: {
-    errorHandling: {
-      retryCount: 3,
-      retryDelay: 1000,
-      failFast: false,
-    },
-    executionMode: 'sequential',
-    timeout: 30000,
-    maxConcurrent: 1,
-  },
+  chainInfo: null,
+  chainConfig: null,
   nodes: [],
   edges: [],
   isLoading: false,
   error: null,
   isExecuting: false,
-  selectedNode: null,
+  selectedNode: null
 };
 
-export const useChainStore = create<ChainState>((set, get) => ({
+export const useChainStore = create<ChainStore>((set, get) => ({
   ...initialState,
   chainService: new ChainServiceImpl(import.meta.env.VITE_API_URL || 'http://localhost:3000/api'),
+
+  setNodes: (nodes: ChainNode[]) => set({ nodes }),
+  setEdges: (edges: ChainEdge[]) => set({ edges }),
+  addNode: (node: ChainNode) => set((state) => ({ nodes: [...state.nodes, node] })),
+  updateNode: (nodeId: string, data: Record<string, unknown>) =>
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
+      ),
+    })),
+  removeNode: (nodeId: string) =>
+    set((state) => ({
+      nodes: state.nodes.filter((node) => node.id !== nodeId),
+      edges: state.edges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      ),
+    })),
+  addEdge: (edge: ChainEdge) => set((state) => ({ edges: [...state.edges, edge] })),
+  removeEdge: (edgeId: string) =>
+    set((state) => ({
+      edges: state.edges.filter((edge) => edge.id !== edgeId),
+    })),
 
   loadChain: async (id: string) => {
     const { chainService } = get();
@@ -126,52 +149,7 @@ export const useChainStore = create<ChainState>((set, get) => ({
     }
   },
 
-  updateNode: (nodeId: string, data: Partial<ChainNode>) => {
-    set(state => ({
-      nodes: state.nodes.map(node =>
-        node.id === nodeId ? { ...node, ...data } : node
-      )
-    }));
-  },
-
-  updateEdge: (edgeId: string, data: Partial<ChainEdge>) => {
-    set(state => ({
-      edges: state.edges.map(edge =>
-        edge.id === edgeId ? { ...edge, ...data } : edge
-      )
-    }));
-  },
-
-  addNode: (node: ChainNode) => {
-    set(state => ({
-      nodes: [...state.nodes, node]
-    }));
-  },
-
-  addEdge: (edge: ChainEdge) => {
-    set(state => ({
-      edges: [...state.edges, edge]
-    }));
-  },
-
-  removeNode: (nodeId: string) => {
-    set(state => ({
-      nodes: state.nodes.filter(node => node.id !== nodeId),
-      edges: state.edges.filter(
-        edge => edge.source !== nodeId && edge.target !== nodeId
-      )
-    }));
-  },
-
-  removeEdge: (edgeId: string) => {
-    set(state => ({
-      edges: state.edges.filter(edge => edge.id !== edgeId)
-    }));
-  },
-
   clearError: () => set({ error: null }),
-
-  setSelectedNode: (node: Node | null) => {
-    set({ selectedNode: node });
-  },
+  setSelectedNode: (node: Node | null) => set({ selectedNode: node }),
+  clear: () => set(initialState),
 })); 

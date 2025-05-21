@@ -1,161 +1,123 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
-  addEdge,
-  useNodesState,
-  useEdgesState,
   Node,
   Edge,
   NodeChange,
   EdgeChange,
-  Connection,
-  Panel,
 } from 'reactflow';
-import { Box, Typography } from '@mui/material';
 import 'reactflow/dist/style.css';
-import type { NodeData } from '../../../infrastructure/types/node';
-import MCPNode from './MCPNode';
-import { ChainNode, ChainEdge } from '../../../infrastructure/types/chain';
 
-const nodeTypes = {
-  mcp: MCPNode,
+// Add custom styles
+const styles = {
+  container: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f8f8f8',
+  },
+  errorContainer: {
+    padding: '20px',
+    color: 'red',
+    backgroundColor: '#fff',
+    border: '1px solid red',
+    borderRadius: '4px',
+    margin: '20px',
+  },
 };
 
-export interface WorkflowDesignProps {
-  nodes: ChainNode[];
-  edges: ChainEdge[];
-  onNodesChange: (nodeId: string, data: Partial<Node['data']>) => void;
-  onEdgesChange: (edge: Edge) => void;
+interface Props {
+  nodes: Node[];
+  edges: Edge[];
+  onNodeSelect: (node: Node | null) => void;
   onNodeDelete: (nodeId: string) => void;
   onEdgeDelete: (edgeId: string) => void;
-  onNodeSelect: (node: Node | null) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
 }
 
-const WorkflowDesign: React.FC<WorkflowDesignProps> = ({
-  nodes: initialNodes,
-  edges: initialEdges,
-  onNodesChange,
-  onEdgesChange,
+const WorkflowDesign: React.FC<Props> = ({
+  nodes,
+  edges,
+  onNodeSelect,
   onNodeDelete,
   onEdgeDelete,
-  onNodeSelect,
+  onNodesChange,
+  onEdgesChange,
 }) => {
-  const [nodes, setNodes, onNodesChangeInternal] = useNodesState(initialNodes || []);
-  const [edges, setEdges, onEdgesChangeInternal] = useEdgesState(initialEdges || []);
-
-  // Update local state when props change
   useEffect(() => {
-    if (initialNodes) {
-      setNodes(initialNodes);
-    }
-  }, [initialNodes, setNodes]);
+    console.log('WorkflowDesign mounted');
+    console.log('Current nodes:', nodes);
+    console.log('Current edges:', edges);
+  }, [nodes, edges]);
 
-  useEffect(() => {
-    if (initialEdges) {
-      setEdges(initialEdges);
-    }
-  }, [initialEdges, setEdges]);
+  console.log('Rendering WorkflowDesign...');
 
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    onNodeSelect(node);
-  }, [onNodeSelect]);
-
-  const handlePaneClick = useCallback(() => {
-    onNodeSelect(null);
-  }, [onNodeSelect]);
-
-  const handleNodesChange = useCallback((changes: NodeChange[]) => {
-    onNodesChangeInternal(changes);
-    changes.forEach((change) => {
-      if (change.type === 'remove') {
-        onNodeDelete(change.id);
-      } else if (change.type === 'position' && change.position) {
-        const node = nodes.find(n => n.id === change.id);
-        if (node) {
-          onNodesChange(change.id, { position: change.position });
-        }
-      }
-    });
-  }, [onNodesChangeInternal, onNodeDelete, onNodesChange, nodes]);
-
-  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
-    onEdgesChangeInternal(changes);
-    changes.forEach((change) => {
-      if (change.type === 'remove') {
-        onEdgeDelete(change.id);
-      }
-    });
-  }, [onEdgesChangeInternal, onEdgeDelete]);
-
-  const handleConnect = useCallback((connection: Connection) => {
-    if (!connection.source || !connection.target) return;
-    
-    const newEdge: Edge = {
-      id: `edge-${connection.source}-${connection.target}`,
-      source: connection.source,
-      target: connection.target,
-      type: 'smoothstep',
-      animated: true,
-      style: { stroke: '#314c68' },
-    };
-    onEdgesChange(newEdge);
-  }, [onEdgesChange]);
-
-  return (
-    <Box sx={{ width: '100%', height: '100%', bgcolor: 'background.default' }}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        onEdgesChange={handleEdgesChange}
-        onConnect={handleConnect}
-        onNodeClick={handleNodeClick}
-        onPaneClick={handlePaneClick}
-        nodeTypes={nodeTypes}
-        fitView
-        minZoom={0.1}
-        maxZoom={2}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background color="#314c68" gap={16} />
-        <Controls style={{ background: 'background.paper', border: '1px solid #314c68' }} />
-        <MiniMap 
-          style={{ background: 'background.paper', border: '1px solid #314c68' }}
-          nodeColor={(node) => {
-            switch (node.data?.type) {
-              case 'llm':
-                return '#0b79ee';
-              case 'notebook':
-                return '#00bcd4';
-              case 'data':
-                return '#4caf50';
-              default:
-                return '#314c68';
-            }
+  try {
+    return (
+      <div style={styles.container}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={{
+            input: ({ data }) => (
+              <div style={{ padding: 10, background: '#fff', border: '1px solid #777', borderRadius: 5 }}>
+                {data.label}
+              </div>
+            ),
+            default: ({ data }) => (
+              <div style={{ padding: 10, background: '#fff', border: '1px solid #777', borderRadius: 5 }}>
+                {data.label}
+              </div>
+            ),
+            output: ({ data }) => (
+              <div style={{ padding: 10, background: '#fff', border: '1px solid #777', borderRadius: 5 }}>
+                {data.label}
+              </div>
+            ),
           }}
-        />
-        <Panel position="top-right">
-          {nodes.length === 0 && (
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                bgcolor: 'background.paper',
-                p: 2,
-                borderRadius: 1,
-                border: '1px solid #314c68',
-                color: 'text.secondary'
-              }}
-            >
-              Drag nodes from the library to start building your chain
-            </Typography>
-          )}
-        </Panel>
-      </ReactFlow>
-    </Box>
-  );
+          onNodeClick={(_, node) => {
+            console.log('Node clicked:', node);
+            onNodeSelect(node);
+          }}
+          onPaneClick={() => {
+            console.log('Pane clicked, deselecting node');
+            onNodeSelect(null);
+          }}
+          onNodesDelete={(nodes) => {
+            console.log('Nodes deleted:', nodes);
+            nodes.forEach((node) => onNodeDelete(node.id));
+          }}
+          onEdgesDelete={(edges) => {
+            console.log('Edges deleted:', edges);
+            edges.forEach((edge) => onEdgeDelete(edge.id));
+          }}
+          onNodesChange={(changes) => {
+            console.log('Nodes changed:', changes);
+            onNodesChange(changes);
+          }}
+          onEdgesChange={(changes) => {
+            console.log('Edges changed:', changes);
+            onEdgesChange(changes);
+          }}
+          fitView
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        >
+          <Background color="#aaa" gap={16} />
+          <Controls />
+          <MiniMap />
+        </ReactFlow>
+      </div>
+    );
+  } catch (error) {
+    console.error('Error rendering WorkflowDesign:', error);
+    return (
+      <div style={styles.errorContainer}>
+        Error rendering workflow: {error instanceof Error ? error.message : 'Unknown error'}
+      </div>
+    );
+  }
 };
 
 export default WorkflowDesign; 

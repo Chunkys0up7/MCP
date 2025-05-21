@@ -1,5 +1,5 @@
-import React from 'react';
-import { captureException } from '../../infrastructure/monitoring/error';
+import React, { Component, ErrorInfo } from 'react';
+import { Box, Typography, Button } from '@mui/material';
 
 interface Props {
   children: React.ReactNode;
@@ -10,7 +10,7 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
+export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -20,27 +20,28 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    captureException(error);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error to error reporting service
+    console.error('Error caught by boundary:', error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          <h2>Something went wrong</h2>
-          <p>Please try refreshing the page</p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '8px 16px',
-              marginTop: '10px',
-              cursor: 'pointer',
-            }}
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="h5" gutterBottom>
+            Something went wrong
+          </Typography>
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            {this.state.error?.message}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={() => this.setState({ hasError: false, error: null })}
           >
-            Refresh Page
-          </button>
-        </div>
+            Try again
+          </Button>
+        </Box>
       );
     }
 

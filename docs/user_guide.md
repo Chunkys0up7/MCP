@@ -113,9 +113,9 @@ response = await client.execute_script(config)
 
 1. Create an assistant configuration:
 ```python
-from mcp.core.types import AssistantConfig
+from mcp.core.types import AIAssistantConfig
 
-config = AssistantConfig(
+config = AIAssistantConfig(
     type="ai_assistant",
     model_name="gpt-4",
     system_prompt="You are a helpful assistant.",
@@ -329,6 +329,52 @@ tail -f logs/mcp.log
    - Distributed
    - Scalable
    - Good for production
+
+### Configuring Cache Backends
+
+MCP supports different caching backends. You can configure the desired cache type and its specific settings in your `config.yaml` file. The `get_cache()` utility will then use the backend specified in your configuration.
+
+**1. Memory Cache**
+
+Ideal for small datasets and fastest access. Data is lost when the application restarts.
+
+```yaml
+cache:
+  enabled: true
+  backend: memory # Specify memory cache
+  max_size: 500    # Max number of items
+  ttl: 1800        # Default TTL in seconds (e.g., 30 minutes)
+```
+
+**2. File Cache**
+
+Persistent disk-based cache. Good for larger datasets or when data needs to survive restarts. The cache directory can be configured using the `MCP_CACHE_DIR` environment variable or directly in the YAML.
+
+```yaml
+cache:
+  enabled: true
+  backend: file      # Specify file cache
+  directory: ${MCP_CACHE_DIR:-cache_data} # Path to cache directory
+  max_size: 2000   # Max number of items (or consider defining units like MB)
+  ttl: 3600        # Default TTL in seconds (e.g., 1 hour)
+```
+
+**3. Redis Cache**
+
+A distributed cache, suitable for production and multi-instance deployments. Requires a running Redis server.
+
+```yaml
+cache:
+  enabled: true
+  backend: redis     # Specify Redis cache
+  host: localhost
+  port: 6379
+  db: 0
+  password: ${REDIS_PASSWORD:-} # Optional: use environment variable for password
+  ttl: 7200        # Default TTL in seconds (e.g., 2 hours)
+  # Example Redis-specific settings (e.g., connection pool)
+  # max_connections: 10
+```
 
 ### Cache Usage
 

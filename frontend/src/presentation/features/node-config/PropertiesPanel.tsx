@@ -15,31 +15,11 @@ import {
 import type { Node } from 'reactflow';
 import { useChainStore } from '../../../infrastructure/state/chainStore';
 import InputConfig from '../chain-builder/InputConfig';
-import type { NodeData } from '../../../infrastructure/types/node';
+import type { NodeData, NodeConfig, NodeConfigData } from '../../../infrastructure/types/node';
 
-interface NodeConfig {
-  llm: {
-    model: string;
-    temperature: number;
-    maxTokens: number;
-    prompt: string;
-  };
-  notebook: {
-    name: string;
-    description: string;
-    tags: string[];
-  };
-  data: {
-    source: string;
-    format: string;
-    schema: string;
-  };
-}
-
-interface NodeConfigData {
-  label: string;
-  type: keyof NodeConfig;
-  config: NodeConfig[keyof NodeConfig];
+interface PropertiesPanelProps {
+  node: Node<NodeData>;
+  onUpdate: (nodeId: string, data: Record<string, unknown>) => void;
 }
 
 const defaultConfig: NodeConfig = {
@@ -61,38 +41,33 @@ const defaultConfig: NodeConfig = {
   },
 };
 
-interface PropertiesPanelProps {
-  node: Node<NodeData>;
-}
-
-const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node }) => {
-  const { selectedNode, updateNode } = useChainStore();
+const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node, onUpdate }) => {
   const [config, setConfig] = React.useState<NodeConfig[keyof NodeConfig] | null>(null);
 
   React.useEffect(() => {
-    if (selectedNode) {
-      const nodeData = selectedNode.data as NodeConfigData;
+    if (node) {
+      const nodeData = node.data as NodeConfigData;
       setConfig(nodeData.config || defaultConfig[nodeData.type]);
     }
-  }, [selectedNode]);
+  }, [node]);
 
-  const handleConfigChange = (field: string, value: any) => {
-    if (!selectedNode || !config) return;
+  const handleConfigChange = (field: string, value: unknown) => {
+    if (!node || !config) return;
 
     const newConfig = { ...config, [field]: value };
     setConfig(newConfig);
-    updateNode(selectedNode.id, { 
-      ...selectedNode.data,
+    onUpdate(node.id, { 
+      ...node.data,
       config: newConfig 
     });
   };
 
   const handleDeleteNode = () => {
-    if (!selectedNode) return;
+    if (!node) return;
     // TODO: Implement node deletion
   };
 
-  if (!selectedNode) {
+  if (!node) {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="body2" color="text.secondary">
@@ -102,7 +77,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node }) => {
     );
   }
 
-  const nodeData = selectedNode.data as NodeConfigData;
+  const nodeData = node.data as NodeConfigData;
 
   // Mock input variables for now - will be replaced with actual MCP configuration
   const inputVariables = [
@@ -287,6 +262,19 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node }) => {
     );
   };
 
+  const renderConfig = () => {
+    switch (nodeData.type) {
+      case 'llm':
+        return renderLLMConfig();
+      case 'notebook':
+        return renderNotebookConfig();
+      case 'data':
+        return renderDataConfig();
+      default:
+        return null;
+    }
+  };
+
   return (
     <Box sx={{ height: '100%', overflow: 'auto' }}>
       <Box sx={{ p: 2 }}>
@@ -309,12 +297,15 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node }) => {
       </Box>
       <Divider />
       <Box sx={{ p: 2 }}>
+        {renderConfig()}
+      </Box>
+      <Box sx={{ p: 2 }}>
         <InputConfig
-          nodeId={selectedNode.id}
+          nodeId={node.id}
           inputVariables={inputVariables}
         />
       </Box>
-      <Box sx={{ mt: 3, display: 'flex', gap: 1 }}>
+      <Box sx={{ mt: 3, display: 'flex', gap: 1, p: 2 }}>
         <Tooltip title="Save changes to the node configuration">
           <Button 
             variant="contained" 

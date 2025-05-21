@@ -8,178 +8,113 @@ import papermill as pm
 import nbformat
 from pathlib import Path
 
-from .base import BaseMCPServer, MCPConfig
-
-class JupyterNotebookConfig(MCPConfig):
-    """Configuration for Jupyter Notebook MCP.
-    
-    This class defines the configuration structure for Jupyter notebook-based MCPs,
-    specifying how notebooks should be executed and what parameters to use.
-    
-    Attributes:
-        notebook_path (str): Path to the Jupyter notebook file.
-        execute_all (bool): Whether to execute all cells. Defaults to True.
-        cells_to_execute (Optional[List[int]]): List of specific cell indices to execute.
-        timeout (int): Maximum execution time in seconds. Defaults to 600.
-    """
-    notebook_path: str
-    execute_all: bool = True
-    cells_to_execute: Optional[List[int]] = None
-    timeout: int = 600  # seconds
+from .base import BaseMCPServer
+from mcp.core.types import JupyterNotebookConfig
 
 class JupyterNotebookMCP(BaseMCPServer):
     """MCP for executing Jupyter notebooks.
-    
-    This class implements the MCP interface for executing Jupyter notebooks,
-    providing features like parameter injection, cell execution control,
-    and result extraction.
-    
-    Attributes:
-        config (JupyterNotebookConfig): The configuration for this notebook MCP.
+    Uses JupyterNotebookConfig from mcp.core.types.
+    Name and description properties are inherited from BaseMCPServer.
     """
     
     def __init__(self, config: JupyterNotebookConfig):
         """Initialize the Jupyter Notebook MCP.
         
         Args:
-            config (JupyterNotebookConfig): The configuration for this MCP.
+            config (JupyterNotebookConfig): The configuration for this MCP from mcp.core.types.
             
         Raises:
             ValueError: If the notebook file is not found.
         """
         super().__init__(config)
-        if not os.path.exists(config.notebook_path):
-            raise ValueError(f"Notebook not found: {config.notebook_path}")
+        if not os.path.exists(self.config.notebook_path):
+            raise ValueError(f"Notebook not found: {self.config.notebook_path}")
     
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the Jupyter notebook with given inputs.
         
-        This method executes the notebook using papermill, injecting the input
-        parameters and collecting the results from executed cells.
-        
-        Args:
-            inputs (Dict[str, Any]): Dictionary of input parameters for the notebook.
-            
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - output: Combined output from all cells
-                - results: Detailed cell outputs
-                - execution_time: Total execution time
-                - success: Whether execution was successful
-                - error: Error message if execution failed
-                
-        Raises:
-            Exception: If notebook execution fails.
+        Uses self.config.notebook_path and self.config.timeout from types.JupyterNotebookConfig.
         """
-        # Create temporary output path
         with tempfile.NamedTemporaryFile(suffix='.ipynb', delete=False) as temp:
             output_path = temp.name
         
         try:
-            # Execute notebook with parameters
+            kernel_name = None
+            
             pm.execute_notebook(
-                self.config.notebook_path,
-                output_path,
+                input_path=self.config.notebook_path,
+                output_path=output_path,
                 parameters=inputs,
-                timeout=self.config.timeout
+                timeout=self.config.timeout,
             )
             
-            # Read and process results
             with open(output_path, 'r') as f:
                 nb = nbformat.read(f, as_version=4)
             
-            # Extract results from executed cells
             results = self._extract_results(nb)
             
-            # Combine all outputs into a single string
             combined_output = []
             for cell_result in results.values():
-                for output in cell_result.get('outputs', []):
-                    if isinstance(output, str):
-                        combined_output.append(output)
+                for output_data in cell_result.get('outputs', []):
+                    if isinstance(output_data, str):
+                        combined_output.append(output_data)
             
             return {
                 "output": "\n".join(combined_output),
                 "results": results,
                 "execution_time": self._get_execution_time(nb),
-                "success": True
+                "success": True,
+                "error": None
             }
             
         except Exception as e:
             import traceback
             error_msg = f"Notebook execution failed: {str(e)}\n{traceback.format_exc()}"
             return {
-                "error": error_msg,
-                "success": False,
                 "output": None,
-                "results": None
+                "results": None,
+                "execution_time": None,
+                "success": False,
+                "error": error_msg
             }
             
         finally:
-            # Clean up temporary file
             if os.path.exists(output_path):
                 os.unlink(output_path)
     
     def _extract_results(self, nb: nbformat.NotebookNode) -> Dict[str, Any]:
-        """Extract results from executed notebook cells.
-        
-        This method processes the notebook after execution to extract outputs
-        from each executed cell.
-        
-        Args:
-            nb (nbformat.NotebookNode): The executed notebook.
-            
-        Returns:
-            Dict[str, Any]: Dictionary mapping cell numbers to their outputs and
-                           execution metadata.
-        """
         results = {}
         
-        for cell in nb.cells:
-            if cell.cell_type == 'code' and cell.execution_count is not None:
-                # Get cell outputs
-                outputs = []
+        for i, cell in enumerate(nb.cells):
+            if cell.cell_type == 'code' and cell.outputs:
+                cell_outputs = []
                 for output in cell.outputs:
                     if output.output_type == 'execute_result':
-                        # Handle different output types
-                        if 'text/plain' in output.data:
-                            outputs.append(output.data['text/plain'])
-                        elif 'text/html' in output.data:
-                            outputs.append(output.data['text/html'])
-                        elif 'image/png' in output.data:
-                            outputs.append("[Image output]")
-                        elif 'application/json' in output.data:
-                            outputs.append(output.data['application/json'])
+                        if 'data' in output and 'text/plain' in output.data:
+                            cell_outputs.append(output.data['text/plain'])
                     elif output.output_type == 'stream':
-                        outputs.append(output.text)
+                        cell_outputs.append(output.text)
                     elif output.output_type == 'error':
-                        outputs.append(f"Error: {output.ename}: {output.evalue}")
-                
-                results[f"cell_{cell.execution_count}"] = {
-                    "outputs": outputs,
+                        cell_outputs.append(f"ErrorInCell: {output.ename}: {output.evalue}")
+                results[f"cell_{i+1}_{cell.execution_count if cell.execution_count else 'nc'}"] = {
+                    "outputs": cell_outputs,
                     "execution_count": cell.execution_count,
                     "source": cell.source
                 }
-        
         return results
     
-    def _get_execution_time(self, nb: nbformat.NotebookNode) -> float:
-        """Calculate total execution time from notebook metadata.
+    def _get_execution_time(self, nb: nbformat.NotebookNode) -> Optional[float]:
+        if hasattr(nb.metadata, 'papermill') and hasattr(nb.metadata.papermill, 'duration'):
+            return nb.metadata.papermill.duration
         
-        This method sums up the execution duration of all cells from the
-        notebook's metadata.
-        
-        Args:
-            nb (nbformat.NotebookNode): The executed notebook.
-            
-        Returns:
-            float: Total execution time in seconds.
-        """
         total_time = 0.0
-        
+        executed_cell_found = False
         for cell in nb.cells:
-            if hasattr(cell.metadata, 'execution'):
-                if 'duration' in cell.metadata.execution:
-                    total_time += cell.metadata.execution.duration
-        
-        return total_time 
+            if cell.cell_type == 'code' and hasattr(cell.metadata, 'papermill') and hasattr(cell.metadata.papermill, 'execution_duration'):
+                if cell.metadata.papermill.execution_duration is not None:
+                    total_time += cell.metadata.papermill.execution_duration
+                    executed_cell_found = True
+            elif hasattr(cell.metadata, 'execution') and cell.metadata.execution.get('iopub.execute_input'):
+                pass
+
+        return total_time if executed_cell_found else None 

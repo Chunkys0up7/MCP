@@ -13,159 +13,134 @@ import json
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
-from .base import BaseMCPServer, MCPConfig
-
-class PythonScriptConfig(MCPConfig):
-    """Configuration for Python Script MCP.
-    
-    This class defines the configuration structure for Python script-based MCPs,
-    specifying how scripts should be executed and what parameters to use.
-    
-    Attributes:
-        script_path (str): Path to the Python script file.
-        requirements (List[str]): List of Python package requirements.
-        input_variables (List[str]): List of required input variables.
-        timeout (int): Maximum execution time in seconds. Defaults to 600.
-        virtual_env (bool): Whether to use a virtual environment. Defaults to True.
-    """
-    script_path: str
-    requirements: List[str] = []
-    input_variables: List[str] = []
-    timeout: int = 600  # seconds
-    virtual_env: bool = True
+from .base import BaseMCPServer
+from mcp.core.types import PythonScriptConfig
 
 class PythonScriptMCP(BaseMCPServer):
     """MCP for executing Python scripts.
-    
-    This class implements the MCP interface for executing Python scripts,
-    providing features like virtual environment management, requirement installation,
-    and script execution with input parameters.
-    
-    Attributes:
-        config (PythonScriptConfig): The configuration for this script MCP.
+    Uses PythonScriptConfig from mcp.core.types.
+    Name and description properties are inherited from BaseMCPServer.
     """
     
     def __init__(self, config: PythonScriptConfig):
         """Initialize the Python Script MCP.
         
         Args:
-            config (PythonScriptConfig): The configuration for this MCP.
+            config (PythonScriptConfig): The configuration for this MCP from mcp.core.types.
             
         Raises:
             ValueError: If the script file is not found.
         """
         super().__init__(config)
-        if not os.path.exists(config.script_path):
-            raise ValueError(f"Script not found: {config.script_path}")
+        if not os.path.exists(self.config.script_path):
+            raise ValueError(f"Script not found: {self.config.script_path}")
     
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the Python script with given inputs.
         
-        This method executes the script in a virtual environment (if enabled),
-        installing any required packages and passing input parameters.
-        
-        Args:
-            inputs (Dict[str, Any]): Dictionary of input parameters for the script.
-            
-        Returns:
-            Dict[str, Any]: Dictionary containing:
-                - output: Script output (parsed JSON if available)
-                - stdout: Raw stdout output
-                - stderr: Raw stderr output
-                - success: Whether execution was successful
-                - error: Error message if execution failed
+        Uses self.config fields (virtual_env, requirements, timeout) from types.PythonScriptConfig.
         """
-        # Create temporary directory for virtual environment
         with tempfile.TemporaryDirectory() as temp_dir:
             venv_path = os.path.join(temp_dir, "venv")
+            python_executable = "python"
+            pip_executable = "pip"
             
             try:
-                # Create and activate virtual environment if enabled
                 if self.config.virtual_env:
+                    print(f"Creating virtual environment in: {venv_path}")
                     venv.create(venv_path, with_pip=True)
-                    python_path = os.path.join(venv_path, "Scripts" if os.name == "nt" else "bin", "python")
-                    pip_path = os.path.join(venv_path, "Scripts" if os.name == "nt" else "bin", "pip")
+                    if os.name == "nt":
+                        python_executable = os.path.join(venv_path, "Scripts", "python.exe")
+                        pip_executable = os.path.join(venv_path, "Scripts", "pip.exe")
+                    else:
+                        python_executable = os.path.join(venv_path, "bin", "python")
+                        pip_executable = os.path.join(venv_path, "bin", "pip")
                     
-                    # Install requirements
                     if self.config.requirements:
-                        subprocess.run([pip_path, "install"] + self.config.requirements, check=True)
-                else:
-                    python_path = "python"
+                        print(f"Installing requirements: {self.config.requirements} using {pip_executable}")
+                        req_process = subprocess.run(
+                            [pip_executable, "install"] + self.config.requirements,
+                            capture_output=True, text=True, check=False
+                        )
+                        if req_process.returncode != 0:
+                            print(f"Error installing requirements.\nStdout: {req_process.stdout}\nStderr: {req_process.stderr}")
+                            raise Exception(f"Failed to install requirements: {req_process.stderr}")
+                        print("Requirements installed successfully.")
                 
-                # Create temporary script with input parameters
                 script_content = self._prepare_script(inputs)
-                script_path = os.path.join(temp_dir, "script.py")
-                with open(script_path, "w") as f:
+                temp_script_path = os.path.join(temp_dir, "_mcp_temp_script.py")
+                with open(temp_script_path, "w", encoding='utf-8') as f:
                     f.write(script_content)
                 
-                # Execute the script
+                print(f"Executing script: {temp_script_path} with python: {python_executable}")
                 result = subprocess.run(
-                    [python_path, script_path],
+                    [python_executable, temp_script_path],
                     capture_output=True,
                     text=True,
-                    timeout=self.config.timeout
+                    timeout=self.config.timeout,
+                    check=False
                 )
                 
-                # Try to parse the output as JSON
-                try:
-                    # Find the last line that contains valid JSON
-                    output_lines = result.stdout.strip().split('\n')
-                    json_output = None
-                    for line in reversed(output_lines):
-                        try:
-                            json_output = json.loads(line)
-                            if isinstance(json_output, dict):  # Only accept dictionary JSON
-                                break
-                        except json.JSONDecodeError:
-                            continue
-                    
-                    if json_output:
-                        return {
-                            "output": json_output,
-                            "stdout": result.stdout,
-                            "stderr": result.stderr,
-                            "success": result.returncode == 0
-                        }
-                except json.JSONDecodeError:
-                    pass
+                stdout = result.stdout
+                stderr = result.stderr
+                success = result.returncode == 0
+                output_json = None
+
+                if stdout:
+                    try:
+                        output_lines = stdout.strip().split('\n')
+                        for line in reversed(output_lines):
+                            try:
+                                parsed_line = json.loads(line)
+                                if isinstance(parsed_line, dict):
+                                    output_json = parsed_line
+                                    break
+                            except json.JSONDecodeError:
+                                continue 
+                    except Exception as json_e:
+                        print(f"Could not parse stdout as JSON: {json_e}")
                 
-                # If no valid JSON found, return the raw output
+                final_output = output_json if output_json else (stdout.strip() if stdout else None)
+                error_message = None if success else (stderr.strip() if stderr else "Script execution failed with no stderr.")
+
+                if not success and not error_message and stdout:
+                     error_message = f"Script failed. Stdout: {stdout.strip()}"
+
                 return {
-                    "output": result.stdout.strip(),
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                    "success": result.returncode == 0
+                    "output": final_output,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "success": success,
+                    "error": error_message
                 }
                 
             except subprocess.TimeoutExpired:
                 return {
-                    "error": f"Script execution timed out after {self.config.timeout} seconds",
-                    "success": False
+                    "output": None,
+                    "stdout": None,
+                    "stderr": f"Script execution timed out after {self.config.timeout} seconds",
+                    "success": False,
+                    "error": f"Script execution timed out after {self.config.timeout} seconds"
                 }
             except Exception as e:
+                import traceback
                 return {
-                    "error": str(e),
-                    "success": False
+                    "output": None,
+                    "stdout": None,
+                    "stderr": str(e),
+                    "success": False,
+                    "error": f"Script execution failed: {str(e)}\n{traceback.format_exc()}"
                 }
     
     def _prepare_script(self, inputs: Dict[str, Any]) -> str:
-        """Prepare the script with input parameters.
+        """Prepare the script content by injecting input parameters at the beginning."""
+        with open(self.config.script_path, "r", encoding='utf-8') as f:
+            original_script_content = f.read()
         
-        This method reads the original script and injects input parameters
-        at the beginning of the script.
+        input_assignments = []
+        for key, value in inputs.items():
+            input_assignments.append(f"{key} = {repr(value)}")
         
-        Args:
-            inputs (Dict[str, Any]): Input parameters to inject.
-            
-        Returns:
-            str: The prepared script content.
-        """
-        with open(self.config.script_path, "r") as f:
-            script_content = f.read()
+        injected_code = "\n".join(input_assignments)
         
-        # Add input parameters at the beginning of the script
-        input_code = "\n".join([
-            f"{key} = {repr(value)}" for key, value in inputs.items()
-        ])
-        
-        return f"{input_code}\n\n{script_content}" 
+        return f"# MCP Injected Inputs:\n{injected_code}\n# End MCP Injected Inputs\n\n{original_script_content}" 

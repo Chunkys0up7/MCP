@@ -1,27 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, List
-from pydantic import BaseModel
-
-class MCPConfig(BaseModel):
-    """Base configuration model for MCP servers.
-    
-    This class defines the common configuration structure that all MCP servers must follow.
-    It provides configuration for model interactions, context management, and tool integration.
-    
-    Attributes:
-        name (str): The name of the MCP server.
-        description (Optional[str]): Optional description of the MCP server's purpose.
-        version (str): Version of the MCP server. Defaults to "1.0.0".
-        model_id (str): The ID of the AI model this server interfaces with.
-        context_type (str): The type of context management (e.g., "memory", "database", "file").
-        tool_configurations (Dict[str, Any]): Configuration for integrated tools. Defaults to empty dict.
-    """
-    name: str
-    description: Optional[str] = None
-    version: str = "1.0.0"
-    model_id: str
-    context_type: str
-    tool_configurations: Dict[str, Any] = {}
+from mcp.core.types import BaseMCPConfig
 
 class BaseMCPServer(ABC):
     """Base class for all MCP server implementations.
@@ -33,11 +12,11 @@ class BaseMCPServer(ABC):
         config (MCPConfig): The configuration for this MCP server instance.
     """
     
-    def __init__(self, config: MCPConfig):
+    def __init__(self, config: BaseMCPConfig):
         """Initialize the base MCP server.
         
         Args:
-            config (MCPConfig): The configuration for this MCP server.
+            config (BaseMCPConfig): The configuration for this MCP server.
             
         Raises:
             ValueError: If the configuration is invalid.
@@ -74,10 +53,8 @@ class BaseMCPServer(ABC):
         """
         if not self.config.name:
             raise ValueError("MCP server name is required")
-        if not self.config.model_id:
-            raise ValueError("Model ID is required")
-        if not self.config.context_type:
-            raise ValueError("Context type is required")
+        if not self.config.type:
+            raise ValueError("MCP server type is required")
     
     @property
     def name(self) -> str:
@@ -97,11 +74,12 @@ class BaseMCPServer(ABC):
         """
         return self.config.description
     
-    @property
-    def version(self) -> str:
-        """Get the MCP server version.
-        
-        Returns:
-            str: The version of the MCP server.
-        """
-        return self.config.version 
+    # Removing the version property as it's not in types.BaseMCPConfig
+    # @property
+    # def version(self) -> str:
+    #     """Get the MCP server version.
+    #     
+    #     Returns:
+    #         str: The version of the MCP server.
+    #     """
+    #     return self.config.version 

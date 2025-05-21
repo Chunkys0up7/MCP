@@ -2,52 +2,15 @@ from typing import Any, Dict, Optional, List, Union
 import os
 from dotenv import load_dotenv
 import requests
-from pydantic import BaseModel
 import anthropic
 import json
 from pathlib import Path
 
-from .base import BaseMCPServer, MCPConfig
+from .base import BaseMCPServer
+from mcp.core.types import LLMPromptConfig
 
 # Load environment variables
 load_dotenv()
-
-class LLMPromptConfig(MCPConfig):
-    """Configuration for LLM Prompt MCP.
-    
-    This class defines the configuration structure for LLM-based MCPs, including
-    prompt templates, model settings, and output formatting options.
-    
-    Attributes:
-        template (str): The prompt template with variable placeholders using {variable_name} syntax.
-        input_variables (list[str]): List of required input variables that must be provided during execution.
-        model_name (str): The LLM model to use. Defaults to "claude-3-sonnet-20240229".
-        temperature (float): Controls randomness in responses (0.0-1.0). Defaults to 0.7.
-        max_tokens (Optional[int]): Maximum number of tokens in the response. Defaults to None.
-        system_message (Optional[str]): Optional system message to guide LLM behavior.
-        output_format (Optional[Dict[str, Any]]): Optional schema for structured output validation.
-        chain_of_thought (bool): Whether to enable step-by-step reasoning. Defaults to False.
-        context (Optional[Dict[str, Any]]): Optional persistent context for the MCP.
-    """
-    template: str
-    input_variables: list[str]
-    model_name: str = "claude-3-sonnet-20240229"
-    temperature: float = 0.7
-    max_tokens: Optional[int] = None
-    system_message: Optional[str] = None
-    output_format: Optional[Dict[str, Any]] = None
-    chain_of_thought: bool = False
-    context: Optional[Dict[str, Any]] = None
-
-    def __init__(self, **data):
-        """Initialize the LLM Prompt configuration.
-        
-        Args:
-            **data: Configuration data including template, input variables, and optional settings.
-        """
-        super().__init__(**data)
-        if "model_name" in data:
-            self.model_name = data["model_name"]
 
 class ClaudeLLM:
     """Custom LLM implementation for Claude API.
@@ -59,16 +22,18 @@ class ClaudeLLM:
         model_name (str): The Claude model to use.
         temperature (float): Controls response randomness.
         max_tokens (Optional[int]): Maximum response length.
+        system_prompt (Optional[str]): Optional system message for Claude API.
         api_key (str): The Claude API key from environment variables.
     """
     
-    def __init__(self, model_name: str, temperature: float = 0.7, max_tokens: Optional[int] = None):
+    def __init__(self, model_name: str, temperature: float = 0.7, max_tokens: Optional[int] = None, system_prompt: Optional[str] = None):
         """Initialize the Claude LLM client.
         
         Args:
             model_name (str): The Claude model to use.
             temperature (float, optional): Controls response randomness. Defaults to 0.7.
             max_tokens (Optional[int], optional): Maximum response length. Defaults to None.
+            system_prompt (Optional[str], optional): Optional system message for Claude API.
             
         Raises:
             ValueError: If ANTHROPIC_API_KEY is not set in environment variables.
@@ -76,6 +41,7 @@ class ClaudeLLM:
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.system_prompt = system_prompt
         self.api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -106,13 +72,8 @@ class ClaudeLLM:
         }
         data = {
             "model": self.model_name,
-            "max_tokens": 100,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": "Hello, this is a connection test."
-                }
-            ]
+            "max_tokens": 10,
+            "messages": [{"role": "user", "content": "Connection test"}]
         }
         
         try:
@@ -123,9 +84,7 @@ class ClaudeLLM:
             )
             
             if response.status_code == 401:
-                raise ValueError(
-                    "Invalid Claude API key. Please check your API key and make sure it's correct."
-                )
+                raise ValueError("Invalid Claude API key.")
             elif response.status_code == 400:
                 error_detail = response.json().get('error', {}).get('message', 'Unknown error')
                 raise ValueError(f"Invalid request: {error_detail}")
@@ -137,11 +96,11 @@ class ClaudeLLM:
             print(f"Error testing API connection: {str(e)}")
             raise Exception(f"Failed to connect to Claude API: {str(e)}")
 
-    def call(self, prompt: str) -> str:
-        """Send a prompt to the Claude API and get the response.
+    def call(self, messages: List[Dict[str, str]]) -> str:
+        """Send a prompt or messages to the Claude API and get the response.
         
         Args:
-            prompt (str): The prompt to send to Claude.
+            messages (List[Dict[str, str]]): A list of messages for conversation history.
             
         Returns:
             str: The text response from Claude.
@@ -155,43 +114,39 @@ class ClaudeLLM:
             "anthropic-version": "2023-06-01",
             "content-type": "application/json"
         }
-        data = {
-            "model": self.model_name,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        }
         
-        # Only add optional parameters if they are set
+        request_data = {"model": self.model_name, "messages": messages}
+
+        if self.system_prompt:
+            request_data["system"] = self.system_prompt
+        
         if self.temperature is not None:
-            data["temperature"] = self.temperature
+            request_data["temperature"] = self.temperature
         if self.max_tokens is not None:
-            data["max_tokens"] = self.max_tokens
+            request_data["max_tokens"] = self.max_tokens
 
         try:
             response = requests.post(
                 "https://api.anthropic.com/v1/messages",
                 headers=headers,
-                json=data
+                json=request_data
             )
             
-            # Handle different error cases
             if response.status_code == 401:
-                raise ValueError(
-                    "Invalid Claude API key. Please check your API key and make sure it's correct.\n"
-                    "You can set it in one of these ways:\n"
-                    "1. Create a .env file in the project root with: ANTHROPIC_API_KEY=your_api_key_here\n"
-                    "2. Set it as an environment variable: set ANTHROPIC_API_KEY=your_api_key_here (Windows) or export ANTHROPIC_API_KEY=your_api_key_here (Linux/Mac)"
-                )
+                raise ValueError("Invalid Claude API key.")
             elif response.status_code == 400:
-                error_detail = response.json().get('error', {}).get('message', 'Unknown error')
+                error_detail = response.json().get('error', {}).get("message", "Unknown error")
                 raise ValueError(f"Invalid request: {error_detail}")
             
             response.raise_for_status()
-            return response.json()["content"][0]["text"]
+            
+            content = response.json().get("content")
+            if content and isinstance(content, list) and len(content) > 0 and "text" in content[0]:
+                return content[0]["text"]
+            else:
+                print(f"[ClaudeLLM Warning] Unexpected response structure: {response.json()}")
+                return "Error: Could not parse LLM response."
+
         except requests.exceptions.RequestException as e:
             raise Exception(f"Claude API error: {str(e)}")
 
@@ -220,14 +175,7 @@ class LLMPromptMCP(BaseMCPServer):
             config (LLMPromptConfig): The configuration for this MCP.
         """
         super().__init__(config)
-        self._name = config.name
-        self._description = config.description
         self.llm = self._get_llm()
-        self.template = config.template
-        self.system_message = config.system_message
-        self.output_format = config.output_format
-        self.chain_of_thought = config.chain_of_thought
-        self.context = config.context or {}
 
     @property
     def name(self) -> str:
@@ -271,7 +219,8 @@ class LLMPromptMCP(BaseMCPServer):
             return ClaudeLLM(
                 model_name=model_name,
                 temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens
+                max_tokens=self.config.max_tokens,
+                system_prompt=self.config.system_prompt
             )
         else:
             print(f"Unsupported model: {model_name}")
@@ -292,72 +241,45 @@ class LLMPromptMCP(BaseMCPServer):
         Raises:
             ValueError: If a required input variable is missing.
         """
+        if hasattr(self.config, 'input_variables') and self.config.input_variables:
+            missing_vars = [var for var in self.config.input_variables if var not in inputs]
+            if missing_vars:
+                raise ValueError(f"Missing input variables: {', '.join(missing_vars)}")
         try:
-            # Merge context with inputs
-            all_inputs = {**self.context, **inputs}
-            return self.template.format(**all_inputs)
+            return self.config.template.format(**inputs)
         except KeyError as e:
-            raise ValueError(f"Missing required input variable: {e}")
+            raise ValueError(f"Error formatting prompt: Missing key {str(e)} in inputs for template: '{self.config.template}'")
 
-    def _build_messages(self, prompt: str) -> List[Dict[str, str]]:
+    def _build_messages(self, formatted_prompt: str) -> List[Dict[str, str]]:
         """Build the messages array for the API call.
         
         Args:
-            prompt (str): The formatted prompt.
+            formatted_prompt (str): The formatted prompt.
             
         Returns:
             List[Dict[str, str]]: The messages array for the API call.
         """
-        messages = []
-        
-        # Add system message if provided
-        if self.system_message:
-            messages.append({
-                "role": "system",
-                "content": self.system_message
-            })
-        
-        # Add user message
-        if self.chain_of_thought:
-            prompt = f"Let's solve this step by step:\n\n{prompt}"
-        
-        messages.append({
-            "role": "user",
-            "content": prompt
-        })
-        
+        messages = [
+            {"role": "user", "content": formatted_prompt}
+        ]
         return messages
 
-    def _parse_output(self, response: str) -> Dict[str, Any]:
+    def _parse_output(self, response_text: str) -> Any:
         """Parse and validate the LLM output.
         
         Args:
-            response (str): The raw response from the LLM.
+            response_text (str): The raw response from the LLM.
             
         Returns:
-            Dict[str, Any]: The parsed and validated output.
+            Any: The parsed and validated output.
             
         Raises:
             ValueError: If output validation fails or JSON parsing fails.
         """
-        if not self.output_format:
-            return {"result": response}
-            
         try:
-            # Try to parse as JSON if output_format is specified
-            import json
-            result = json.loads(response)
-            
-            # Validate against output_format
-            for key, value_type in self.output_format.items():
-                if key not in result:
-                    raise ValueError(f"Missing required output field: {key}")
-                if not isinstance(result[key], value_type):
-                    raise ValueError(f"Invalid type for {key}: expected {value_type}, got {type(result[key])}")
-            
-            return result
+            return json.loads(response_text)
         except json.JSONDecodeError:
-            raise ValueError("Failed to parse LLM output as JSON")
+            return response_text # Return as plain text if not JSON
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the prompt with enhanced features.
@@ -380,20 +302,20 @@ class LLMPromptMCP(BaseMCPServer):
             messages = self._build_messages(formatted_prompt)
             
             # Call the LLM
-            response = self.llm.call(formatted_prompt)
+            response_text = self.llm.call(messages=messages)
             
             # Parse and validate output
-            result = self._parse_output(response)
+            result = self._parse_output(response_text)
             
             return {
                 **result,
                 "model": self.config.model_name,
                 "prompt": formatted_prompt,
-                "system_message": self.system_message,
-                "context": self.context
+                "system_message": self.config.system_prompt,
+                "context": self.config.context or {}
             }
+        except ValueError as ve:
+            return {"success": False, "result": None, "error": str(ve)}
         except Exception as e:
-            return {
-                "error": str(e),
-                "status": "error"
-            } 
+            import traceback
+            return {"success": False, "result": None, "error": f"LLM execution failed: {str(e)}\n{traceback.format_exc()}"} 

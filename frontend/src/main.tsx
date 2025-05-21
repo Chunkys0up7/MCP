@@ -1,13 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { initializeMonitoring } from './monitoring/setup';
 import App from './App';
 import './index.css';
 
-// Initialize monitoring
-initializeMonitoring();
+const rootElement = document.getElementById('root');
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+if (!rootElement) {
+  throw new Error('Root element not found');
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
