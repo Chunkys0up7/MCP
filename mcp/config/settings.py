@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
-from pydantic import BaseSettings, Field
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
 class DatabaseSettings(BaseSettings):
     """Database configuration settings."""
@@ -24,7 +25,7 @@ class RedisSettings(BaseSettings):
 
 class SecuritySettings(BaseSettings):
     """Security configuration settings."""
-    secret_key: str = Field(..., env="SECRET_KEY")
+    secret_key: str = Field(default="your-secret-key-here", env="SECRET_KEY")
     algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(default=7, env="REFRESH_TOKEN_EXPIRE_DAYS")
@@ -78,6 +79,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "allow"  # Allow extra fields from environment variables
 
 # Create global settings instance
 settings = Settings()

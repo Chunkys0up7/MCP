@@ -1,6 +1,7 @@
 from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
+import uuid
 
 class MCPType(str, Enum):
     """Types of MCP servers."""
@@ -11,6 +12,8 @@ class MCPType(str, Enum):
 
 class BaseMCPConfig(BaseModel):
     """Base configuration for all MCP types."""
+    model_config = ConfigDict(extra='forbid')
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     type: MCPType
     description: Optional[str] = None
@@ -54,7 +57,8 @@ class AIAssistantConfig(BaseMCPConfig):
     response_format: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
 
-    @validator('tools')
+    @field_validator('tools')
+    @classmethod
     def validate_tools(cls, v):
         """Validate tools configuration."""
         if not v:
@@ -68,7 +72,8 @@ class AIAssistantConfig(BaseMCPConfig):
                 raise ValueError("Tool must have parameters")
         return v
 
-    @validator('tool_choice')
+    @field_validator('tool_choice')
+    @classmethod
     def validate_tool_choice(cls, v):
         """Validate tool choice."""
         valid_choices = ['auto', 'none']

@@ -8,7 +8,9 @@
       "type": "llm_prompt",
       "name": "Text Analyzer",
       "template": "Analyze the following text and extract key points. Focus on main ideas, important details, and relationships between concepts:\n\n{text}\n\nProvide a structured analysis with:\n1. Main themes\n2. Key points\n3. Supporting details\n4. Relationships between ideas",
-      "input_variables": ["text"],
+      "input_variables": [
+        "text"
+      ],
       "model_name": "claude-3-sonnet-20240229",
       "temperature": 0.3,
       "max_tokens": 2000,
@@ -24,7 +26,9 @@
       "type": "llm_prompt",
       "name": "Text Summarizer",
       "template": "Based on the following text analysis, create a concise summary that captures the main points and their relationships:\n\n{text}\n\nProvide a summary that:\n1. Highlights the most important themes\n2. Preserves key relationships between ideas\n3. Maintains the logical flow of the analysis\n4. Is suitable for visualization",
-      "input_variables": ["text"],
+      "input_variables": [
+        "text"
+      ],
       "model_name": "claude-3-sonnet-20240229",
       "temperature": 0.3,
       "max_tokens": 1000,
@@ -162,6 +166,62 @@
   },
   "957cb4a4-339c-4027-b7a0-20eec244d9c7": {
     "id": "957cb4a4-339c-4027-b7a0-20eec244d9c7",
+    "name": "Test Notebook",
+    "description": "Test Jupyter notebook MCP",
+    "type": "jupyter_notebook",
+    "config": {
+      "type": "jupyter_notebook",
+      "name": "Test Notebook",
+      "notebook_path": "mcp/notebooks/example.ipynb",
+      "execute_all": true,
+      "timeout": 600,
+      "model_id": "jupyter",
+      "context_type": "file"
+    }
+  },
+  "352c7d40-0394-40c0-b0ed-b3a93bf60861": {
+    "id": "352c7d40-0394-40c0-b0ed-b3a93bf60861",
+    "name": "Test LLM Prompt",
+    "description": "Test LLM prompt MCP",
+    "type": "llm_prompt",
+    "config": {
+      "type": "llm_prompt",
+      "name": "Test LLM Prompt",
+      "template": "Tell me a joke about {topic}",
+      "input_variables": [
+        "topic"
+      ],
+      "model_name": "claude-3-sonnet-20240229",
+      "temperature": 0.7,
+      "max_tokens": 1000,
+      "model_id": "claude-3-sonnet-20240229",
+      "context_type": "memory"
+    }
+  },
+  "5c59430f-2c6c-49ac-aee9-d38e101f120e": {
+    "id": "5c59430f-2c6c-49ac-aee9-d38e101f120e",
+    "name": "Test Python Script",
+    "description": "Test Python script MCP",
+    "type": "python_script",
+    "config": {
+      "type": "python_script",
+      "name": "Test Python Script",
+      "script_path": "mcp/scripts/hello_world.py",
+      "requirements": [
+        "requests==2.31.0"
+      ],
+      "input_variables": [
+        "name",
+        "language"
+      ],
+      "virtual_env": true,
+      "timeout": 600,
+      "model_id": "python",
+      "context_type": "file"
+    }
+  },
+  "1dbb544f-6728-4f48-a2ea-85c362d9a273": {
+    "id": "1dbb544f-6728-4f48-a2ea-85c362d9a273",
     "name": "Test Notebook",
     "description": "Test Jupyter notebook MCP",
     "type": "jupyter_notebook",

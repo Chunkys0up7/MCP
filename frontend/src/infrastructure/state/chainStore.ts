@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { ChainService } from '../services/chainService';
-import { ChainInfo, ChainConfig, ChainNode, ChainEdge } from '../types/chain';
-import { handleError, getErrorMessage } from '../utils/errorHandling';
+import { ChainInfo, ChainConfig, ChainNode, ChainEdge, Chain } from '../types/chain';
+import { handleError } from '../utils/errorHandling';
 import type { Node } from 'reactflow';
+import { captureException } from '../monitoring/error';
 
 interface ChainState {
   // Chain data
   chainInfo: ChainInfo | null;
+  chainConfig: ChainConfig | null;
   nodes: ChainNode[];
   edges: ChainEdge[];
   isLoading: boolean;
@@ -33,9 +35,26 @@ interface ChainState {
   chainService: ChainService | null;
 }
 
-export const useChainStore = create<ChainState>((set, get) => ({
-  // Initial state
-  chainInfo: null,
+// Initial state
+const initialState = {
+  chainInfo: {
+    id: '',
+    name: 'New Chain',
+    description: '',
+    version: '1.0.0',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  chainConfig: {
+    errorHandling: {
+      retryCount: 3,
+      retryDelay: 1000,
+      failFast: false,
+    },
+    executionMode: 'sequential' as const,
+    timeout: 30000,
+    maxConcurrent: 1,
+  },
   nodes: [],
   edges: [],
   isLoading: false,
@@ -43,8 +62,11 @@ export const useChainStore = create<ChainState>((set, get) => ({
   isExecuting: false,
   chainService: null,
   selectedNode: null,
+};
 
-  // Actions
+export const useChainStore = create<ChainState>((set, get) => ({
+  ...initialState,
+
   loadChain: async (id: string) => {
     const { chainService } = get();
     if (!chainService) {
@@ -56,20 +78,22 @@ export const useChainStore = create<ChainState>((set, get) => ({
     try {
       const chain = await chainService.getChain(id);
       set({ 
-        chainInfo: chain,
-        nodes: chain.nodes || [],
-        edges: chain.edges || [],
+        chainInfo: chain.info,
+        chainConfig: chain.config,
+        nodes: chain.nodes,
+        edges: chain.edges,
         isLoading: false 
       });
     } catch (error) {
       const { message } = handleError(error, { chainId: id, action: 'loadChain' });
       set({ error: message, isLoading: false });
+      captureException(error);
     }
   },
 
   saveChain: async () => {
-    const { chainInfo, nodes, edges, chainService } = get();
-    if (!chainService || !chainInfo) {
+    const { chainInfo, chainConfig, nodes, edges, chainService } = get();
+    if (!chainService || !chainInfo || !chainConfig) {
       set({ error: 'Chain service not initialized or no chain loaded' });
       return;
     }
@@ -77,12 +101,16 @@ export const useChainStore = create<ChainState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const updatedChain = await chainService.updateChainConfig(chainInfo.id, {
-        errorHandling: chainInfo.config.errorHandling,
-        executionMode: chainInfo.config.executionMode,
-        nodes,
-        edges
+        errorHandling: chainConfig.errorHandling,
+        executionMode: chainConfig.executionMode,
+        timeout: chainConfig.timeout,
+        maxConcurrent: chainConfig.maxConcurrent
       });
-      set({ chainInfo: updatedChain, isLoading: false });
+      set({ 
+        chainInfo: updatedChain.info,
+        chainConfig: updatedChain.config,
+        isLoading: false 
+      });
     } catch (error) {
       const { message } = handleError(error, { 
         chainId: chainInfo.id, 
@@ -91,6 +119,7 @@ export const useChainStore = create<ChainState>((set, get) => ({
         edgeCount: edges.length
       });
       set({ error: message, isLoading: false });
+      captureException(error);
     }
   },
 
@@ -107,6 +136,7 @@ export const useChainStore = create<ChainState>((set, get) => ({
     } catch (error) {
       const { message } = handleError(error, { chainId: chainInfo.id, action: 'executeChain' });
       set({ error: message, isExecuting: false });
+      captureException(error);
     }
   },
 

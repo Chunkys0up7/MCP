@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, JSON
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()

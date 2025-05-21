@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 import time
 import logging
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -25,11 +26,11 @@ from mcp.mcp_types.jupyter import JupyterNotebookMCP
 from mcp.mcp_types.python_script import PythonScriptMCP
 from mcp.ui.widgets.chain_builder import ChainBuilder
 from mcp.ui.widgets.chain_executor import ChainExecutor
-from ..config.settings import settings
-from ..config.logging import setup_logging
-from ..db.session import SessionLocal
-from ..db.operations import DatabaseOperations
-from ..cache.redis_manager import RedisCacheManager
+from mcp.config.settings import settings
+from mcp.config.logging import setup_logging
+from mcp.db.session import SessionLocal
+from mcp.db.operations import DatabaseOperations
+from mcp.cache.redis_manager import RedisCacheManager
 
 # Initialize logging
 setup_logging()
@@ -53,6 +54,44 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+def init_session_state():
+    """Initialize session state variables with default values."""
+    if "user_id" not in st.session_state:
+        st.session_state.user_id = str(uuid.uuid4())
+    
+    if "chain_id" not in st.session_state:
+        st.session_state.chain_id = None
+    
+    if "chain_data" not in st.session_state:
+        st.session_state.chain_data = {}
+    
+    if "selected_mcps" not in st.session_state:
+        st.session_state.selected_mcps = []
+    
+    if "node_positions" not in st.session_state:
+        st.session_state.node_positions = {}
+    
+    if "chain_name" not in st.session_state:
+        st.session_state.chain_name = ""
+    
+    if "chain_description" not in st.session_state:
+        st.session_state.chain_description = ""
+    
+    if "execution_mode" not in st.session_state:
+        st.session_state.execution_mode = "sequential"
+    
+    if "max_retries" not in st.session_state:
+        st.session_state.max_retries = 3
+    
+    if "backoff_factor" not in st.session_state:
+        st.session_state.backoff_factor = 1.5
+    
+    if "error_handling" not in st.session_state:
+        st.session_state.error_handling = "Stop on Error"  # Changed from "stop" to match UI options
+
+# Initialize session state at the start of the app
+init_session_state()
+
 # Title and description
 st.title("Model Context Protocol Dashboard")
 st.markdown("""
@@ -62,15 +101,6 @@ This dashboard allows you to manage and monitor your MCP servers.
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"])
-
-def init_session_state():
-    """Initialize session state variables."""
-    if "user_id" not in st.session_state:
-        st.session_state.user_id = None
-    if "chain_id" not in st.session_state:
-        st.session_state.chain_id = None
-    if "chain_data" not in st.session_state:
-        st.session_state.chain_data = None
 
 def get_db():
     """Get database session."""
@@ -217,29 +247,11 @@ def render_chain_builder() -> None:
     """Display the chain builder interface."""
     st.title("Chain Builder")
     
-    # Chain selection
-    chain_name = st.text_input("Chain Name")
+    # Initialize ChainBuilder
+    chain_builder = ChainBuilder()
     
-    if st.button("Create New Chain"):
-        if chain_name:
-            db = get_db()
-            db_ops = DatabaseOperations(db)
-            
-            # Create new chain
-            chain = db_ops.create_chain(
-                name=chain_name,
-                workflow={"nodes": [], "edges": []}
-            )
-            
-            st.session_state.chain_id = chain.id
-            st.success(f"Created new chain: {chain_name}")
-        else:
-            st.error("Please enter a chain name")
-    
-    # Chain editor
-    if st.session_state.chain_id:
-        st.subheader("Chain Editor")
-        # TODO: Implement chain editor with React Flow
+    # Render the chain builder interface
+    chain_builder.render()
 
 def render_chain_executor() -> None:
     """Display the chain executor interface."""
@@ -316,8 +328,4 @@ st.sidebar.title("Monitoring")
 st.sidebar.markdown("### Dashboards")
 st.sidebar.markdown("[Health Check](http://localhost:8000/health)")
 st.sidebar.markdown("[Server Stats](http://localhost:8000/stats)")
-st.sidebar.markdown("[Prometheus Metrics](http://localhost:8000/metrics)")
-
-if __name__ == "__main__":
-    init_session_state()
-    render_dashboard() 
+st.sidebar.markdown("[Prometheus Metrics](http://localhost:8000/metrics)") 

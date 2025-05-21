@@ -18,6 +18,8 @@ from ..core.llm_prompt import LLMPromptMCP, LLMPromptConfig
 from ..core.jupyter_notebook import JupyterNotebookMCP, JupyterNotebookConfig
 from ..core.python_script import PythonScriptMCP, PythonScriptConfig
 from ..core.models import MCPResult
+from mcp.db.session import SessionLocal
+from mcp.cache.redis_manager import RedisCacheManager
 
 # API Key management
 API_KEY_NAME = "X-API-Key"
@@ -308,27 +310,26 @@ async def delete_mcp_server(server_id: str, api_key: str = Depends(get_api_key))
 
 @app.get("/health")
 async def health_check():
-    """Check the health of the MCP server"""
+    """Health check endpoint."""
+    health = {"status": "healthy", "message": "Service is running"}
+    # Check database
     try:
-        # Check if we can load MCP servers
-        servers = load_mcp_servers()
-        server_count = len(servers)
-        
-        # Check if we can access storage
-        storage_accessible = MCP_STORAGE_FILE.exists()
-        
-        return {
-            "status": "healthy",
-            "server_count": server_count,
-            "storage_accessible": storage_accessible,
-            "timestamp": datetime.now().isoformat()
-        }
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        health["database"] = "ok"
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
+        health["database"] = f"error: {str(e)}"
+        health["status"] = "degraded"
+    # Check Redis
+    try:
+        redis = RedisCacheManager()
+        redis.ping()
+        health["redis"] = "ok"
+    except Exception as e:
+        health["redis"] = f"error: {str(e)}"
+        health["status"] = "degraded"
+    return health
 
 @app.get("/stats")
 async def get_stats():

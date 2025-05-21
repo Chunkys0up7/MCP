@@ -57,21 +57,16 @@ class RedisCacheManager:
             print(f"Error checking cache: {e}")
             return False
 
-    def set_hash(self, name: str, mapping: Dict[str, Any], expire: Optional[int] = None) -> bool:
-        """Set a hash in the cache."""
-        try:
-            # Convert values to JSON strings if they are dicts or lists
-            processed_mapping = {
-                k: json.dumps(v) if isinstance(v, (dict, list)) else v
-                for k, v in mapping.items()
-            }
+    def set_hash(self, name: str, mapping: Dict[str, Any]) -> None:
+        """Set hash fields to multiple values."""
+        processed_mapping = {
+            k: json.dumps(v) if isinstance(v, (dict, list)) else v
+            for k, v in mapping.items()
+        }
+        if hasattr(self.redis, 'hmset'):
             self.redis.hmset(name, processed_mapping)
-            if expire:
-                self.redis.expire(name, expire)
-            return True
-        except Exception as e:
-            print(f"Error setting hash cache: {e}")
-            return False
+        else:
+            self.redis.hset(name, mapping=processed_mapping)
 
     def get_hash(self, name: str) -> Dict[str, Any]:
         """Get a hash from the cache."""
