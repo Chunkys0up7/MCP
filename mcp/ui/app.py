@@ -32,6 +32,7 @@ from mcp.config.logging import setup_logging
 from mcp.db.session import SessionLocal
 from mcp.db.operations import DatabaseOperations
 from mcp.cache.redis_manager import RedisCacheManager
+from mcp.api.exceptions import MCPAPIError, MCPNotFoundError, MCPValidationError
 
 # Initialize logging
 setup_logging()
@@ -301,26 +302,58 @@ def render_create_mcp() -> None:
             st.error("Please provide a name for the MCP")
             return
         
+        mcp_facade = None # Initialize to ensure it's defined
         try:
-            # Create appropriate MCP instance
+            data_for_pydantic = {
+                "name": name,
+                "description": description,
+                # Ensure type is correctly assigned based on mcp_type_str (string from selectbox)
+                **config_payload # from build_..._config functions
+            }
+
             if mcp_type == MCPType.LLM_PROMPT:
-                mcp = LLMPromptMCP(config)
+                data_for_pydantic['type'] = MCPType.LLM_PROMPT
+                mcp_config_object = LLMPromptConfig(**data_for_pydantic)
+                mcp_facade = LLMPromptMCP(config=mcp_config_object, client=client)
             elif mcp_type == MCPType.JUPYTER_NOTEBOOK:
-                mcp = JupyterNotebookMCP(config)
+                data_for_pydantic['type'] = MCPType.JUPYTER_NOTEBOOK
+                mcp_config_object = JupyterNotebookConfig(**data_for_pydantic)
+                mcp_facade = JupyterNotebookMCP(config=mcp_config_object, client=client)
+            elif mcp_type == MCPType.PYTHON_SCRIPT:
+                data_for_pydantic['type'] = MCPType.PYTHON_SCRIPT
+                mcp_config_object = PythonScriptConfig(**data_for_pydantic)
+                mcp_facade = PythonScriptMCP(config=mcp_config_object, client=client)
+            # TODO: Add AIAssistantConfig handling if UI supports its creation
             else:
-                mcp = PythonScriptMCP(config)
-            
-            if mcp.create():
+                st.error(f"Unsupported MCP Type: {mcp_type}")
+                return
+
+            if mcp_facade and mcp_facade.create():
                 st.success(f"Successfully created MCP: {name}")
-            else:
-                st.error("Failed to create MCP")
-        except Exception as e:
+            # else: # This else is now less likely if create() raises on API failure
+                # st.error("Failed to create MCP due to an unknown issue after API call.")
+
+        except MCPValidationError as ve:
+            st.error(f"Configuration Error: {str(ve)}")
+        except MCPAPIError as apie:
+            st.error(f"API Error: {str(apie)}")
+        except Exception as e: # Catch other errors like Pydantic validation during config object creation
             st.error(f"Error creating MCP: {str(e)}")
+            logger.error(f"Failed to create MCP {name} of type {mcp_type}: {traceback.format_exc()}")
 
 def render_manage_mcps() -> None:
     """Display the page for managing (deleting) MCPs."""
     st.header("Manage MCPs")
-    servers = client.get_servers()
+    try:
+        servers = client.get_servers()
+    except MCPAPIError as e:
+        logger.error(f"API Error fetching servers for management: {str(e)}")
+        st.error(f"Could not load MCPs: {str(e)}")
+        return
+    except Exception as e:
+        logger.error(f"Unexpected error fetching servers for management: {str(e)}")
+        st.error("An unexpected error occurred while loading MCPs.")
+        return
     
     if not servers:
         st.info("No MCPs to manage. Create one first!")
@@ -333,11 +366,21 @@ def render_manage_mcps() -> None:
             
             # Delete button
             if st.button("Delete", key=f"delete_{server['id']}"):
-                if client.delete_server(server['id']):
-                    st.success(f"Server {server['name']} deleted successfully!")
-                    st.experimental_rerun()
-                else:
-                    st.error("Failed to delete server")
+                try:
+                    if client.delete_server(server['id']):
+                        st.success(f"Server {server['name']} deleted successfully!")
+                        st.experimental_rerun()
+                    # else: 
+                        # This else block is likely unreachable if delete_server raises an exception on failure
+                        # st.error(f"Failed to delete server {server['name']}. It might have already been deleted or an error occurred.")
+                except MCPNotFoundError:
+                    st.error(f"Could not delete server {server['name']}: Not found. It might have already been deleted.")
+                    st.experimental_rerun() # Rerun to refresh the list
+                except MCPAPIError as e:
+                    st.error(f"Failed to delete server {server['name']}: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Unexpected error deleting server {server['name']}: {str(e)}")
+                    st.error(f"An unexpected error occurred while deleting server {server['name']}.")
 
 def render_test_mcps() -> None:
     """Display the page for testing MCPs and viewing results."""
@@ -370,10 +413,7 @@ def render_test_mcps() -> None:
                 st.write("Button pressed!")
                 with st.spinner("Executing..."):
                     try:
-                        st.code(f"[DEBUG] Executing MCP {server['name']} with inputs: {inputs}", language="text")
-                        st.code(f"[DEBUG] Server config: {server['config']}", language="text")
                         data = client.execute_server(server['id'], inputs)
-                        st.code(f"[DEBUG] Raw backend response: {data}", language="text")
                         result = MCPResult(**data) if isinstance(data, dict) else data
                         if hasattr(result, 'success') and result.success:
                             st.success("Execution completed!")
@@ -385,11 +425,9 @@ def render_test_mcps() -> None:
                                 st.markdown(f"<details><summary>Show stderr</summary>\n\n```\n{result.stderr}\n```\n</details>", unsafe_allow_html=True)
                         else:
                             error_msg = getattr(result, 'error', 'Unknown error')
-                            st.code(f"[ERROR] Execution failed with error: {error_msg}", language="text")
                             st.error(f"Error: {error_msg}")
                     except Exception as e:
-                        st.code(f"[EXCEPTION] Execution failed: {str(e)}", language="text")
-                        st.code(traceback.format_exc(), language="python")
+                        st.error(f"Execution failed: {str(e)}")
 
 def render_chain_builder() -> None:
     """Display the chain builder interface."""
@@ -448,13 +486,93 @@ def build_llm_config() -> Dict[str, Any]:
     )
     
     return {
-        "type": "llm_prompt",
         "template": template,
         "input_variables": input_variables,
         "model_name": model_name,
         "temperature": temperature,
         "max_tokens": max_tokens,
         "system_prompt": system_prompt if system_prompt else None
+    }
+
+def build_notebook_config() -> Dict[str, Any]:
+    """Build configuration for Jupyter Notebook MCP."""
+    notebook_path = st.text_input(
+        "Notebook File Path",
+        help="Path to the .ipynb file, e.g., notebooks/my_notebook.ipynb"
+    )
+    execute_all = st.checkbox("Execute All Cells", value=True)
+    
+    cells_str = st.text_input(
+        "Cells to Execute (comma-separated, if not all)",
+        help="e.g., 1,3,5. Leave empty if executing all.",
+        disabled=execute_all
+    )
+    cells_to_execute = None
+    if cells_str and not execute_all:
+        try:
+            cells_to_execute = [int(cell.strip()) for cell in cells_str.split(",")]
+        except ValueError:
+            st.warning("Invalid cell numbers. Please enter comma-separated integers.")
+            cells_to_execute = [] # Or handle as error
+
+    timeout = st.number_input(
+        "Timeout (seconds)",
+        min_value=60,
+        value=600,
+        help="Maximum execution time for the notebook."
+    )
+    
+    input_vars_str = st.text_input(
+        "Input Variables (comma-separated, for parameterized notebooks)",
+        key="notebook_input_vars",
+        help="e.g., data_path,alpha_value. These will be passed as environment variables or via papermill parameters."
+    )
+    input_variables = [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+
+    return {
+        "notebook_path": notebook_path,
+        "execute_all": execute_all,
+        "cells_to_execute": cells_to_execute if not execute_all else None,
+        "timeout": timeout,
+        "input_variables": input_variables
+    }
+
+def build_script_config() -> Dict[str, Any]:
+    """Build configuration for Python Script MCP."""
+    script_path = st.text_input(
+        "Script File Path",
+        help="Path to the Python script, e.g., scripts/my_script.py"
+    )
+    
+    requirements_str = st.text_input(
+        "Requirements (comma-separated)",
+        key="script_requirements",
+        help="e.g., requests,numpy==1.23.0. Leave empty if none."
+    )
+    requirements = [req.strip() for req in requirements_str.split(",")] if requirements_str else []
+
+    virtual_env = st.checkbox("Use Virtual Environment", value=True, key="script_venv")
+    
+    timeout = st.number_input(
+        "Timeout (seconds)",
+        min_value=60,
+        value=600,
+        help="Maximum execution time for the script."
+    )
+    
+    input_vars_str = st.text_input(
+        "Input Variables (comma-separated, for parameterized scripts)",
+        key="script_input_vars",
+        help="e.g., data_path,alpha_value. These will be passed as environment variables or via command line arguments."
+    )
+    input_variables = [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+
+    return {
+        "script_path": script_path,
+        "requirements": requirements,
+        "virtual_env": virtual_env,
+        "timeout": timeout,
+        "input_variables": input_variables
     }
 
 # Main content based on selected page

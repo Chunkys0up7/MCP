@@ -80,24 +80,48 @@ class MCPClient:
         MCP_CLIENT_SPECIFIC_LOGGER.debug("get_servers is about to return data.")
         return data
     
-    def create_server(self, config: MCPConfig) -> Dict[str, Any]:
+    def create_server(self, name: str, mcp_type: str, description: Optional[str], specific_config_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new MCP server."""
-        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"create_server called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"create_server called for name: {name}, type: {mcp_type}. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
+        
+        payload = {
+            "name": name,
+            "type": mcp_type, # This should be the string value of the MCPType enum
+            "description": description,
+            "config": specific_config_dict # This is the dict of type-specific params
+        }
+        
         response = requests.post(
-            f"{self.base_url}/mcps",
+            f"{self.base_url}/context", # Corrected URL
             headers=self.headers,
-            json=config.dict()
+            json=payload # Send the constructed payload
         )
         return self._handle_response(response)
     
     def delete_server(self, server_id: str) -> bool:
         """Delete an MCP server."""
         MCP_CLIENT_SPECIFIC_LOGGER.debug(f"delete_server called for ID: {server_id}. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
-        response = requests.delete(
-            f"{self.base_url}/context/{server_id}",
-            headers=self.headers
-        )
-        return response.status_code == 200
+        try:
+            response = requests.delete(
+                f"{self.base_url}/context/{server_id}",
+                headers=self.headers
+            )
+            if response.status_code == 204: # No Content, successful deletion
+                return True
+            elif response.status_code == 404:
+                MCP_CLIENT_SPECIFIC_LOGGER.error(f"MCPNotFoundError for delete URL: {response.url}")
+                raise MCPNotFoundError(f"Server ID '{server_id}' not found for deletion.")
+            else:
+                # Attempt to parse error detail from JSON response, fallback to raw text
+                try:
+                    error_detail = response.json().get('detail', response.text)
+                except requests.exceptions.JSONDecodeError:
+                    error_detail = response.text
+                MCP_CLIENT_SPECIFIC_LOGGER.error(f"MCPAPIError for delete URL: {response.url}. Status: {response.status_code}. Detail: {error_detail}")
+                raise MCPAPIError(f"Failed to delete server '{server_id}'. Status: {response.status_code}. Error: {error_detail}")
+        except requests.exceptions.RequestException as e:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"RequestException in delete_server for ID {server_id}. Error: {str(e)}")
+            raise MCPAPIError(f"Request failed while trying to delete server '{server_id}': {str(e)}")
     
     def execute_server(self, server_id: str, inputs: Dict[str, Any]) -> MCPResult:
         """Execute an MCP server with given inputs."""
@@ -109,17 +133,15 @@ class MCPClient:
             )
             data = self._handle_response(response)
             
-            # Ensure the response has the required fields
             if not isinstance(data, dict):
-                raise MCPAPIError(f"Invalid response format: {data}")
+                raise MCPAPIError(f"Invalid response format from API: {data}")
                 
-            # Add success field if not present
-            if 'success' not in data:
-                data['success'] = True
-                
-            # Add error field if not present
-            if 'error' not in data:
-                data['error'] = None
+            # Backend should always return fields according to MCPResult model.
+            # Pydantic will validate upon instantiation.
+            # if 'success' not in data:
+            #     data['success'] = True # Should not be needed
+            # if 'error' not in data:
+            #     data['error'] = None   # Should not be needed
                 
             return MCPResult(**data)
         except requests.exceptions.RequestException as e:
@@ -147,9 +169,8 @@ class MCPClient:
         MCP_CLIENT_SPECIFIC_LOGGER.debug(f"execute_script called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         return self.execute_server(config.id, inputs)
 
-# Create global client instance
-client = MCPClient() # This is defined in mcp.ui.app.py now, avoid re-creating here to prevent issues.
-# Instead, ensure that the logger is available for any direct calls if this module were run standalone (though it shouldn't be)
+# Remove global client instance
+# client = MCPClient() 
 if __name__ == "__main__":
     # Basic setup for standalone testing of the client, if ever needed.
     logging.basicConfig(level=logging.DEBUG)

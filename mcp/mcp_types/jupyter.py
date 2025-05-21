@@ -2,46 +2,23 @@ from typing import Dict, Any
 import os
 from .base import BaseMCP
 from ..core.types import JupyterNotebookConfig, MCPResult
-from ..api.client import client
+from ..api.client import MCPClient
 from ..core.config import config
 
 class JupyterNotebookMCP(BaseMCP):
     """Jupyter Notebook MCP implementation."""
     
-    def __init__(self, config: JupyterNotebookConfig):
-        super().__init__(config)
+    def __init__(self, config: JupyterNotebookConfig, client: MCPClient):
+        super().__init__(config, client)
         self.config: JupyterNotebookConfig = config
-    
-    def validate_config(self) -> bool:
-        """Validate the Jupyter Notebook configuration."""
-        try:
-            # Check if notebook exists
-            if not os.path.exists(self.config.notebook_path):
-                print(f"Notebook not found: {self.config.notebook_path}")
-                return False
-            
-            # Validate timeout
-            if self.config.timeout < 60:
-                print("Timeout must be at least 60 seconds")
-                return False
-            
-            # Validate cells to execute if specified
-            if not self.config.execute_all and not self.config.cells_to_execute:
-                print("Either execute_all must be True or cells_to_execute must be specified")
-                return False
-            
-            return True
-        except Exception as e:
-            print(f"Error validating config: {str(e)}")
-            return False
     
     def execute(self, inputs: Dict[str, Any]) -> MCPResult:
         """Execute the Jupyter Notebook MCP."""
         if not self.id:
-            return MCPResult(success=False, error="MCP not created")
+            return MCPResult(success=False, error="MCP not created or ID not set for execution")
         
         try:
-            return client.execute_server(self.id, inputs)
+            return self.client.execute_server(self.id, inputs)
         except Exception as e:
             return MCPResult(success=False, error=str(e))
     

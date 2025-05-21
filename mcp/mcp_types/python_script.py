@@ -2,46 +2,23 @@ from typing import Dict, Any
 import os
 from .base import BaseMCP
 from ..core.types import PythonScriptConfig, MCPResult
-from ..api.client import client
+from ..api.client import MCPClient
 from ..core.config import config
 
 class PythonScriptMCP(BaseMCP):
     """Python Script MCP implementation."""
     
-    def __init__(self, config: PythonScriptConfig):
-        super().__init__(config)
+    def __init__(self, config: PythonScriptConfig, client: MCPClient):
+        super().__init__(config, client)
         self.config: PythonScriptConfig = config
-    
-    def validate_config(self) -> bool:
-        """Validate the Python Script configuration."""
-        try:
-            # Check if script exists
-            if not os.path.exists(self.config.script_path):
-                print(f"Script not found: {self.config.script_path}")
-                return False
-            
-            # Validate timeout
-            if self.config.timeout < 60:
-                print("Timeout must be at least 60 seconds")
-                return False
-            
-            # Validate requirements if virtual environment is enabled
-            if self.config.virtual_env and not self.config.requirements:
-                print("Requirements must be specified when using virtual environment")
-                return False
-            
-            return True
-        except Exception as e:
-            print(f"Error validating config: {str(e)}")
-            return False
     
     def execute(self, inputs: Dict[str, Any]) -> MCPResult:
         """Execute the Python Script MCP."""
         if not self.id:
-            return MCPResult(success=False, error="MCP not created")
+            return MCPResult(success=False, error="MCP not created or ID not set for execution")
         
         try:
-            return client.execute_server(self.id, inputs)
+            return self.client.execute_server(self.id, inputs)
         except Exception as e:
             return MCPResult(success=False, error=str(e))
     
