@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional, Union
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, model_validator
 from enum import Enum
 import uuid
 
@@ -37,12 +37,23 @@ class JupyterNotebookConfig(BaseMCPConfig):
     timeout: int = Field(ge=60, default=600)
 
 class PythonScriptConfig(BaseMCPConfig):
-    """Configuration for Python Script MCP."""
+    """
+    Configuration specific to Python Script MCPs.
+    Requires either a script_path to an existing Python file or script_content
+    containing the Python code directly.
+    """
     type: MCPType = MCPType.PYTHON_SCRIPT
-    script_path: str
+    script_path: Optional[str] = Field(default=None, description="The file system path to the Python script to be executed. Required if script_content is not provided.")
+    script_content: Optional[str] = Field(default=None, description="A string containing the Python script content directly. Required if script_path is not provided. If both are provided, script_content may take precedence depending on MCP implementation.")
     requirements: List[str] = Field(default_factory=list)
     virtual_env: bool = True
     timeout: int = Field(ge=60, default=600)
+
+    @model_validator(mode='after')
+    def check_script_path_or_content_exists(self) -> 'PythonScriptConfig':
+        if not self.script_path and not self.script_content:
+            raise ValueError("Either 'script_path' or 'script_content' must be provided for PythonScriptConfig.")
+        return self
 
 class AIAssistantConfig(BaseMCPConfig):
     """AI assistant configuration."""

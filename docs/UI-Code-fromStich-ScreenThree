@@ -1,0 +1,105 @@
+<html>
+  <head>
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" />
+    <link
+      rel="stylesheet"
+      as="style"
+      onload="this.rel='stylesheet'"
+      href="https://fonts.googleapis.com/css2?display=swap&amp;family=Inter%3Awght%40400%3B500%3B700%3B900&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900"
+    />
+
+    <title>Stitch Design</title>
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  </head>
+  <body>
+    <div
+      class="relative flex size-full min-h-screen flex-col bg-[#101923] dark justify-between group/design-root overflow-x-hidden"
+      style='font-family: Inter, "Noto Sans", sans-serif;'
+    >
+      <div>
+        <div class="flex items-center bg-[#101923] p-4 pb-2 justify-between">
+          <div class="text-white flex size-12 shrink-0 items-center" data-icon="ArrowLeft" data-size="24px" data-weight="regular">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+              <path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path>
+            </svg>
+          </div>
+          <h2 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Chain Builder</h2>
+        </div>
+        <h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">1. Drag a node from the palette</h3>
+        <div class="flex w-full grow bg-[#101923] @container p-4">
+          <div class="w-full gap-1 overflow-hidden bg-[#101923] @[480px]:gap-2 aspect-[3/2] rounded-xl flex">
+            <div
+              class="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none flex-1"
+              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBufZojrnOR2grDgYnpar3CkQJhfNKPm8z9CyxegLcn9GsXrFcN9tRULDySH2pfYwotnrheOjg9wvha2fpvYuBYVM3BEHpwaTjSlZqdLoAnw-m0svAZeJIT663ufO6ywgtB_XGRolO-LtHBoXbl2xydBNO-Ji0x4F1Yhrr_5mftkvUA033Z3AAdBZVVyp4qXMQvEJ3l_c4jOFYpcvPosyxyUg9OEB6jpK0iYYBrXjdWmsLdIxLu5ULO2snDjwskfbp5MHUZs1Y-J08");'
+            ></div>
+          </div>
+        </div>
+        <h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">2. Connect nodes</h3>
+        <div class="flex w-full grow bg-[#101923] @container p-4">
+          <div class="w-full gap-1 overflow-hidden bg-[#101923] @[480px]:gap-2 aspect-[3/2] rounded-xl flex">
+            <div
+              class="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none flex-1"
+              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAMv8hddDzUGJK9hlZWPAn6ZqlpBmgvHTjFn8oGC3-EpEizBfhqWe2kEJ-jeAgoEOEOkYTJU0YPtah_zavxGgaVplp_CUA9JMce_pOKQbrNknkorbVJGnlIUi0bGtMj_ZxH6CXN5MXxuvG8XZxOX9E3ZVBkWkjsVDNtHaRgth-GIE0NCFgPwHqoRmzmOpX70S2fjF4iDc07w7Q6LS77o9aZDL7OyCPrmPLnqmqk_38QubYZL5G7dtHIQXEsWcRT9cImADQ9u0DuhQo");'
+            ></div>
+          </div>
+        </div>
+        <h3 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">3. Test a node</h3>
+        <div class="flex w-full grow bg-[#101923] @container p-4">
+          <div class="w-full gap-1 overflow-hidden bg-[#101923] @[480px]:gap-2 aspect-[3/2] rounded-xl flex">
+            <div
+              class="w-full bg-center bg-no-repeat bg-cover aspect-auto rounded-none flex-1"
+              style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnpJkJ-4xinnHzB-hwtYXr_WP3yYKDMZT00ynQXhw2G6lgIWc-0BV0S18FUTq9k9MBW8BB9WjelRb_A1WZt7IW29nFIxWGdbC7ObJ9DzoJVP-ugBCucu5ZnBSzd2ETmTtgFTdPv10JARkO191TdYk_qDufs_wq5oLSyQXUDx7gb6zcC6IVTYiHbZInUps4PyTKUZRF3opYhmEdc0xGqGxILPeYXiqnUQUrzcjlqJE1dSV6NAlMmD4eB9U9M5pvTo97bqHH4Go_H68");'
+            ></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="flex gap-2 border-t border-[#223549] bg-[#182634] px-4 pb-3 pt-2">
+          <a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#90accb]" href="#">
+            <div class="text-[#90accb] flex h-8 items-center justify-center" data-icon="House" data-size="24px" data-weight="regular">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                <path
+                  d="M218.83,103.77l-80-75.48a1.14,1.14,0,0,1-.11-.11,16,16,0,0,0-21.53,0l-.11.11L37.17,103.77A16,16,0,0,0,32,115.55V208a16,16,0,0,0,16,16H96a16,16,0,0,0,16-16V160h32v48a16,16,0,0,0,16,16h48a16,16,0,0,0,16-16V115.55A16,16,0,0,0,218.83,103.77ZM208,208H160V160a16,16,0,0,0-16-16H112a16,16,0,0,0-16,16v48H48V115.55l.11-.1L128,40l79.9,75.43.11.1Z"
+                ></path>
+              </svg>
+            </div>
+            <p class="text-[#90accb] text-xs font-medium leading-normal tracking-[0.015em]">Home</p>
+          </a>
+          <a class="just flex flex-1 flex-col items-center justify-end gap-1 rounded-full text-white" href="#">
+            <div class="text-white flex h-8 items-center justify-center" data-icon="Link" data-size="24px" data-weight="fill">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                <path
+                  d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM128.57,189.66l-5.46,5.45a44,44,0,0,1-62.22-62.22l24-24a44.08,44.08,0,0,1,55.56-5.48,8,8,0,0,1-8.9,13.3A28,28,0,0,0,96.2,120.2l-24,24a28,28,0,0,0,39.6,39.6l5.45-5.46a8,8,0,0,1,11.32,11.32Zm66.54-66.55-24,24a44.08,44.08,0,0,1-55.56,5.48,8,8,0,0,1,8.9-13.3,28.06,28.06,0,0,0,35.35-3.49l24-24a28,28,0,0,0-39.6-39.6l-5.45,5.46a8,8,0,0,1-11.32-11.32l5.46-5.45a44,44,0,0,1,62.22,62.22Z"
+                ></path>
+              </svg>
+            </div>
+            <p class="text-white text-xs font-medium leading-normal tracking-[0.015em]">Chains</p>
+          </a>
+          <a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#90accb]" href="#">
+            <div class="text-[#90accb] flex h-8 items-center justify-center" data-icon="Storefront" data-size="24px" data-weight="regular">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                <path
+                  d="M232,96a7.89,7.89,0,0,0-.3-2.2L217.35,43.6A16.07,16.07,0,0,0,202,32H54A16.07,16.07,0,0,0,38.65,43.6L24.31,93.8A7.89,7.89,0,0,0,24,96v16a40,40,0,0,0,16,32v64a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V144a40,40,0,0,0,16-32ZM54,48H202l11.42,40H42.61Zm50,56h48v8a24,24,0,0,1-48,0Zm-16,0v8a24,24,0,0,1-48,0v-8ZM200,208H56V151.2a40.57,40.57,0,0,0,8,.8,40,40,0,0,0,32-16,40,40,0,0,0,64,0,40,40,0,0,0,32,16,40.57,40.57,0,0,0,8-.8Zm-8-72a24,24,0,0,1-24-24v-8h48v8A24,24,0,0,1,192,136Z"
+                ></path>
+              </svg>
+            </div>
+            <p class="text-[#90accb] text-xs font-medium leading-normal tracking-[0.015em]">Marketplace</p>
+          </a>
+          <a class="just flex flex-1 flex-col items-center justify-end gap-1 text-[#90accb]" href="#">
+            <div class="text-[#90accb] flex h-8 items-center justify-center" data-icon="User" data-size="24px" data-weight="regular">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24px" height="24px" fill="currentColor" viewBox="0 0 256 256">
+                <path
+                  d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8c18.84-32.56,52.14-52,89.07-52s70.23,19.44,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"
+                ></path>
+              </svg>
+            </div>
+            <p class="text-[#90accb] text-xs font-medium leading-normal tracking-[0.015em]">Profile</p>
+          </a>
+        </div>
+        <div class="h-5 bg-[#182634]"></div>
+      </div>
+    </div>
+  </body>
+</html>

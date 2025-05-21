@@ -43,3 +43,26 @@ ENV/
 # Local development
 .DS_Store 
 node_modules
+
+# Ignore runtime data folders
+.mcp_data/
+mcp/.mcp_data/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore virtual environment folders
+.venv/
+venv/
+env/
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db

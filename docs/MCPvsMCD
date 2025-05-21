@@ -1,0 +1,87 @@
+The distinction between **MCD (Main Context Document)** and **MCP (Model Context Protocol)** is fundamental to your platform’s architecture and user experience. Here’s a clear explanation:
+
+---
+
+## **1. What is the MCD?**
+**Main Context Document (MCD):**  
+- **Purpose**: Acts as the single source of truth for each app/workflow in your AI App Store.
+- **Content**: Contains architecture, UI, API definitions, data models, requirements, and project knowledge in a user-friendly (Markdown) format.
+- **Audience**: Both technical and non-technical users (business analysts, engineers, admins).
+- **Function**:  
+  - Enables easy editing, versioning, and sharing of the app’s entire context.
+  - Feeds structured data to agents, workflow engines, and UI generators.
+  - Supports onboarding, documentation, and governance.
+
+**Why choose MCD?**  
+- **User-centric**: Designed for collaborative editing and clarity, especially for non-technical users.
+- **Unified context**: Ensures all stakeholders and system components operate from the same, up-to-date information.
+- **Flexible**: Supports Markdown for ease of use, but can be parsed into structured JSON for automation and validation.
+
+---
+
+## **2. What is MCP?**
+**Model Context Protocol (MCP):**  
+- **Purpose**: An open standard/protocol for connecting AI systems (like LLMs or agents) to data sources, tools, and other integrations[3][5].
+- **Content**: Defines how messages, requests, responses, and notifications are exchanged between clients (AI tools) and servers (data sources or tools).
+- **Audience**: Developers building AI-powered tools, integrations, or systems that need to access external data or services.
+- **Function**:  
+  - Provides a universal, extensible way for AI systems to securely and reliably access the context they need.
+  - Handles message framing, transport, error handling, and connection lifecycle[5].
+  - Enables scalable, maintainable integration architectures.
+
+**Why use MCP?**  
+- **Interoperability**: Standardizes how AI systems connect to various data sources, reducing custom integration work[3][5].
+- **Security**: Built for secure, two-way connections.
+- **Extensibility**: Supports new data sources and tools as the ecosystem grows.
+
+---
+
+## **3. Why MCD Over MCP for Your App’s Core Context?**
+
+| **Aspect**        | **MCD** (Main Context Document)    | **MCP** (Model Context Protocol)    |
+|-------------------|------------------------------------|-------------------------------------|
+| **Primary Role**  | Human/machine-readable project context | Machine-to-machine protocol for context/data exchange |
+| **Audience**      | End-users, analysts, engineers     | Developers, system integrators      |
+| **Format**        | Markdown + JSON                    | Protocol specification (JSON-RPC, etc.) |
+| **Usage**         | Documentation, onboarding, workflow generation, agent context | Secure, standardized data exchange between AI and systems |
+| **Editability**   | Direct, collaborative, versioned   | Not intended for direct editing; implemented in code or config |
+| **Governance**    | Versioned, auditable, human-readable | Protocol-level, not project-specific |
+
+**Summary:**  
+- **MCD** is for capturing, sharing, and evolving the **project/app context** in a way that is accessible to all users and systems.  
+- **MCP** is for **connecting** your AI platform to external data sources, tools, or other AI systems using a standard protocol.
+
+**In your platform:**  
+- Use **MCD** as the “brain” and documentation for each app/workflow—what it is, how it works, and how it should behave.
+- Use **MCP** (and compatible servers/clients) to enable agents and workflows to **fetch, update, or push** data to/from external sources in a standardized, secure way[3][5].
+
+---
+
+## **Analogy**
+- **MCD** is like the “project specification and playbook” for your app.
+- **MCP** is like the “network protocol” that lets your app talk to the outside world.
+
+---
+
+**Bottom line:**  
+You need both—but the MCD is the right choice for your app’s core context because it is user-facing, versioned, and designed for collaborative, organizational knowledge capture and workflow generation.  
+MCP is the right choice for connecting your platform to the broader AI/data ecosystem in a scalable, maintainable, and secure way.
+
+---
+
+If you want, I can provide concrete examples of how the MCD and MCP would be used together in a workflow!
+
+Citations:
+[1] https://en.wikipedia.org/wiki/ConTeXt
+[2] https://resources.data.gov/standards/concepts/
+[3] https://www.anthropic.com/news/model-context-protocol
+[4] https://miro.com/blog/context-diagram/
+[5] https://modelcontextprotocol.io/docs/concepts/architecture
+[6] https://www.altexsoft.com/blog/technical-documentation-in-software-development-types-best-practices-and-tools/
+[7] https://www.jamasoftware.com/blog/context-and-usecase-diagrams-defining-scope/
+[8] https://en.wikipedia.org/wiki/Specification_(technical_standard)
+[9] https://creately.com/blog/diagrams/uml-diagram-types-examples/
+[10] https://www.lucidchart.com/pages/uml-component-diagram
+
+---
+Answer from Perplexity: pplx.ai/share
