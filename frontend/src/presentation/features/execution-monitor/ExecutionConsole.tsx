@@ -1,132 +1,131 @@
 import React, { useState } from 'react';
-import { Box, Typography, IconButton, TextField, Paper } from '@mui/material';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
-import ClearIcon from '@mui/icons-material/Clear';
+import { Box, Typography, Button, Checkbox, FormControlLabel } from '@mui/material';
 import { useChainStore } from '../../../infrastructure/state/chainStore';
 
-interface LogEntry {
-  timestamp: string;
-  type: 'info' | 'error' | 'success';
+interface ErrorSuggestion {
+  id: string;
+  text: string;
+  checked: boolean;
+}
+
+interface ExecutionError {
   message: string;
+  suggestions: ErrorSuggestion[];
 }
 
 const ExecutionConsole: React.FC = () => {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<ExecutionError | null>(null);
+  const { executeChain } = useChainStore();
 
-  const addLog = (type: LogEntry['type'], message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, { timestamp, type, message }]);
-  };
-
-  const handleExecute = () => {
-    setIsRunning(true);
-    addLog('info', 'Starting chain execution...');
-    
-    // TODO: Implement actual chain execution logic
-    setTimeout(() => {
-      addLog('success', 'Chain execution completed successfully');
-      setIsRunning(false);
-    }, 2000);
-  };
-
-  const handleStop = () => {
-    setIsRunning(false);
-    addLog('info', 'Chain execution stopped');
-  };
-
-  const handleClear = () => {
-    setLogs([]);
-  };
-
-  const getLogColor = (type: LogEntry['type']) => {
-    switch (type) {
-      case 'error':
-        return 'error.main';
-      case 'success':
-        return 'success.main';
-      default:
-        return 'text.secondary';
+  const handleRetry = async () => {
+    try {
+      await executeChain();
+      setError(null);
+    } catch (err) {
+      // Example error handling - replace with actual error handling logic
+      setError({
+        message: 'Invalid input data: Missing required field \'name\' in the input data.',
+        suggestions: [
+          {
+            id: '1',
+            text: 'Ensure all required fields are present in the input data.',
+            checked: false
+          },
+          {
+            id: '2',
+            text: 'Verify the data types of the input fields match the expected types.',
+            checked: false
+          }
+        ]
+      });
     }
   };
 
+  const handleSuggestionChange = (suggestionId: string) => {
+    if (!error) return;
+    
+    setError({
+      ...error,
+      suggestions: error.suggestions.map(suggestion => 
+        suggestion.id === suggestionId 
+          ? { ...suggestion, checked: !suggestion.checked }
+          : suggestion
+      )
+    });
+  };
+
+  if (!error) {
+    return (
+      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+        <Typography variant="h1" sx={{ pb: 3, pt: 5 }}>
+          Chain Execution
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={handleRetry}
+          sx={{ alignSelf: 'flex-end', mt: 'auto' }}
+        >
+          Execute Chain
+        </Button>
+      </Box>
+    );
+  }
+
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Console Controls */}
-      <Box sx={{ 
-        p: 1, 
-        display: 'flex', 
-        gap: 1, 
-        borderBottom: 1, 
-        borderColor: 'divider',
-        bgcolor: 'background.default'
-      }}>
-        <IconButton 
-          color="primary" 
-          size="small" 
-          onClick={handleExecute}
-          disabled={isRunning}
-        >
-          <PlayArrowIcon />
-        </IconButton>
-        <IconButton 
-          color="error" 
-          size="small" 
-          onClick={handleStop}
-          disabled={!isRunning}
-        >
-          <StopIcon />
-        </IconButton>
-        <IconButton 
-          color="default" 
-          size="small" 
-          onClick={handleClear}
-        >
-          <ClearIcon />
-        </IconButton>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+      <Typography variant="h1" sx={{ pb: 3, pt: 5 }}>
+        Execution Failed
+      </Typography>
+      
+      <Typography variant="body1" sx={{ pb: 3, pt: 1 }}>
+        The chain execution encountered an error. Please review the error message and suggested fixes below.
+      </Typography>
+
+      <Typography variant="h3" sx={{ pb: 2, pt: 4 }}>
+        Error Message
+      </Typography>
+      
+      <Typography variant="body1" sx={{ pb: 3, pt: 1 }}>
+        {error.message}
+      </Typography>
+
+      <Typography variant="h3" sx={{ pb: 2, pt: 4 }}>
+        Suggested Fixes
+      </Typography>
+
+      <Box sx={{ px: 0 }}>
+        {error.suggestions.map((suggestion) => (
+          <FormControlLabel
+            key={suggestion.id}
+            control={
+              <Checkbox
+                checked={suggestion.checked}
+                onChange={() => handleSuggestionChange(suggestion.id)}
+                sx={{
+                  '&.Mui-checked': {
+                    color: 'primary.main',
+                  },
+                }}
+              />
+            }
+            label={
+              <Typography variant="body1">
+                {suggestion.text}
+              </Typography>
+            }
+            sx={{ py: 3 }}
+          />
+        ))}
       </Box>
 
-      {/* Log Output */}
-      <Box sx={{ 
-        flex: 1, 
-        overflow: 'auto', 
-        p: 1,
-        fontFamily: 'Fira Code, monospace',
-        fontSize: '0.875rem',
-        bgcolor: 'background.default'
-      }}>
-        {logs.map((log, index) => (
-          <Box 
-            key={index} 
-            sx={{ 
-              display: 'flex', 
-              gap: 1,
-              color: getLogColor(log.type),
-              mb: 0.5
-            }}
-          >
-            <Typography 
-              component="span" 
-              sx={{ 
-                color: 'text.secondary',
-                fontFamily: 'inherit',
-                fontSize: 'inherit'
-              }}
-            >
-              [{log.timestamp}]
-            </Typography>
-            <Typography 
-              component="span" 
-              sx={{ 
-                fontFamily: 'inherit',
-                fontSize: 'inherit'
-              }}
-            >
-              {log.message}
-            </Typography>
-          </Box>
-        ))}
+      <Box sx={{ mt: 'auto', pt: 3, pb: 5 }}>
+        <Button
+          variant="contained"
+          onClick={handleRetry}
+          sx={{ float: 'right' }}
+        >
+          Retry Execution
+        </Button>
       </Box>
     </Box>
   );

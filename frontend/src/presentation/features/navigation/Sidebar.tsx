@@ -20,7 +20,6 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
-import { designTokens } from '../../design-system/theme';
 
 interface MCPItem {
   id: string;
@@ -71,13 +70,13 @@ const Sidebar: React.FC = () => {
   const getMcpTypeColor = (type: MCPItem['type']) => {
     switch (type) {
       case 'llm':
-        return designTokens.colors.nodeTypes.llm;
+        return '#0b79ee';
       case 'notebook':
-        return designTokens.colors.nodeTypes.notebook;
+        return '#00bcd4';
       case 'data':
-        return designTokens.colors.nodeTypes.data;
+        return '#4caf50';
       default:
-        return '#666';
+        return '#314c68';
     }
   };
 
@@ -102,11 +101,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/'}
             onClick={() => handleNavigation('/')}
             aria-label="Dashboard"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <DashboardIcon />
             </ListItemIcon>
-            <ListItemText primary="Dashboard" />
+            <ListItemText 
+              primary="Dashboard" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
@@ -114,11 +127,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/create-mcp'}
             onClick={() => handleNavigation('/create-mcp')}
             aria-label="Create MCP"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <AddIcon />
             </ListItemIcon>
-            <ListItemText primary="Create MCP" />
+            <ListItemText 
+              primary="Create MCP" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/create-mcp' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
@@ -126,11 +153,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/manage-mcps'}
             onClick={() => handleNavigation('/manage-mcps')}
             aria-label="Manage MCPs"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <StorageIcon />
             </ListItemIcon>
-            <ListItemText primary="Manage MCPs" />
+            <ListItemText 
+              primary="Manage MCPs" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/manage-mcps' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
@@ -138,11 +179,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/test-mcps'}
             onClick={() => handleNavigation('/test-mcps')}
             aria-label="Test MCPs"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <ScienceIcon />
             </ListItemIcon>
-            <ListItemText primary="Test MCPs" />
+            <ListItemText 
+              primary="Test MCPs" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/test-mcps' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
@@ -150,11 +205,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/chain-builder'}
             onClick={() => handleNavigation('/chain-builder')}
             aria-label="Chain Builder"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <AccountTreeIcon />
             </ListItemIcon>
-            <ListItemText primary="Chain Builder" />
+            <ListItemText 
+              primary="Chain Builder" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/chain-builder' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
         <ListItem disablePadding>
@@ -162,11 +231,25 @@ const Sidebar: React.FC = () => {
             selected={location.pathname === '/settings'}
             onClick={() => handleNavigation('/settings')}
             aria-label="Settings"
+            sx={{
+              '&.Mui-selected': {
+                bgcolor: 'rgba(11, 121, 238, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(11, 121, 238, 0.15)',
+                },
+              },
+            }}
           >
-            <ListItemIcon>
+            <ListItemIcon sx={{ color: 'text.primary' }}>
               <SettingsIcon />
             </ListItemIcon>
-            <ListItemText primary="Settings" />
+            <ListItemText 
+              primary="Settings" 
+              primaryTypographyProps={{ 
+                fontWeight: location.pathname === '/settings' ? 700 : 400,
+                color: 'text.primary'
+              }}
+            />
           </ListItemButton>
         </ListItem>
       </List>
@@ -175,12 +258,22 @@ const Sidebar: React.FC = () => {
 
       {/* MCP Library */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        <ListItemButton onClick={handleMcpLibraryClick}>
+        <ListItemButton 
+          onClick={handleMcpLibraryClick}
+          sx={{
+            '&:hover': {
+              bgcolor: 'rgba(11, 121, 238, 0.05)',
+            },
+          }}
+        >
           <ListItemText 
             primary="MCP Library" 
-            primaryTypographyProps={{ fontWeight: 600 }}
+            primaryTypographyProps={{ 
+              fontWeight: 600,
+              color: 'text.primary'
+            }}
           />
-          {mcpLibraryOpen ? <ExpandLess /> : <ExpandMore />}
+          {mcpLibraryOpen ? <ExpandLess sx={{ color: 'text.primary' }} /> : <ExpandMore sx={{ color: 'text.primary' }} />}
         </ListItemButton>
         <Collapse in={mcpLibraryOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
@@ -192,8 +285,12 @@ const Sidebar: React.FC = () => {
                     p: 1,
                     width: '100%',
                     cursor: 'pointer',
+                    bgcolor: 'background.default',
+                    border: '1px solid',
+                    borderColor: 'divider',
                     '&:hover': {
-                      bgcolor: 'action.hover',
+                      bgcolor: 'rgba(11, 121, 238, 0.05)',
+                      borderColor: 'primary.main',
                     },
                   }}
                   elevation={0}

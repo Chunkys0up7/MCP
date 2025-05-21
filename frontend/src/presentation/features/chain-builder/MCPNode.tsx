@@ -1,139 +1,101 @@
 import React from 'react';
 import { Handle, Position } from 'reactflow';
-import { Box, Typography, IconButton, Tooltip, Paper } from '@mui/material';
+import { Box, Typography, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useChainStore } from '../../../infrastructure/state/chainStore';
-import { designTokens } from '../../design-system/theme';
-import type { NodeData } from '../../../infrastructure/types/node';
 import type { NodeProps } from 'reactflow';
+import type { NodeData } from '../../../infrastructure/types/node';
 
-type MCPNodeProps = NodeProps<NodeData>;
-
-const MCPNode: React.FC<MCPNodeProps> = ({ data, selected, id }) => {
-  const { removeNode, updateNode } = useChainStore();
-
+const MCPNode: React.FC<NodeProps<NodeData>> = ({ data, id }) => {
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'llm':
-        return '#2196f3';
+        return '#0b79ee';
       case 'notebook':
-        return '#4caf50';
+        return '#00bcd4';
       case 'data':
-        return '#ff9800';
-      default:
-        return '#757575';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running':
-        return '#2196f3';
-      case 'success':
         return '#4caf50';
-      case 'error':
-        return '#f44336';
       default:
-        return '#757575';
+        return '#314c68';
     }
   };
 
-  const handleDelete = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    removeNode(id);
+  const handleDelete = () => {
+    if (data.onDelete) {
+      data.onDelete(id);
+    }
   };
 
-  const handleConfigure = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    // TODO: Open configuration dialog
+  const handleConfigure = () => {
+    if (data.onConfigure) {
+      data.onConfigure(id);
+    }
   };
 
   return (
-    <Paper
-      elevation={selected ? 8 : 2}
+    <Box
       sx={{
-        padding: 2,
-        minWidth: 200,
-        border: '2px solid',
+        width: 200,
+        bgcolor: 'background.paper',
+        border: 2,
         borderColor: getNodeColor(data.type),
-        backgroundColor: 'background.paper',
-        '&:hover': {
-          boxShadow: 6,
-        },
+        borderRadius: 2,
+        p: 2,
+        position: 'relative',
       }}
     >
       <Handle
         type="target"
         position={Position.Top}
         style={{
-          background: '#555',
           width: 8,
           height: 8,
+          background: '#314c68',
+          border: '1px solid #ffffff',
         }}
       />
+      
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-        <Typography
-          variant="subtitle1"
-          sx={{
-            flex: 1,
-            fontWeight: 'bold',
-            color: getNodeColor(data.type),
-          }}
-        >
+        <Typography variant="h3" sx={{ flex: 1, color: 'text.primary' }}>
           {data.label}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          <Tooltip title="Configure">
-            <IconButton
-              size="small"
-              onClick={handleConfigure}
-              sx={{ color: 'text.secondary' }}
-            >
-              <SettingsIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={handleDelete}
-              sx={{ color: 'error.main' }}
-            >
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        <IconButton
+          size="small"
+          onClick={handleConfigure}
+          sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+        >
+          <SettingsIcon fontSize="small" />
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={handleDelete}
+          sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
       </Box>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          mt: 1,
-        }}
-      >
-        <Box
-          sx={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: getStatusColor(data.status),
-          }}
-        />
-        <Typography variant="body2" color="text.secondary">
-          {data.status}
+
+      <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
+        {data.type.toUpperCase()}
+      </Typography>
+
+      {data.description && (
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          {data.description}
         </Typography>
-      </Box>
+      )}
+
       <Handle
         type="source"
         position={Position.Bottom}
         style={{
-          background: '#555',
           width: 8,
           height: 8,
+          background: '#314c68',
+          border: '1px solid #ffffff',
         }}
       />
-    </Paper>
+    </Box>
   );
 };
 

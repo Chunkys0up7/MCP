@@ -8,6 +8,9 @@ export interface NodeData {
   status: NodeStatus;
   config?: MCPConfig;
   inputValues?: Record<string, string>;
+  description?: string;
+  onDelete?: (nodeId: string) => void;
+  onConfigure?: (nodeId: string) => void;
 }
 
 export interface MCPItem {

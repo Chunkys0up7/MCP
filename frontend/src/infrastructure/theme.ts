@@ -1,46 +1,94 @@
 import { createTheme } from '@mui/material/styles';
 
-export const theme = createTheme({
+const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
+      main: '#0b79ee',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: '#101923',
+      paper: '#1a2533',
     },
+    text: {
+      primary: '#ffffff',
+      secondary: '#a0aec0',
+    },
+    divider: '#314c68',
   },
   typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
+    fontFamily: 'Inter, "Noto Sans", sans-serif',
+    h1: {
+      fontSize: '22px',
+      fontWeight: 700,
+      letterSpacing: '-0.015em',
+      lineHeight: 1.2,
+    },
+    h2: {
+      fontSize: '18px',
+      fontWeight: 700,
+      letterSpacing: '-0.015em',
+      lineHeight: 1.2,
+    },
+    h3: {
+      fontSize: '16px',
+      fontWeight: 700,
+      letterSpacing: '-0.015em',
+      lineHeight: 1.2,
+    },
+    body1: {
+      fontSize: '16px',
+      fontWeight: 400,
+      lineHeight: 1.5,
+    },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
+          borderRadius: '9999px',
           textTransform: 'none',
+          fontWeight: 700,
+          letterSpacing: '0.015em',
+          padding: '8px 16px',
+          minWidth: '84px',
+          maxWidth: '480px',
+        },
+        contained: {
+          backgroundColor: '#0b79ee',
+          '&:hover': {
+            backgroundColor: '#0a6ad4',
+          },
         },
       },
     },
-    MuiAccordion: {
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#1a2533',
+          borderColor: '#314c68',
+        },
+      },
+    },
+    MuiPaper: {
       styleOverrides: {
         root: {
-          '&:before': {
-            display: 'none',
+          backgroundColor: '#1a2533',
+          borderColor: '#314c68',
+        },
+      },
+    },
+    MuiCheckbox: {
+      styleOverrides: {
+        root: {
+          color: '#314c68',
+          '&.Mui-checked': {
+            color: '#0b79ee',
           },
         },
       },
     },
   },
-}); 
+});
+
+export default theme; 

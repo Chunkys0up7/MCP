@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { Box, IconButton, Paper, Drawer, useTheme, useMediaQuery } from '@mui/material';
+import { Box, IconButton, Paper, Drawer, useTheme, useMediaQuery, Typography, Button } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Toolbar from './Toolbar';
 import PropertiesPanel from '../node-config/PropertiesPanel';
 import ExecutionConsole from '../execution-monitor/ExecutionConsole';
@@ -60,14 +61,31 @@ const WorkspaceLayout: React.FC = () => {
   }, [isMobile]);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <Toolbar
-        onSave={handleSaveChain}
-        onExecute={handleExecuteChain}
-        onToggleProperties={toggleProperties}
-        onToggleLibrary={toggleLibrary}
-        isLoading={isLoading}
-      />
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', bgcolor: 'background.default' }}>
+      {/* Header */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        bgcolor: 'background.default', 
+        p: 2, 
+        pb: 1,
+        borderBottom: 1,
+        borderColor: 'divider'
+      }}>
+        <IconButton 
+          sx={{ 
+            color: 'text.primary',
+            mr: 2
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h2" sx={{ flex: 1, textAlign: 'center', pr: 6 }}>
+          Chain Builder
+        </Typography>
+      </Box>
+
+      {/* Main Content */}
       <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* MCP Library Drawer */}
         <Drawer
@@ -80,24 +98,30 @@ const WorkspaceLayout: React.FC = () => {
             '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,
               boxSizing: 'border-box',
-              borderRight: '1px solid',
+              borderRight: 1,
               borderColor: 'divider',
             },
           }}
         >
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h3">
+              MCP Library
+            </Typography>
+          </Box>
           <MCPLibrary onAddMCP={handleAddMCP} />
         </Drawer>
 
         {/* Main Canvas */}
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
           <Box sx={{ 
             flex: 1, 
             position: 'relative',
             height: '100%',
-            minHeight: 0, // This is important for flexbox to work correctly
+            minHeight: 0,
             '& .react-flow': {
               height: '100%',
-              width: '100%'
+              width: '100%',
+              bgcolor: 'background.default',
             }
           }}>
             <WorkflowDesign
@@ -124,11 +148,16 @@ const WorkspaceLayout: React.FC = () => {
             '& .MuiDrawer-paper': {
               width: DRAWER_WIDTH,
               boxSizing: 'border-box',
-              borderLeft: '1px solid',
+              borderLeft: 1,
               borderColor: 'divider',
             },
           }}
         >
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h3">
+              {selectedNode ? 'Node Properties' : 'Chain Properties'}
+            </Typography>
+          </Box>
           {selectedNode ? (
             <PropertiesPanel node={selectedNode} />
           ) : (
@@ -150,8 +179,10 @@ const WorkspaceLayout: React.FC = () => {
             position: 'absolute',
             top: -20,
             right: 20,
-            backgroundColor: 'background.paper',
-            '&:hover': { backgroundColor: 'background.paper' },
+            bgcolor: 'background.paper',
+            border: 1,
+            borderColor: 'divider',
+            '&:hover': { bgcolor: 'background.paper' },
           }}
         >
           {isConsoleCollapsed ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
@@ -161,8 +192,15 @@ const WorkspaceLayout: React.FC = () => {
             height: isConsoleCollapsed ? 0 : CONSOLE_HEIGHT,
             transition: 'height 0.3s ease-in-out',
             overflow: 'hidden',
+            borderTop: 1,
+            borderColor: 'divider',
           }}
         >
+          <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+            <Typography variant="h3">
+              Execution Console
+            </Typography>
+          </Box>
           <ExecutionConsole />
         </Paper>
       </Box>

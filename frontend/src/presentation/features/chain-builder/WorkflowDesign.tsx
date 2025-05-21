@@ -13,6 +13,7 @@ import ReactFlow, {
   Connection,
   Panel,
 } from 'reactflow';
+import { Box, Typography } from '@mui/material';
 import 'reactflow/dist/style.css';
 import type { NodeData } from '../../../infrastructure/types/node';
 import MCPNode from './MCPNode';
@@ -97,12 +98,13 @@ const WorkflowDesign: React.FC<WorkflowDesignProps> = ({
       target: connection.target,
       type: 'smoothstep',
       animated: true,
+      style: { stroke: '#314c68' },
     };
     onEdgesChange(newEdge);
   }, [onEdgesChange]);
 
   return (
-    <div style={{ width: '100%', height: '100%', background: '#f5f5f5' }}>
+    <Box sx={{ width: '100%', height: '100%', bgcolor: 'background.default' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -118,14 +120,41 @@ const WorkflowDesign: React.FC<WorkflowDesignProps> = ({
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#aaa" gap={16} />
-        <Controls />
-        <MiniMap />
-        <Panel position="top-right" style={{ background: 'white', padding: '8px', borderRadius: '4px' }}>
-          {nodes.length === 0 && 'Drag nodes from the library to start building your chain'}
+        <Background color="#314c68" gap={16} />
+        <Controls style={{ background: 'background.paper', border: '1px solid #314c68' }} />
+        <MiniMap 
+          style={{ background: 'background.paper', border: '1px solid #314c68' }}
+          nodeColor={(node) => {
+            switch (node.data?.type) {
+              case 'llm':
+                return '#0b79ee';
+              case 'notebook':
+                return '#00bcd4';
+              case 'data':
+                return '#4caf50';
+              default:
+                return '#314c68';
+            }
+          }}
+        />
+        <Panel position="top-right">
+          {nodes.length === 0 && (
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                bgcolor: 'background.paper',
+                p: 2,
+                borderRadius: 1,
+                border: '1px solid #314c68',
+                color: 'text.secondary'
+              }}
+            >
+              Drag nodes from the library to start building your chain
+            </Typography>
+          )}
         </Panel>
       </ReactFlow>
-    </div>
+    </Box>
   );
 };
 
