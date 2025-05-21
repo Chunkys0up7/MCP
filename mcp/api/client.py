@@ -1,8 +1,15 @@
 from typing import Dict, Any, List, Optional
 import requests
+import logging
+import traceback
 from ..core.config import config
 from ..core.types import MCPConfig, MCPResult
 from .exceptions import MCPAPIError, MCPNotFoundError, MCPValidationError
+
+# Use a more unique name for the logger
+MCP_CLIENT_SPECIFIC_LOGGER = logging.getLogger("MCPClient_API") 
+# Log initial type and ID of the logger when module is loaded
+MCP_CLIENT_SPECIFIC_LOGGER.debug(f"MCP_CLIENT_SPECIFIC_LOGGER initialized. Type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
 
 class MCPClient:
     """Client for interacting with MCP API."""
@@ -14,29 +21,68 @@ class MCPClient:
             "X-API-Key": self.api_key,
             "Content-Type": "application/json"
         }
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"MCPClient instance created. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
     
     def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
         """Handle API response and raise appropriate exceptions."""
+        # Log type and ID of the logger at the beginning of the method call
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"_handle_response received response with status: {response.status_code} from URL: {response.url}")
         if response.status_code == 404:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"MCPNotFoundError for URL: {response.url}")
             raise MCPNotFoundError(f"Resource not found: {response.url}")
         elif response.status_code == 400:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"MCPValidationError for URL: {response.url}. Response text: {response.text}")
             raise MCPValidationError(f"Validation error: {response.text}")
         elif response.status_code >= 400:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"MCPAPIError for URL: {response.url}. Status: {response.status_code}. Response text: {response.text}")
             raise MCPAPIError(f"API error: {response.text}")
         
-        return response.json()
+        try:
+            MCP_CLIENT_SPECIFIC_LOGGER.debug(f"Type of 'response' object in _handle_response BEFORE .json() call: {type(response)}")
+            MCP_CLIENT_SPECIFIC_LOGGER.debug(f"_handle_response raw response text: {response.text}")
+            json_response = response.json()
+            try:
+                MCP_CLIENT_SPECIFIC_LOGGER.debug(f"_handle_response: successfully parsed JSON. Type of json_response: {type(json_response)}")
+            except AttributeError as ae_type_log:
+                MCP_CLIENT_SPECIFIC_LOGGER.error(f"AttributeError SPECIFICALLY WHEN LOGGING type(json_response): {str(ae_type_log)}")
+                MCP_CLIENT_SPECIFIC_LOGGER.error(f"Type of json_response at this point was: {type(json_response)}")
+                MCP_CLIENT_SPECIFIC_LOGGER.error(f"Content of json_response: {json_response}")
+                raise
+            
+            MCP_CLIENT_SPECIFIC_LOGGER.debug(f"_handle_response content being returned: {json_response}")
+            return json_response
+        except requests.exceptions.JSONDecodeError as e:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"JSONDecodeError in _handle_response for URL: {response.url}. Error: {str(e)}. Response text: {response.text}")
+            raise MCPAPIError(f"Failed to decode JSON response from {response.url}: {str(e)}. Response text: {response.text}")
+        except AttributeError as ae_general: # Catch any other AttributeErrors in this block
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"A GENERAL AttributeError occurred in _handle_response try block: {str(ae_general)}")
+            MCP_CLIENT_SPECIFIC_LOGGER.error(traceback.format_exc()) # Ensure traceback is imported
+            raise
     
     def get_servers(self) -> List[Dict[str, Any]]:
         """Get all MCP servers."""
-        response = requests.get(
-            f"{self.base_url}/context",
-            headers=self.headers
-        )
+        url = f"{self.base_url}/context"
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"get_servers attempting to GET from URL: {url}. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
+        try:
+            response = requests.get(
+                url,
+                headers=self.headers
+            )
+            MCP_CLIENT_SPECIFIC_LOGGER.debug(f"get_servers received response. Status: {response.status_code}, URL: {response.url}")
+        except requests.exceptions.RequestException as e:
+            MCP_CLIENT_SPECIFIC_LOGGER.error(f"RequestException in get_servers for URL: {url}. Error: {str(e)}")
+            raise MCPAPIError(f"Request failed for {url}: {str(e)}")
+            
         data = self._handle_response(response)
-        return data.get('servers', [])
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"get_servers received data from _handle_response.")
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"Type of data: {type(data)}")
+        # MCP_CLIENT_SPECIFIC_LOGGER.debug(f"Content of data: {data}") # Temporarily comment out to isolate error
+        MCP_CLIENT_SPECIFIC_LOGGER.debug("get_servers is about to return data.")
+        return data
     
     def create_server(self, config: MCPConfig) -> Dict[str, Any]:
         """Create a new MCP server."""
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"create_server called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         response = requests.post(
             f"{self.base_url}/mcps",
             headers=self.headers,
@@ -46,6 +92,7 @@ class MCPClient:
     
     def delete_server(self, server_id: str) -> bool:
         """Delete an MCP server."""
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"delete_server called for ID: {server_id}. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         response = requests.delete(
             f"{self.base_url}/context/{server_id}",
             headers=self.headers
@@ -89,13 +136,28 @@ class MCPClient:
         return self._handle_response(response)
 
     async def execute_llm_prompt(self, config, inputs):
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"execute_llm_prompt called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         return self.execute_server(config.id, inputs)
 
     async def execute_notebook(self, config, inputs):
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"execute_notebook called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         return self.execute_server(config.id, inputs)
 
     async def execute_script(self, config, inputs):
+        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"execute_script called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}")
         return self.execute_server(config.id, inputs)
 
 # Create global client instance
-client = MCPClient() 
+client = MCPClient() # This is defined in mcp.ui.app.py now, avoid re-creating here to prevent issues.
+# Instead, ensure that the logger is available for any direct calls if this module were run standalone (though it shouldn't be)
+if __name__ == "__main__":
+    # Basic setup for standalone testing of the client, if ever needed.
+    logging.basicConfig(level=logging.DEBUG)
+    MCP_CLIENT_SPECIFIC_LOGGER.info("MCPClient module run directly. This is for testing only.")
+    # test_client = MCPClient(base_url="http://localhost:8000")
+    # try:
+    #     servers = test_client.get_servers()
+    #     MCP_CLIENT_SPECIFIC_LOGGER.info(f"Standalone test get_servers(): {servers}")
+    # except Exception as e:
+    #     MCP_CLIENT_SPECIFIC_LOGGER.error(f"Standalone test error: {e}")
+    pass 

@@ -199,8 +199,8 @@ class ChainBuilder:
             with col2:
                 st.session_state.execution_mode = st.selectbox(
                     "Execution Mode",
-                    ["Sequential", "Parallel"],
-                    index=["Sequential", "Parallel"].index(st.session_state.execution_mode)
+                    ["sequential", "parallel"],
+                    index=["sequential", "parallel"].index(str(st.session_state.execution_mode).lower())
                 )
         
         # Step 5: Save Chain
