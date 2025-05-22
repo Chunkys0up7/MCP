@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 
-from mcp.core.types import MCPType, AllMCPConfigUnion # MCPType enum and the Union of all config types
+from mcp.core.types import MCPType, MCPConfig # MCPType enum and the Union of all config types
 
 
 # --- MCP Version Schemas ---

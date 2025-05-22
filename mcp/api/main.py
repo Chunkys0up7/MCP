@@ -35,8 +35,9 @@ from ..core.registry import mcp_server_registry, save_mcp_servers
 from mcp.db.session import SessionLocal
 from mcp.cache.redis_manager import RedisCacheManager
 
-from .dependencies import get_api_key # Import the dependency
+from .dependencies import get_api_key, get_current_subject # Added get_current_subject
 from .routers import workflows as workflow_router # Added import
+from .routers import auth as auth_router # New auth router import
 from mcp.schemas.mcp import MCPDetail # Import the new schema
 
 # Rate limiting middleware (simple in-memory)
@@ -71,6 +72,7 @@ app.add_middleware(
 
 # Include the workflow router
 app.include_router(workflow_router.router)
+app.include_router(auth_router.router) # Include the new auth router
 
 # API Request model for creating MCPs
 class MCPCreationRequest(BaseModel):
@@ -81,7 +83,7 @@ class MCPCreationRequest(BaseModel):
     config: Dict[str, Any] # Raw config dict from request
 
 @app.get("/context", response_model=List[MCPDetail]) # Changed response model to List[MCPDetail]
-async def get_all_mcp_servers(api_key_dependency: str = Depends(get_api_key)):
+async def get_all_mcp_servers(current_user_sub: str = Depends(get_current_subject)):
     response_list = []
     for server_id, server_data in mcp_server_registry.items():
         mcp_detail_data = {
@@ -101,7 +103,7 @@ async def get_all_mcp_servers(api_key_dependency: str = Depends(get_api_key)):
     return response_list
 
 @app.get("/context/{server_id}", response_model=MCPDetail) # New endpoint
-async def get_mcp_server_details(server_id: str, api_key_dependency: str = Depends(get_api_key)):
+async def get_mcp_server_details(server_id: str, current_user_sub: str = Depends(get_current_subject)):
     server_data = mcp_server_registry.get(server_id)
     if not server_data:
         raise HTTPException(status_code=404, detail="MCP Server not found")
@@ -122,7 +124,7 @@ async def get_mcp_server_details(server_id: str, api_key_dependency: str = Depen
         raise HTTPException(status_code=500, detail="Error retrieving MCP details: Invalid data format in registry.")
 
 @app.post("/context", response_model=Dict[str, Any], status_code=201)
-async def create_mcp_server(request: MCPCreationRequest, api_key_dependency: str = Depends(get_api_key)):
+async def create_mcp_server(request: MCPCreationRequest, current_user_sub: str = Depends(get_current_subject)):
     server_id = str(uuid.uuid4())
     
     config_init_data = request.config.copy()
@@ -179,7 +181,7 @@ async def create_mcp_server(request: MCPCreationRequest, api_key_dependency: str
         raise HTTPException(status_code=400, detail=f"Error creating MCP server: {str(e)}")
 
 @app.post("/context/{server_id}/execute", response_model=MCPResult)
-async def execute_mcp_server(server_id: str, inputs: Dict[str, Any], api_key_dependency: str = Depends(get_api_key)):
+async def execute_mcp_server(server_id: str, inputs: Dict[str, Any], current_user_sub: str = Depends(get_current_subject)):
     server_data = mcp_server_registry.get(server_id)
     if not server_data:
         raise HTTPException(status_code=404, detail="MCP Server not found")
@@ -210,7 +212,7 @@ async def execute_mcp_server(server_id: str, inputs: Dict[str, Any], api_key_dep
         return MCPResult(success=False, error=f"Execution failed: {str(e)}")
 
 @app.delete("/context/{server_id}", status_code=204) # 204 No Content for successful deletion
-async def delete_mcp_server(server_id: str, api_key_dependency: str = Depends(get_api_key)):
+async def delete_mcp_server(server_id: str, current_user_sub: str = Depends(get_current_subject)):
     if server_id not in mcp_server_registry:
         raise HTTPException(status_code=404, detail="MCP server not found")
     

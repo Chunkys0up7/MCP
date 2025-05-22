@@ -10,7 +10,7 @@ from mcp.schemas.workflow import (
 )
 # Assuming API key dependency and mcp_server_registry will be passed or imported
 # from ..main import get_api_key, mcp_server_registry # OLD IMPORT - REMOVE/COMMENT
-from ..dependencies import get_api_key # Assuming get_api_key is here
+from ..dependencies import get_current_subject # Changed from get_api_key to get_current_subject
 from ...core.registry import mcp_server_registry # NEW IMPORT for registry
 from ...core.workflow_engine import WorkflowEngine # Added import
 
@@ -63,11 +63,12 @@ workflow_registry: Dict[str, Workflow] = load_workflows_from_storage()
 router = APIRouter(
     prefix="/workflows",
     tags=["Workflows"],
-    dependencies=[Depends(get_api_key)]
+    dependencies=[Depends(get_current_subject)] # Changed to get_current_subject
 )
 
 @router.post("/", response_model=Workflow, status_code=201)
-async def create_workflow(workflow_in: WorkflowCreate):
+async def create_workflow(workflow_in: WorkflowCreate, current_user_sub: str = Depends(get_current_subject)):
+    # current_user_sub can be used for logging or ownership if needed, for now it acts as auth guard
     new_workflow_id = str(uuid.uuid4())
     # Ensure created_at and updated_at are set, and workflow_id is part of the Workflow model
     workflow_data = workflow_in.model_dump()
@@ -87,17 +88,17 @@ async def create_workflow(workflow_in: WorkflowCreate):
     return new_workflow
 
 @router.get("/", response_model=List[Workflow])
-async def list_workflows():
+async def list_workflows(current_user_sub: str = Depends(get_current_subject)):
     return list(workflow_registry.values())
 
 @router.get("/{workflow_id}", response_model=Workflow)
-async def get_workflow(workflow_id: str = FastApiPath(..., description="The ID of the workflow to retrieve")):
+async def get_workflow(workflow_id: str = FastApiPath(..., description="The ID of the workflow to retrieve"), current_user_sub: str = Depends(get_current_subject)):
     if workflow_id not in workflow_registry:
         raise HTTPException(status_code=404, detail="Workflow not found")
     return workflow_registry[workflow_id]
 
 @router.put("/{workflow_id}", response_model=Workflow)
-async def update_workflow(workflow_in: WorkflowCreate, workflow_id: str = FastApiPath(..., description="The ID of the workflow to update")):
+async def update_workflow(workflow_in: WorkflowCreate, workflow_id: str = FastApiPath(..., description="The ID of the workflow to update"), current_user_sub: str = Depends(get_current_subject)):
     if workflow_id not in workflow_registry:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
@@ -116,7 +117,7 @@ async def update_workflow(workflow_in: WorkflowCreate, workflow_id: str = FastAp
     return updated_workflow
 
 @router.delete("/{workflow_id}", status_code=204)
-async def delete_workflow(workflow_id: str = FastApiPath(..., description="The ID of the workflow to delete")):
+async def delete_workflow(workflow_id: str = FastApiPath(..., description="The ID of the workflow to delete"), current_user_sub: str = Depends(get_current_subject)):
     if workflow_id not in workflow_registry:
         raise HTTPException(status_code=404, detail="Workflow not found")
     del workflow_registry[workflow_id]
@@ -125,7 +126,8 @@ async def delete_workflow(workflow_id: str = FastApiPath(..., description="The I
 
 @router.post("/{workflow_id}/execute", response_model=WorkflowExecutionResult)
 async def execute_workflow(workflow_id: str = FastApiPath(..., description="The ID of the workflow to execute"),
-                           initial_inputs: Optional[Dict[str, Any]] = Body(None, description="Initial inputs for the workflow")):
+                           initial_inputs: Optional[Dict[str, Any]] = Body(None, description="Initial inputs for the workflow"),
+                           current_user_sub: str = Depends(get_current_subject)):
     if workflow_id not in workflow_registry:
         raise HTTPException(status_code=404, detail="Workflow not found")
     
