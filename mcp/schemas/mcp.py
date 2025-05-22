@@ -39,6 +39,14 @@ class MCPCreate(MCPBase):
     initial_version_str: str = Field(default="0.1.0", description="Version string for the initial version.")
     initial_version_description: Optional[str] = Field(default=None, description="Description for the initial version.")
 
+class MCPUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=3, max_length=100, description="User-defined name for the MCP.")
+    description: Optional[str] = Field(default=None, max_length=500, description="Optional detailed description of the MCP.")
+    tags: Optional[List[str]] = Field(default=None, description="Tags for categorizing and searching MCPs.")
+
+    class Config:
+        from_attributes = True # Allow creating from ORM model if needed, though this is for input
+
 class MCPRead(MCPBase):
     id: uuid.UUID
     created_at: datetime

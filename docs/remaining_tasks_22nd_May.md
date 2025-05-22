@@ -19,9 +19,9 @@ This list is based on the plan outlined in `docs/up.md` and a review of the curr
     - [x] Remove JSON file saving logic (e.g., `save_mcp_servers`).
     - [x] Implement `load_mcp_definition_from_db(db: Session, mcp_id: str) -> Optional[MCP]`. (Uses existing `MCP` model from `mcp.db.models.mcp`).
     - [x] Implement `load_all_mcp_definitions_from_db(db: Session) -> List[MCP]`.
-    - [ ] Implement `save_mcp_definition_to_db(db: Session, mcp_data: MCPCreateSchema) -> MCP`. (Define `MCPCreateSchema` Pydantic model if not existing).
-    - [ ] Implement `update_mcp_definition_in_db(db: Session, mcp_id: str, mcp_update_data: MCPUpdateSchema) -> Optional[MCP]`. (Define `MCPUpdateSchema`).
-    - [ ] Implement `delete_mcp_definition_from_db(db: Session, mcp_id: str) -> bool`.
+    - [x] Implement `save_mcp_definition_to_db(db: Session, mcp_data: MCPCreateSchema) -> MCP`. (Define `MCPCreateSchema` Pydantic model if not existing).
+    - [x] Implement `update_mcp_definition_in_db(db: Session, mcp_id: str, mcp_update_data: MCPUpdateSchema) -> Optional[MCP]`. (Define `MCPUpdateSchema`).
+    - [x] Implement `delete_mcp_definition_from_db(db: Session, mcp_id: str) -> bool`.
 - **In `mcp/api/main.py` (MCP/Context API Routes):**
     - [ ] Modify `get_all_mcp_servers` (`/context` GET) to use `Depends(get_db)` and `load_all_mcp_definitions_from_db`. Adapt response to `List[MCPDetail]`.
     - [ ] Modify `get_mcp_server_details` (`/context/{server_id}` GET) to use `Depends(get_db)` and `load_mcp_definition_from_db`. Adapt response to `MCPDetail`.
