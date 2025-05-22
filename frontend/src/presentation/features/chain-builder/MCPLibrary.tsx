@@ -3,8 +3,32 @@ import { Box, Typography, List, ListItem, ListItemButton, ListItemIcon, ListItem
 import StorageIcon from '@mui/icons-material/Storage';
 import DescriptionIcon from '@mui/icons-material/Description';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import InputIcon from '@mui/icons-material/Input';
+import OutputIcon from '@mui/icons-material/Output';
+import HubIcon from '@mui/icons-material/Hub';
 
 const MCP_TYPES = [
+  {
+    type: 'input',
+    label: 'Input Node',
+    icon: <InputIcon sx={{ color: '#1976d2' }} />,
+    description: 'Represents an input point',
+    color: '#1976d2',
+  },
+  {
+    type: 'default',
+    label: 'Default Node',
+    icon: <HubIcon sx={{ color: '#757575' }} />,
+    description: 'A standard processing node',
+    color: '#757575',
+  },
+  {
+    type: 'output',
+    label: 'Output Node',
+    icon: <OutputIcon sx={{ color: '#d32f2f' }} />,
+    description: 'Represents an output point',
+    color: '#d32f2f',
+  },
   {
     type: 'llm',
     label: 'LLM Node',

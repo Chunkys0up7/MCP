@@ -37,6 +37,7 @@ from mcp.cache.redis_manager import RedisCacheManager
 
 from .dependencies import get_api_key # Import the dependency
 from .routers import workflows as workflow_router # Added import
+from mcp.schemas.mcp import MCPDetail # Import the new schema
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
@@ -79,12 +80,46 @@ class MCPCreationRequest(BaseModel):
     # Config will be specific to the MCPType
     config: Dict[str, Any] # Raw config dict from request
 
-@app.get("/context")
-async def get_all_mcp_servers():
-    return [
-        {key: value for key, value in server_data.items() if key != 'instance'}
-        for server_data in mcp_server_registry.values()
-    ]
+@app.get("/context", response_model=List[MCPDetail]) # Changed response model to List[MCPDetail]
+async def get_all_mcp_servers(api_key_dependency: str = Depends(get_api_key)):
+    response_list = []
+    for server_id, server_data in mcp_server_registry.items():
+        mcp_detail_data = {
+            "id": server_data.get("id"),
+            "name": server_data.get("name"),
+            "type": server_data.get("type"),
+            "description": server_data.get("description"),
+            "config": server_data.get("config")
+        }
+        try:
+            response_list.append(MCPDetail(**mcp_detail_data))
+        except ValidationError as e:
+            logger.error(f"Data validation error for MCP {server_id} in list view: {e.errors()}")
+            # Decide: skip this MCP, or raise an error for the whole request
+            # For now, skipping problematic ones from the list
+            continue 
+    return response_list
+
+@app.get("/context/{server_id}", response_model=MCPDetail) # New endpoint
+async def get_mcp_server_details(server_id: str, api_key_dependency: str = Depends(get_api_key)):
+    server_data = mcp_server_registry.get(server_id)
+    if not server_data:
+        raise HTTPException(status_code=404, detail="MCP Server not found")
+    
+    # Prepare data for MCPDetail schema, excluding the 'instance'
+    mcp_detail_data = {
+        "id": server_data.get("id"),
+        "name": server_data.get("name"),
+        "type": server_data.get("type"), # This should be MCPType enum value already if stored correctly
+        "description": server_data.get("description"),
+        "config": server_data.get("config") # This is already a dict
+    }
+    try:
+        return MCPDetail(**mcp_detail_data)
+    except ValidationError as e: # Should not happen if data in registry is valid
+        # Log this error, as it indicates an inconsistency
+        logger.error(f"Data validation error for MCP {server_id} from registry: {e.errors()}")
+        raise HTTPException(status_code=500, detail="Error retrieving MCP details: Invalid data format in registry.")
 
 @app.post("/context", response_model=Dict[str, Any], status_code=201)
 async def create_mcp_server(request: MCPCreationRequest, api_key_dependency: str = Depends(get_api_key)):

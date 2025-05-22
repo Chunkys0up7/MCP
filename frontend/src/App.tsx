@@ -8,6 +8,17 @@ import PropertiesPanel from './presentation/features/chain-builder/PropertiesPan
 import ExecutionConsole from './presentation/features/chain-builder/ExecutionConsole';
 import { useFlowStore } from './store/flowStore';
 import { initializeNotifier } from './services/notificationService';
+import PersonalizedFeedScreen from './pages/Dashboard/PersonalizedFeedScreen';
+import MarketplaceScreen from './pages/Marketplace/MarketplaceScreen';
+import ExecutionMonitorScreen from './pages/ExecutionMonitor/ExecutionMonitorScreen';
+
+// Enum for managing views
+enum AppView {
+  DASHBOARD = 'Dashboard',
+  WORKFLOW_BUILDER = 'WorkflowBuilder',
+  MARKETPLACE = 'Marketplace',
+  EXECUTION_MONITOR = 'ExecutionMonitor',
+}
 
 // Component to initialize the notifier service
 const NotifierInitializer: React.FC = () => {
@@ -38,8 +49,8 @@ const App: React.FC = () => {
     executeWorkflowFromApi,
   } = useFlowStore();
 
-  // Workflow ID for demo/testing
   const [workflowId, setWorkflowId] = React.useState('demo');
+  const [currentView, setCurrentView] = React.useState<AppView>(AppView.DASHBOARD);
 
   // Initialize with test nodes/edges on mount (only once)
   React.useEffect(() => {
@@ -118,62 +129,121 @@ const App: React.FC = () => {
       <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <NotifierInitializer />
         <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-          <Box sx={{ p: 2, backgroundColor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="h4" sx={{ flex: 1 }}>
-              MCP Workflow Builder
+          <Box sx={{ p: 2, backgroundColor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              {currentView === AppView.DASHBOARD && 'Personalized Dashboard'}
+              {currentView === AppView.WORKFLOW_BUILDER && 'MCP Workflow Builder'}
+              {currentView === AppView.MARKETPLACE && 'Component Marketplace'}
+              {currentView === AppView.EXECUTION_MONITOR && 'Workflow Execution Monitor'}
             </Typography>
-            <TextField
-              size="small"
-              label="Workflow ID"
-              value={workflowId}
-              onChange={e => setWorkflowId(e.target.value)}
-              sx={{ bgcolor: 'white', borderRadius: 1, minWidth: 120 }}
-            />
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => loadWorkflowFromApi(workflowId)}
-              disabled={loading}
-              sx={{ ml: 1 }}
-            >
-              Load
-            </Button>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => saveWorkflowToApi(workflowId)}
-              disabled={loading}
-              sx={{ ml: 1 }}
-            >
-              Save
-            </Button>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={() => executeWorkflowFromApi(workflowId)}
-              disabled={loading}
-              sx={{ ml: 1 }}
-            >
-              Execute
-            </Button>
+            
+            {currentView !== AppView.DASHBOARD && (
+              <Button
+                variant="contained"
+                color="info"
+                size="small"
+                onClick={() => setCurrentView(AppView.DASHBOARD)}
+              >
+                Dashboard
+              </Button>
+            )}
+            {currentView !== AppView.WORKFLOW_BUILDER && (
+              <Button
+                variant="contained"
+                color="info"
+                size="small"
+                onClick={() => setCurrentView(AppView.WORKFLOW_BUILDER)}
+              >
+                Workflow Builder
+              </Button>
+            )}
+            {currentView !== AppView.MARKETPLACE && (
+              <Button
+                variant="contained"
+                color="info"
+                size="small"
+                onClick={() => setCurrentView(AppView.MARKETPLACE)}
+              >
+                Marketplace
+              </Button>
+            )}
+            {currentView !== AppView.EXECUTION_MONITOR && (
+              <Button
+                variant="contained"
+                color="info"
+                size="small"
+                onClick={() => setCurrentView(AppView.EXECUTION_MONITOR)}
+              >
+                Execution Monitor
+              </Button>
+            )}
+
+            {currentView === AppView.WORKFLOW_BUILDER && (
+              <>
+                <TextField
+                  size="small"
+                  label="Workflow ID"
+                  variant="outlined"
+                  value={workflowId}
+                  onChange={e => setWorkflowId(e.target.value)}
+                  sx={{ bgcolor: 'white', borderRadius: 1, minWidth: 100, ml: 2 }}
+                />
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  size="small"
+                  onClick={() => loadWorkflowFromApi(workflowId)}
+                  disabled={loading}
+                  sx={{ ml: 1 }}
+                >
+                  Load
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  size="small"
+                  onClick={() => saveWorkflowToApi(workflowId)}
+                  disabled={loading}
+                  sx={{ ml: 1 }}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  onClick={() => executeWorkflowFromApi(workflowId)}
+                  disabled={loading}
+                  sx={{ ml: 1 }}
+                >
+                  Execute
+                </Button>
+              </>
+            )}
           </Box>
-          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', position: 'relative', minHeight: 0 }}>
-            <MCPLibrary />
-            <Box sx={{ flex: 1, position: 'relative' }}>
-              <WorkflowBuilder />
+          
+          {currentView === AppView.DASHBOARD && <PersonalizedFeedScreen />}
+          {currentView === AppView.MARKETPLACE && <MarketplaceScreen />}
+          {currentView === AppView.EXECUTION_MONITOR && <ExecutionMonitorScreen />}
+          {currentView === AppView.WORKFLOW_BUILDER && (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row', position: 'relative', minHeight: 0 }}>
+              <MCPLibrary />
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <WorkflowBuilder />
+              </Box>
+              <PropertiesPanel
+                selectedNode={panelNode}
+                selectedEdge={panelEdge}
+                onLabelChange={handleLabelChange}
+                onDescriptionChange={handleDescriptionChange}
+                onModelChange={handleModelChange}
+                onPathChange={handlePathChange}
+                onSourceChange={handleSourceChange}
+                onEdgeLabelChange={handleEdgeLabelChange}
+              />
             </Box>
-            <PropertiesPanel
-              selectedNode={panelNode}
-              selectedEdge={panelEdge}
-              onLabelChange={handleLabelChange}
-              onDescriptionChange={handleDescriptionChange}
-              onModelChange={handleModelChange}
-              onPathChange={handlePathChange}
-              onSourceChange={handleSourceChange}
-              onEdgeLabelChange={handleEdgeLabelChange}
-            />
-          </Box>
-          <ExecutionConsole loading={loading} error={error} logs={logs} />
+          )}
+          {currentView === AppView.WORKFLOW_BUILDER && <ExecutionConsole loading={loading} error={error} logs={logs} />}
         </Box>
       </SnackbarProvider>
     </ThemeProvider>
