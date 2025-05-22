@@ -50,7 +50,13 @@ def run_migrations_offline() -> None:
     )
 
     with context.begin_transaction():
-        context.run_migrations()
+        try:
+            context.run_migrations()
+        except Exception as e:
+            import traceback
+            print("Error during offline migration:")
+            print(traceback.format_exc())
+            raise
 
 
 def run_migrations_online() -> None:
@@ -74,7 +80,13 @@ def run_migrations_online() -> None:
         )
 
         with context.begin_transaction():
-            context.run_migrations()
+            try:
+                context.run_migrations()
+            except Exception as e:
+                import traceback
+                print("Error during online migration:")
+                print(traceback.format_exc())
+                raise
 
 
 if context.is_offline_mode():
