@@ -1,5 +1,9 @@
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+
+from sqlalchemy.orm import Session
+from mcp.db.models import MCP
+import uuid
 
 # Imports needed from mcp.core for MCP instantiation
 from .base import BaseMCPServer
@@ -28,4 +32,13 @@ from .types import (
 # Initialize the global registry
 mcp_server_registry: Dict[str, Dict[str, Any]] = {} # Initialize as empty dict for now
 # print(f"MCP Server Registry initialized with {len(mcp_server_registry)} servers from {MCP_STORAGE_FILE}") # Removed print
-print(f"MCP Server Registry initialized as empty. DB loading pending.") # Placeholder print 
+print(f"MCP Server Registry initialized as empty. DB loading pending.") # Placeholder print
+
+def load_mcp_definition_from_db(db: Session, mcp_id_str: str) -> Optional[MCP]:
+    """Loads a single MCP definition from the database by its ID."""
+    try:
+        mcp_uuid = uuid.UUID(mcp_id_str)
+    except ValueError:
+        # Invalid UUID format
+        return None
+    return db.query(MCP).filter(MCP.id == mcp_uuid).first() 
