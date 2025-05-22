@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from contextlib import contextmanager
 from typing import Generator
 
@@ -7,18 +9,18 @@ from sqlalchemy.pool import QueuePool
 
 from .models import Base
 
+load_dotenv()
+
 # Database configuration
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "database": "mcp",
-    "user": "postgres",
-    "password": "postgres"  # Should be loaded from environment variables
-}
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.getenv("POSTGRES_DB", "mcp")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres") # Should be loaded from environment variables
 
 # Create engine with connection pooling
 engine = create_engine(
-    f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}",
+    f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}",
     poolclass=QueuePool,
     pool_size=5,
     max_overflow=10,

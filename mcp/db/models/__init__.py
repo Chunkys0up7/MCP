@@ -6,6 +6,7 @@ from ..base_models import Base, MCPConfiguration, MCPChain, ChainSession, MCPPer
 
 # Import the new MCP and MCPVersion models
 from .mcp import MCP, MCPVersion
+from .workflow import WorkflowDefinition, WorkflowRun
 
 # Optionally, you can define __all__ to specify what gets imported with 'from .models import *'
 __all__ = [
@@ -17,4 +18,6 @@ __all__ = [
     "AuditLog",
     "MCP",
     "MCPVersion",
+    "WorkflowDefinition",
+    "WorkflowRun",
 ] 

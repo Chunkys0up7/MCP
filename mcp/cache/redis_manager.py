@@ -1,16 +1,30 @@
 import json
+import os
+from dotenv import load_dotenv
 from typing import Any, Optional, Dict, List
 import redis
 from datetime import timedelta
 
+load_dotenv()
+
 class RedisCacheManager:
-    def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0, password: Optional[str] = None):
+    def __init__(self, 
+                 host: Optional[str] = None, 
+                 port: Optional[int] = None, 
+                 db: Optional[int] = None, 
+                 password: Optional[str] = None):
         """Initialize Redis cache manager."""
+        
+        redis_host = host if host is not None else os.getenv("REDIS_HOST", "localhost")
+        redis_port = port if port is not None else int(os.getenv("REDIS_PORT", "6379"))
+        redis_db = db if db is not None else int(os.getenv("REDIS_DB", "0"))
+        redis_password = password if password is not None else os.getenv("REDIS_PASSWORD")
+        
         self.redis = redis.Redis(
-            host=host,
-            port=port,
-            db=db,
-            password=password,
+            host=redis_host,
+            port=redis_port,
+            db=redis_db,
+            password=redis_password,
             decode_responses=True
         )
 

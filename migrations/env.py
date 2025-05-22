@@ -6,7 +6,13 @@ from sqlalchemy import pool
 from alembic import context
 
 from mcp.db.models import Base
-from mcp.db.session import DB_CONFIG
+from mcp.db.session import (
+    POSTGRES_USER, 
+    POSTGRES_PASSWORD, 
+    POSTGRES_HOST, 
+    POSTGRES_PORT, 
+    POSTGRES_DB
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,7 +33,7 @@ target_metadata = Base.metadata
 # ... etc.
 
 def get_url():
-    return f"postgresql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+    return f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
