@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Security, Request
+from fastapi import FastAPI, HTTPException, Depends, Security, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
@@ -38,7 +38,7 @@ from mcp.cache.redis_manager import RedisCacheManager
 from .dependencies import get_api_key, get_current_subject # Added get_current_subject
 from .routers import workflows as workflow_router # Added import
 from .routers import auth as auth_router # New auth router import
-from mcp.schemas.mcp import MCPDetail # Import the new schema
+from mcp.schemas.mcp import MCPDetail, MCPCreate, MCPUpdate, MCPListItem, MCPRead # Import the new schema
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
@@ -82,143 +82,107 @@ class MCPCreationRequest(BaseModel):
     # Config will be specific to the MCPType
     config: Dict[str, Any] # Raw config dict from request
 
-@app.get("/context", response_model=List[MCPDetail]) # Changed response model to List[MCPDetail]
-async def get_all_mcp_servers(current_user_sub: str = Depends(get_current_subject)):
-    response_list = []
-    for server_id, server_data in mcp_server_registry.items():
-        mcp_detail_data = {
-            "id": server_data.get("id"),
-            "name": server_data.get("name"),
-            "type": server_data.get("type"),
-            "description": server_data.get("description"),
-            "config": server_data.get("config")
-        }
-        try:
-            response_list.append(MCPDetail(**mcp_detail_data))
-        except ValidationError as e:
-            logger.error(f"Data validation error for MCP {server_id} in list view: {e.errors()}")
-            # Decide: skip this MCP, or raise an error for the whole request
-            # For now, skipping problematic ones from the list
-            continue 
-    return response_list
+@app.get("/context", response_model=List[MCPListItem])
+async def list_mcp_definitions(
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject),
+    skip: int = 0,
+    limit: int = 100
+):
+    db_mcps = mcp_registry_service.load_all_mcp_definitions_from_db(db=db) # Assuming this will be paginated in future
+    # Convert MCP ORM models to MCPListItem Pydantic models
+    # This is a simplified conversion; real implementation might involve fetching latest version string
+    response_items = []
+    for mcp in db_mcps:
+        # Attempt to get latest version string (simplified)
+        latest_version_str = None
+        if mcp.versions: # MCP model has a 'versions' relationship
+            # Sort versions by created_at or a semantic version field if available
+            # For simplicity, taking the first one if it exists, assuming it's ordered or just any version
+            latest_version_str = mcp.versions[-1].version_str if mcp.versions else "N/A"
 
-@app.get("/context/{server_id}", response_model=MCPDetail) # New endpoint
-async def get_mcp_server_details(server_id: str, current_user_sub: str = Depends(get_current_subject)):
-    server_data = mcp_server_registry.get(server_id)
-    if not server_data:
-        raise HTTPException(status_code=404, detail="MCP Server not found")
-    
-    # Prepare data for MCPDetail schema, excluding the 'instance'
-    mcp_detail_data = {
-        "id": server_data.get("id"),
-        "name": server_data.get("name"),
-        "type": server_data.get("type"), # This should be MCPType enum value already if stored correctly
-        "description": server_data.get("description"),
-        "config": server_data.get("config") # This is already a dict
-    }
-    try:
-        return MCPDetail(**mcp_detail_data)
-    except ValidationError as e: # Should not happen if data in registry is valid
-        # Log this error, as it indicates an inconsistency
-        logger.error(f"Data validation error for MCP {server_id} from registry: {e.errors()}")
-        raise HTTPException(status_code=500, detail="Error retrieving MCP details: Invalid data format in registry.")
-
-@app.post("/context", response_model=Dict[str, Any], status_code=201)
-async def create_mcp_server(request: MCPCreationRequest, current_user_sub: str = Depends(get_current_subject)):
-    server_id = str(uuid.uuid4())
-    
-    config_init_data = request.config.copy()
-    config_init_data['id'] = server_id
-    config_init_data['name'] = request.name
-    if request.description:
-        config_init_data['description'] = request.description
-    config_init_data['type'] = request.type.value
-
-    try:
-        config_obj: Optional[AllMCPConfigUnion] = None
-        mcp_instance: Optional[BaseMCPServer] = None
-
-        # MCP Instantiation logic
-        if request.type == MCPType.LLM_PROMPT:
-            config_obj = LLMPromptConfig(**config_init_data)
-            mcp_instance = LLMPromptMCP(config_obj)
-        elif request.type == MCPType.JUPYTER_NOTEBOOK:
-            config_obj = JupyterNotebookConfig(**config_init_data)
-            mcp_instance = JupyterNotebookMCP(config_obj)
-        elif request.type == MCPType.PYTHON_SCRIPT:
-            config_obj = PythonScriptConfig(**config_init_data) # This is where validation happens for PythonScriptConfig
-            mcp_instance = PythonScriptMCP(config_obj)
-        elif request.type == MCPType.AI_ASSISTANT:
-            config_obj = AIAssistantConfig(**config_init_data)
-            mcp_instance = AIAssistantMCP(config_obj)
-        else:
-            raise HTTPException(status_code=400, detail=f"Unsupported MCP server type: {request.type.value}")
-
-        if not config_obj:
-            raise HTTPException(status_code=500, detail="Failed to create config object.")
-
-        server_entry = {
-            "id": server_id,
-            "name": config_obj.name,
-            "description": config_obj.description,
-            "type": request.type.value,
-            "config": config_obj.model_dump(),
-            "instance": mcp_instance
-        }
-        mcp_server_registry[server_id] = server_entry
-        save_mcp_servers(mcp_server_registry)
-        
-        return {key: value for key, value in server_entry.items() if key != 'instance'}
-
-    except ValidationError as ve: # EXPLICITLY CATCH PYDANTIC VALIDATIONERROR
-        logger.error(f"PYDANTIC VALIDATION ERROR in create_mcp_server: {ve.errors()}")
-        raise HTTPException(status_code=422, detail=ve.errors())
-    except HTTPException: 
-        raise
-    except Exception as e: 
-        import traceback
-        logger.error(f"UNEXPECTED ERROR in create_mcp_server: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=400, detail=f"Error creating MCP server: {str(e)}")
-
-@app.post("/context/{server_id}/execute", response_model=MCPResult)
-async def execute_mcp_server(server_id: str, inputs: Dict[str, Any], current_user_sub: str = Depends(get_current_subject)):
-    server_data = mcp_server_registry.get(server_id)
-    if not server_data:
-        raise HTTPException(status_code=404, detail="MCP Server not found")
-    
-    mcp_instance = server_data.get("instance")
-    if not mcp_instance:
-        raise HTTPException(status_code=400, detail=f"MCP Server type {server_data.get('type')} cannot be executed (no implementation).")
-
-    try:
-        # The execute method in MCP classes should return a dict adhering to MCPResult structure,
-        # or at least containing 'success', 'result', 'error'.
-        execution_output = await mcp_instance.execute(inputs or {})
-        
-        # Ensure the output conforms to MCPResult structure as much as possible
-        # The MCP classes were refactored to return {"success", "result", "error"}
-        # stdout/stderr are specific to PythonScriptMCP and Jupyter, handled within their results.
-        return MCPResult(
-            success=execution_output.get("success", False),
-            result=execution_output.get("result"),
-            error=execution_output.get("error"),
-            stdout=execution_output.get("stdout"), # May be None if not applicable
-            stderr=execution_output.get("stderr")  # May be None if not applicable
+        response_items.append(
+            MCPListItem(
+                id=mcp.id,
+                name=mcp.name,
+                type=MCPType(mcp.type), # Convert string from DB to Enum
+                description=mcp.description,
+                tags=mcp.tags,
+                latest_version_str=latest_version_str, # Placeholder
+                updated_at=mcp.updated_at
+            )
         )
+    return response_items
 
+@app.post("/context", response_model=MCPRead, status_code=201)
+async def create_mcp_definition(
+    mcp_in: MCPCreate, 
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject)
+):
+    try:
+        created_mcp = mcp_registry_service.save_mcp_definition_to_db(db=db, mcp_data=mcp_in)
+        return created_mcp # MCPRead schema should be compatible if ORM mode is enabled
     except Exception as e:
-        import traceback
-        logger.error(f"Error executing server {server_id}: {str(e)}\n{traceback.format_exc()}")
-        return MCPResult(success=False, error=f"Execution failed: {str(e)}")
+        # Log the exception e
+        raise HTTPException(status_code=400, detail=f"Error creating MCP definition: {str(e)}")
 
-@app.delete("/context/{server_id}", status_code=204) # 204 No Content for successful deletion
-async def delete_mcp_server(server_id: str, current_user_sub: str = Depends(get_current_subject)):
-    if server_id not in mcp_server_registry:
-        raise HTTPException(status_code=404, detail="MCP server not found")
+@app.get("/context/{mcp_id}", response_model=MCPDetail)
+async def get_mcp_definition_details(
+    mcp_id: str, 
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject)
+):
+    db_mcp = mcp_registry_service.load_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
+    if db_mcp is None:
+        raise HTTPException(status_code=404, detail="MCP definition not found")
     
-    del mcp_server_registry[server_id]
-    save_mcp_servers(mcp_server_registry)
-    return # Return None for 204 No Content
+    # Populate latest version info for MCPDetail
+    latest_version_config = None
+    latest_version_str = None
+    if db_mcp.versions:
+        # Assuming versions are ordered by creation or semantic version in the relationship
+        # For simplicity, using the "last" version in the list as latest.
+        # A more robust approach would sort them or have a dedicated 'latest_version' pointer.
+        latest_version = db_mcp.versions[-1] if db_mcp.versions else None
+        if latest_version:
+            latest_version_config = latest_version.config_snapshot
+            latest_version_str = latest_version.version_str
+            
+    return MCPDetail(
+        id=db_mcp.id,
+        name=db_mcp.name,
+        type=MCPType(db_mcp.type), # Convert string from DB to Enum
+        description=db_mcp.description,
+        tags=db_mcp.tags,
+        created_at=db_mcp.created_at,
+        updated_at=db_mcp.updated_at,
+        latest_version_config=latest_version_config,
+        latest_version_str=latest_version_str
+    )
+
+@app.put("/context/{mcp_id}", response_model=MCPRead)
+async def update_mcp_definition(
+    mcp_id: str, 
+    mcp_in: MCPUpdate, 
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject)
+):
+    updated_mcp = mcp_registry_service.update_mcp_definition_in_db(db=db, mcp_id_str=mcp_id, mcp_data=mcp_in)
+    if updated_mcp is None:
+        raise HTTPException(status_code=404, detail="MCP definition not found for update")
+    return updated_mcp
+
+@app.delete("/context/{mcp_id}", status_code=204)
+async def delete_mcp_definition(
+    mcp_id: str, 
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject)
+):
+    deleted = mcp_registry_service.delete_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="MCP definition not found for deletion")
+    return Response(status_code=204) # Return 204 No Content
 
 @app.get("/health")
 async def health_check():
