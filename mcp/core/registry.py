@@ -41,4 +41,8 @@ def load_mcp_definition_from_db(db: Session, mcp_id_str: str) -> Optional[MCP]:
     except ValueError:
         # Invalid UUID format
         return None
-    return db.query(MCP).filter(MCP.id == mcp_uuid).first() 
+    return db.query(MCP).filter(MCP.id == mcp_uuid).first()
+
+def load_all_mcp_definitions_from_db(db: Session) -> List[MCP]:
+    """Loads all MCP definitions from the database."""
+    return db.query(MCP).all() 
