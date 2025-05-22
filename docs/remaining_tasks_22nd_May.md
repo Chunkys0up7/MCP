@@ -16,7 +16,7 @@ This list is based on the plan outlined in `docs/up.md` and a review of the curr
 ## 3. Refactor MCP Registry & Persistence
 - **In `mcp/core/registry.py`:**
     - [x] Remove JSON file loading logic (e.g., `load_mcp_servers`, references to `MCP_STORAGE_FILE`).
-    - [ ] Remove JSON file saving logic (e.g., `save_mcp_servers`).
+    - [x] Remove JSON file saving logic (e.g., `save_mcp_servers`).
     - [ ] Implement `load_mcp_definition_from_db(db: Session, mcp_id: str) -> Optional[MCP]`. (Uses existing `MCP` model from `mcp.db.models.mcp`).
     - [ ] Implement `load_all_mcp_definitions_from_db(db: Session) -> List[MCP]`.
     - [ ] Implement `save_mcp_definition_to_db(db: Session, mcp_data: MCPCreateSchema) -> MCP`. (Define `MCPCreateSchema` Pydantic model if not existing).

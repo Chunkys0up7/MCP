@@ -1,6 +1,4 @@
-import json
 import os
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Imports needed from mcp.core for MCP instantiation
@@ -24,31 +22,8 @@ from .types import (
 # STORAGE_DIR.mkdir(exist_ok=True)
 # MCP_STORAGE_FILE = STORAGE_DIR / "mcp_storage.json"
 
-def save_mcp_servers(servers: Dict[str, Dict[str, Any]]):
-    serializable_servers: Dict[str, Dict[str, Any]] = {}
-    for server_id, server_data in servers.items():
-        config_to_save = server_data["config"]
-        if hasattr(config_to_save, 'model_dump'): # If it's a Pydantic model
-            config_to_save = config_to_save.model_dump(mode='json')
-        elif not isinstance(config_to_save, dict):
-             print(f"[WARN] Config for {server_id} is not a dict or Pydantic model, attempting to convert. Type: {type(config_to_save)}")
-             config_to_save = dict(config_to_save) if config_to_save else {}
-
-
-        serializable_servers[server_id] = {
-            "id": server_data["id"],
-            "name": server_data["name"],
-            "description": server_data.get("description"),
-            "type": server_data["type"],
-            "config": config_to_save 
-        }
-    try:
-        # STORAGE_DIR.mkdir(exist_ok=True) # Ensure dir exists
-        with open(MCP_STORAGE_FILE, 'w') as f:
-            json.dump(serializable_servers, f, indent=2)
-        print(f"Successfully saved {len(serializable_servers)} MCPs to {MCP_STORAGE_FILE}")
-    except Exception as e:
-        print(f"[ERROR] Failed to save MCPs to storage: {str(e)}")
+# def save_mcp_servers(servers: Dict[str, Dict[str, Any]]): # Removed function
+    # ... (content of function removed)
 
 # Initialize the global registry
 mcp_server_registry: Dict[str, Dict[str, Any]] = {} # Initialize as empty dict for now
