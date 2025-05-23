@@ -17,9 +17,13 @@
         *   **Status:** Ongoing. Core CRUD for these definitions is implemented and DB-integrated. Review as UI progresses.
     *   **Focus Task:** **Fully implement dynamic MCP loading and instantiation within the `WorkflowEngine` and `execute_workflow` endpoint.** (Corresponds to original Task 10)
         *   **Sub-task:** Modify `WorkflowEngine` (`mcp/core/workflow_engine.py`) to fetch MCP definitions (ID, type, versioned config) from the DB using `mcp/core/registry.py` service calls for each step in a workflow.
+        *   **Status (Sub-task):** COMPLETED - `WorkflowEngine` now accepts a DB session. `run_workflow` calls `registry.get_mcp_instance_from_db` using `step.mcp_id` and `step.mcp_version_id`. `mcp/schemas/workflow.py` updated with `mcp_version_id` in `WorkflowStep`. `mcp/core/registry.py` has `get_mcp_instance_from_db`. `mcp/api/routers/workflows.py` passes DB session to `WorkflowEngine`.
         *   **Sub-task:** Dynamically instantiate the correct `BaseMCPServer` subclass (e.g., `LLMPromptMCP`, `PythonScriptMCP`) within the `WorkflowEngine` using the fetched type and config.
+        *   **Status (Sub-task):** COMPLETED - This is handled by `get_mcp_instance_from_db` in `mcp/core/registry.py` which is called by `WorkflowEngine`.
         *   **Sub-task:** Ensure the `execute_workflow` endpoint in `mcp/api/routers/workflows.py` correctly utilizes this refactored `WorkflowEngine` to run workflows with MCPs defined in the database. Address placeholder `current_mcp_registry_for_engine = {}`.
+        *   **Status (Sub-task):** COMPLETED - Placeholder removed and `WorkflowEngine` is instantiated with the DB session in `execute_workflow`.
         *   **Status:** Foundational `/execute` endpoint structure exists. `WorkflowRun` DB record creation is in place. **Dynamic loading/instantiation by `WorkflowEngine` is the critical missing piece.**
+        *   **Overall Focus Task Status:** Partially Complete. Core dynamic loading logic is implemented. Further testing and integration needed.
 
 4.  **Backend - Workflow Engine (Supporting Logic):**
     *   **Task:** Focus on the `Workflow Parser` and `Schema Validator` components. Ensure it can correctly parse and validate basic workflow definitions received from the API gateway.

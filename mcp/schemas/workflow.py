@@ -101,6 +101,7 @@ class WorkflowStep(BaseModel):
     """
     step_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique identifier for this workflow step.")
     mcp_id: str = Field(..., description="Identifier of the MCP to be executed in this step.")
+    mcp_version_id: Optional[str] = Field(default=None, description="Optional identifier for a specific version of the MCP. If None, the latest version might be used.")
     name: str = Field(..., description="A user-defined, descriptive name for this step within the workflow.")
     inputs: Dict[str, WorkflowStepInput] = Field(default_factory=dict, description="A dictionary mapping the MCP's input parameter names to their WorkflowStepInput definitions, specifying how each input is sourced.")
     # Consider adding:

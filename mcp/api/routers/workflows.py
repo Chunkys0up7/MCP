@@ -253,85 +253,135 @@ async def execute_workflow(
         db.refresh(db_workflow_run)
     except Exception as e:
         db.rollback()
-        # Log error and potentially return a specific error response
-        raise HTTPException(status_code=500, detail=f"Failed to initiate workflow run record: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create workflow run record: {e}")
 
-    actual_initial_inputs: Optional[Dict[str, Any]] = None
-    if initial_inputs and "initial_inputs" in initial_inputs:
-        actual_initial_inputs = initial_inputs.get("initial_inputs")
-    elif initial_inputs:
-        actual_initial_inputs = initial_inputs
-        
-    # The WorkflowEngine needs to be adapted to not rely on the global mcp_server_registry
-    # but rather fetch MCP definitions from the DB as needed, or be provided with them.
-    # This is a MAJOR REFACTORING POINT for the WorkflowEngine itself.
-    # For now, this will likely fail if WorkflowEngine has not been updated.
-    # I am proceeding assuming WorkflowEngine will be adapted or this part will be fixed later.
-    
-    # Placeholder: The mcp_server_registry for the engine needs to be built dynamically based on MCPs in workflow steps
-    # This is a simplified placeholder and likely won't work without engine refactor.
-    # It would need to load MCPs from DB and instantiate them.
-    current_mcp_registry_for_engine = {}
-    # for step in workflow_schema_for_engine.steps:
-        # mcp_instance = await get_mcp_instance_for_execution(step.mcp_id, db)
-        # if mcp_instance:
-            # current_mcp_registry_for_engine[step.mcp_id] = { "instance": mcp_instance, "config": "..."} # Needs full structure
-        # else:
-            # db_workflow_run.status = "FAILED"
-            # db_workflow_run.error_message = f"Could not load MCP instance for ID {step.mcp_id}"
-            # db.commit()
-            # raise HTTPException(status_code=500, detail=db_workflow_run.error_message)
+    # Prepare the engine
+    # MODIFIED: Pass the db session to the WorkflowEngine
+    engine = WorkflowEngine(db_session=db) 
 
-    engine = WorkflowEngine(mcp_server_registry=current_mcp_registry_for_engine) # This registry is problematic
-    
+    # Update run status to RUNNING
+    db_workflow_run.status = "RUNNING"
+    db_workflow_run.started_at = datetime.utcnow()
     try:
-        db_workflow_run.status = "RUNNING"
         db.commit()
         db.refresh(db_workflow_run)
+    except Exception as e:
+        db.rollback()
+        # Log this error, but proceed with execution if possible, or handle gracefully
+        print(f"Error updating workflow run status to RUNNING: {e}")
+        # Potentially raise HTTPException here if this is critical before execution
 
-        execution_result: WorkflowExecutionResultSchema = await engine.run_workflow(
-            workflow_schema_for_engine, 
-            actual_initial_inputs
-        )
+    try:
+        # Execute the workflow
+        result = await engine.run_workflow(workflow_schema_for_engine, initial_inputs)
         
-        # Update WorkflowRun with results
-        db_workflow_run.status = execution_result.status
-        db_workflow_run.finished_at = execution_result.finished_at # Should be set by engine
-        db_workflow_run.outputs = execution_result.final_outputs
-        db_workflow_run.step_results = execution_result.step_results
-        db_workflow_run.error_message = execution_result.error_message
-        db.commit()
-        db.refresh(db_workflow_run)
-        
-        # Augment execution_result with the database run_id (which is execution_id in schema)
-        # execution_result.execution_id = str(db_workflow_run.run_id)
-        # The schema already generates one, so ensure they align or decide which one is canonical.
-        # For now, returning the engine's result. The DB has its own run_id.
-        return execution_result
+        # Update WorkflowRun with final status and results
+        db_workflow_run.status = result.status
+        db_workflow_run.finished_at = result.finished_at
+        db_workflow_run.outputs = result.final_outputs
+        db_workflow_run.results_log = result.step_results # Assuming results_log can store this structure
+        db_workflow_run.error_message = result.error_message
 
     except Exception as e:
-        db.rollback() # Rollback any status changes if engine crashes before returning
+        # Catch any unexpected errors from the engine itself or during result processing
         db_workflow_run.status = "FAILED"
-        db_workflow_run.error_message = f"Critical error during workflow execution: {str(e)}"
-        if not db_workflow_run.finished_at:
-             db_workflow_run.finished_at = datetime.utcnow()
-        db.commit()
-        # Log critical error e
-        raise HTTPException(status_code=500, detail=db_workflow_run.error_message)
+        db_workflow_run.finished_at = datetime.utcnow()
+        db_workflow_run.error_message = f"Critical engine error: {str(e)}"
+        # Potentially re-raise or wrap in an HTTPException
+        # For now, we ensure the run record is updated.
+        result = WorkflowExecutionResultSchema(
+            workflow_id=workflow_schema_for_engine.workflow_id,
+            execution_id=str(db_workflow_run.id), # Use the actual run ID
+            status="FAILED",
+            started_at=db_workflow_run.started_at or datetime.utcnow(), # Ensure started_at is set
+            finished_at=db_workflow_run.finished_at,
+            error_message=db_workflow_run.error_message,
+            step_results=[] # No step results if critical engine failure
+        )
+    finally:
+        try:
+            db.commit()
+            db.refresh(db_workflow_run)
+        except Exception as e_commit:
+            db.rollback()
+            # Log this critical error: failed to save final workflow run state
+            print(f"CRITICAL: Failed to commit final workflow run state for {db_workflow_run.id}: {e_commit}")
+            # If the primary error was already an engine failure, this makes it worse.
+            # If the engine succeeded but this commit failed, the client gets success but DB might be stale.
+            # This might warrant raising an HTTPException to inform client of commit failure.
+            # For now, we return the result obtained (or constructed on error) before this final commit attempt.
 
-    # ---- Old placeholder logic (removed) ----
-    # start_time = datetime.utcnow()
-    # print(f"Executing workflow: {workflow_to_execute.name} with initial inputs: {initial_inputs}")
-    # return WorkflowExecutionResult(
-    #     workflow_id=workflow_id,
-    #     status="SIMULATED_SUCCESS",
-    #     started_at=start_time,
-    #     finished_at=datetime.utcnow(),
-    #     step_results=[{
-    #         "step_id": step.step_id, 
-    #         "mcp_id": step.mcp_id, 
-    #         "status": "simulated_complete", 
-    #         "output": "dummy_data"
-    #     } for step in workflow_to_execute.steps],
-    #     final_outputs={"message": "Workflow execution simulated."}
-    # ) 
+    return result
+
+# --- Placeholder for Run Management (Get Status, List Runs, etc.) ---
+
+@router.get("/runs/{run_id}", response_model=WorkflowExecutionResultSchema) # This might need a more DB-aligned schema
+async def get_workflow_run_status(
+    run_id: str, 
+    db: Session = Depends(get_db), 
+    current_user_sub: str = Depends(get_current_subject)
+):
+    try:
+        run_uuid = uuid.UUID(run_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid run ID format.")
+
+    db_run = db.query(WorkflowRun).filter(WorkflowRun.id == run_uuid).first()
+    if not db_run:
+        raise HTTPException(status_code=404, detail="Workflow run not found.")
+
+    # Convert DB model to the response schema. This might need careful mapping.
+    # WorkflowExecutionResultSchema expects certain fields.
+    # We need to construct it from db_run and potentially related db_workflow_definition
+    
+    # Fetch the associated workflow definition to get the workflow_id for the response schema
+    # (though db_run.workflow_id should suffice)
+    # db_workflow_def = db.query(WorkflowDefinition).filter(WorkflowDefinition.workflow_id == db_run.workflow_id).first()
+    # if not db_workflow_def:
+        # This case should ideally not happen if DB constraints are set up
+        # raise HTTPException(status_code=500, detail="Internal error: Workflow definition for the run not found.")
+
+    return WorkflowExecutionResultSchema(
+        workflow_id=str(db_run.workflow_id), # Ensure it's a string if UUID in DB
+        execution_id=str(db_run.id), # Ensure it's a string
+        status=db_run.status,
+        started_at=db_run.started_at if db_run.started_at else datetime.min, # Handle None for started_at
+        finished_at=db_run.finished_at,
+        step_results=db_run.results_log if db_run.results_log else [], # Ensure it's a list
+        final_outputs=db_run.outputs,
+        error_message=db_run.error_message
+    )
+
+@router.get("/runs/", response_model=List[WorkflowExecutionResultSchema]) # Again, schema might need adjustment
+async def list_all_workflow_runs(
+    workflow_id: Optional[str] = None, # Optional filter by workflow_id
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_user_sub: str = Depends(get_current_subject)
+):
+    query = db.query(WorkflowRun)
+    if workflow_id:
+        try:
+            wf_uuid = uuid.UUID(workflow_id)
+            query = query.filter(WorkflowRun.workflow_id == wf_uuid)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid workflow_id filter format.")
+    
+    db_runs = query.order_by(WorkflowRun.started_at.desc().nulls_last()).offset(skip).limit(limit).all()
+    
+    results = []
+    for db_run in db_runs:
+        results.append(WorkflowExecutionResultSchema(
+            workflow_id=str(db_run.workflow_id),
+            execution_id=str(db_run.id),
+            status=db_run.status,
+            started_at=db_run.started_at if db_run.started_at else datetime.min,
+            finished_at=db_run.finished_at,
+            step_results=db_run.results_log if db_run.results_log else [],
+            final_outputs=db_run.outputs,
+            error_message=db_run.error_message
+        ))
+    return results
+
+# TODO: Add endpoints for cancelling a run, retrying a failed run, etc. (more complex operations)

@@ -18,24 +18,26 @@ from mcp.core.base import BaseMCPServer # For type hinting MCP instances
 # Placeholder for a more detailed StepExecutionResult model
 # from mcp.schemas.workflow import StepExecutionResult 
 
+# ADD: Import Session for type hinting
+from sqlalchemy.orm import Session
+# ADD: Import registry functions
+from mcp.core import registry # Assuming registry.py is in the same directory or mcp.core is a package
+
 class WorkflowEngine:
     """
     Orchestrates the execution of a defined workflow, managing step-by-step processing,
     data flow between steps, error handling, and result aggregation.
     """
 
-    def __init__(self, mcp_server_registry: Dict[str, Dict[str, Any]]):
+    def __init__(self, db_session: Session): # MODIFIED: Accept db_session
         """
         Initializes the WorkflowEngine.
 
         Args:
-            mcp_server_registry (Dict[str, Dict[str, Any]]): 
-                A dictionary mapping MCP server IDs to their data, including the 
-                MCP instance capable of execution. This is typically sourced from 
-                `mcp.api.main.mcp_server_registry`.
+            db_session (Session): The SQLAlchemy database session.
         """
-        self.mcp_server_registry = mcp_server_registry
-        # In a more advanced setup, you might also pass in a logger, config objects, etc.
+        self.db_session = db_session # MODIFIED: Store db_session
+        # self.mcp_server_registry = mcp_server_registry # REMOVED
 
     async def run_workflow(
         self, 
@@ -83,11 +85,22 @@ class WorkflowEngine:
                         resolved_inputs = self._resolve_step_inputs(step, workflow_context)
                         print(f"    Resolved inputs for step '{step.name}': {resolved_inputs}")
 
-                        # 2. Get MCP Instance
-                        mcp_data = self.mcp_server_registry.get(step.mcp_id)
-                        if not mcp_data or not mcp_data.get("instance"):
-                            raise ValueError(f"MCP instance for ID '{step.mcp_id}' not found or not executable.")
-                        mcp_instance: BaseMCPServer = mcp_data["instance"]
+                        # 2. Get MCP Instance from DB
+                        # MODIFIED: Use registry to get MCP instance
+                        mcp_instance = registry.get_mcp_instance_from_db(
+                            db=self.db_session, 
+                            mcp_id_str=step.mcp_id, 
+                            mcp_version_str=step.mcp_version_id # Pass the version from the step
+                        )
+                        
+                        if not mcp_instance:
+                            raise ValueError(f"MCP instance for ID '{step.mcp_id}' (Version: {step.mcp_version_id or 'latest'}) not found or failed to instantiate.")
+                        
+                        # Old way:
+                        # mcp_data = self.mcp_server_registry.get(step.mcp_id)
+                        # if not mcp_data or not mcp_data.get("instance"):
+                        #     raise ValueError(f"MCP instance for ID '{step.mcp_id}' not found or not executable.")
+                        # mcp_instance: BaseMCPServer = mcp_data["instance"]
 
                         # 3. Execute MCP
                         # Assuming mcp_instance.execute returns a dict like MCPResult Pydantic model
