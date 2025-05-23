@@ -1,5 +1,3 @@
-import pytest
-from mcp.cache.redis_manager import RedisCacheManager
 
 def test_redis_kv_and_hash(redis_client):
     """Test Redis key-value and hash operations."""

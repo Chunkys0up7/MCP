@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
+from pydantic import BaseModel
 
 # Assuming your project structure allows this import
-from mcp.core.workflow_engine import WorkflowEngine
-from mcp.schemas.workflow import Workflow, WorkflowStep, WorkflowStepInput, InputSourceType, WorkflowExecutionResult, ErrorHandlingConfig
+from mcp.core.workflow_engine import WorkflowEngine, WorkflowStepInput
+from mcp.schemas.workflow import Workflow, WorkflowStep, ErrorHandlingConfig
 from mcp.core.base import BaseMCPServer
 from mcp.core.types import MCPType
-from mcp.db.models import MCP as MCPModel, MCPVersion as MCPVersionModel
 
 # Minimal config for testing
 class MockMCPConfig(BaseModel):
@@ -268,4 +268,3 @@ async def test_run_workflow_two_steps_data_passing(
     mock_mcp_instance_2.execute.assert_called_once_with({"input_from_step_a": "Data from step 1"})
 
 # Need to import BaseModel for MockMCPConfig
-from pydantic import BaseModel 

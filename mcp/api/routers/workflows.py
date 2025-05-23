@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Body, Path as FastApiPath, Response
+from fastapi import APIRouter, HTTPException, Depends, Body, Response
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
@@ -7,13 +7,12 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 from mcp.db.session import get_db # DB session dependency
-from mcp.db.models import WorkflowDefinition, WorkflowRun, MCP as MCPModel # Workflow models and MCP for checking existence
+from mcp.db.models import WorkflowDefinition, WorkflowRun # Workflow models and MCP for checking existence
 
 from mcp.schemas.workflow import (
     Workflow as WorkflowSchema, # Rename to avoid clash with model
     WorkflowCreate as WorkflowCreateSchema,
-    WorkflowExecutionResult as WorkflowExecutionResultSchema,
-    WorkflowStep # For validating steps
+    WorkflowExecutionResult as WorkflowExecutionResultSchema # For validating steps
 )
 from mcp.core.types import MCPType # For type checking in MCP if needed
 

@@ -2,21 +2,18 @@ import pytest
 from fastapi.testclient import TestClient
 import os
 import uuid
-from typing import Dict, Any, List
-from datetime import datetime
+from typing import Dict
 
 # Import the test_app_client and test_db_session from conftest
-from ..conftest import test_app_client, test_db_session # Relative import for conftest
 
 # Set a consistent API key for testing environment (used to get JWT)
 TEST_API_KEY = str(uuid.uuid4())
 os.environ["MCP_API_KEY"] = TEST_API_KEY
 
-from mcp.api.main import app # app from your FastAPI application
 # from mcp.core.registry import mcp_server_registry, MCP_REGISTRY_FILE, WORKFLOW_STORAGE_FILE # Old file-based
 from mcp.db.models import MCP as MCPModel, MCPVersion as MCPVersionModel, WorkflowDefinition as WorkflowDefinitionModel # DB Models
 from mcp.db.session import Session # For type hinting db session
-from mcp.schemas.workflow import Workflow as WorkflowSchema, WorkflowCreate as WorkflowCreateSchema, WorkflowExecutionResult, WorkflowStep, InputSourceType, ErrorHandlingConfig
+from mcp.schemas.workflow import WorkflowCreate as WorkflowCreateSchema, WorkflowStep, InputSourceType, ErrorHandlingConfig
 from mcp.schemas.mcp import MCPCreate as MCPCreateSchema # For creating MCPs
 from mcp.core.types import MCPType
 

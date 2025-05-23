@@ -11,8 +11,8 @@ import sys
 def main():
     try:
         # Use the input variables
-        name = name if 'name' in globals() else "World"
-        language = language if 'language' in globals() else "en"
+        name = "World"  # Initialize with a default value
+        language = "en"  # Initialize with a default value
         
         # Make a request to a greeting API
         response = requests.get(f"https://api.greeting.com/greet?name={name}&lang={language}")

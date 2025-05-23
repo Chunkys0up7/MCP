@@ -1,6 +1,6 @@
 import pytest
 import time
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from mcp.utils.monitoring import Metrics, Monitor, ExecutionTracker, APIRequestTracker
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_api_request_tracking(monitor, metrics):
     
     # Track failed request
     with pytest.raises(Exception):
-        with monitor.track_api_request('/test', 'GET') as tracker:
+        with monitor.track_api_request('/test', 'GET'):
             raise Exception("Test error")
     
     # Verify metrics
@@ -117,7 +117,7 @@ def test_execution_tracker_error(metrics):
     
     # Enter context with error
     with pytest.raises(Exception):
-        with tracker as t:
+        with tracker:
             raise Exception("Test error")
     
     # Verify metrics
@@ -129,7 +129,7 @@ def test_api_request_tracker_error(metrics):
     
     # Enter context with error
     with pytest.raises(Exception):
-        with tracker as t:
+        with tracker:
             raise Exception("Test error")
     
     # Verify metrics

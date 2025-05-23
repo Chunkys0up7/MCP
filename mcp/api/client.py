@@ -3,7 +3,7 @@ import requests
 import logging
 import traceback
 from ..core.config import config
-from ..core.types import MCPConfig, MCPResult
+from ..core.types import MCPResult
 from .exceptions import MCPAPIError, MCPNotFoundError, MCPValidationError
 
 # Use a more unique name for the logger
@@ -74,7 +74,7 @@ class MCPClient:
             raise MCPAPIError(f"Request failed for {url}: {str(e)}")
             
         data = self._handle_response(response)
-        MCP_CLIENT_SPECIFIC_LOGGER.debug(f"get_servers received data from _handle_response.")
+        MCP_CLIENT_SPECIFIC_LOGGER.debug("get_servers received data from _handle_response.")
         MCP_CLIENT_SPECIFIC_LOGGER.debug(f"Type of data: {type(data)}")
         # MCP_CLIENT_SPECIFIC_LOGGER.debug(f"Content of data: {data}") # Temporarily comment out to isolate error
         MCP_CLIENT_SPECIFIC_LOGGER.debug("get_servers is about to return data.")

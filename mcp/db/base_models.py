@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, JSON
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship

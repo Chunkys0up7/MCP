@@ -1,5 +1,4 @@
 import pytest
-from unittest.mock import patch, MagicMock
 from mcp.core.types import AIAssistantConfig, MCPType
 from mcp.api.assistant import AIAssistant
 

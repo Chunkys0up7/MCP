@@ -1,4 +1,3 @@
-import pytest
 from mcp.db.operations import DatabaseOperations
 
 def test_postgres_crud(db_session):

@@ -1,14 +1,13 @@
-import os
 import sys
-from pathlib import Path
+import os
 
-# Add the project root directory to the Python path
-project_root = Path(__file__).parent.parent
+# Correctly set up PYTHONPATH before other imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(str(project_root))
 
 from alembic.config import Config
 from alembic import command
-from mcp.db.session import init_db, DB_CONFIG
+from mcp.db.session import DB_CONFIG
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 

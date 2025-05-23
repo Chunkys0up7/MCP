@@ -1,22 +1,19 @@
-import streamlit as st
-import json
-from typing import Dict, Any, List
-import os
 import sys
-from pathlib import Path
-import time
+import os
+
+# Correctly set up PYTHONPATH before other imports
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.append(project_root)
+
+import streamlit as st
+from typing import Dict, Any
 import logging
 import uuid
 import traceback
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-# Add the project root to Python path
-project_root = str(Path(__file__).parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.append(project_root)
 
 from mcp.core.models import MCPResult
 from mcp.api.client import MCPClient
@@ -31,7 +28,6 @@ from mcp.ui.widgets.chain_executor import ChainExecutor
 from mcp.config.settings import settings
 from mcp.config.logging import setup_logging
 from mcp.db.session import SessionLocal
-from mcp.db.operations import DatabaseOperations
 from mcp.cache.redis_manager import RedisCacheManager
 from mcp.api.exceptions import MCPAPIError, MCPNotFoundError, MCPValidationError
 

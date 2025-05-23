@@ -1,7 +1,5 @@
 import requests
-import pytest
 import os
-from mcp.core.types import MCPType, LLMPromptConfig
 
 API_BASE_URL = "http://localhost:8000"
 API_KEY = os.getenv("MCP_API_KEY", "test_api_key")  # Use environment variable or default for testing

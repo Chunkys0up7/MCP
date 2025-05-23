@@ -1,5 +1,4 @@
 import requests
-import json
 
 mcp_data = {
     "name": "Hello World Example",

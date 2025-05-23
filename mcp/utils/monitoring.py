@@ -1,8 +1,6 @@
 import time
-from typing import Dict, Any, List, Optional
-from datetime import datetime
 from prometheus_client import Counter, Histogram, Gauge, start_http_server
-from mcp.utils.logging import log_execution, log_error
+from mcp.utils.logging import log_error
 
 class Metrics:
     """Metrics collection for MCP."""

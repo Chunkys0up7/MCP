@@ -3,7 +3,6 @@ import hashlib
 from typing import Any, Dict, Optional
 from datetime import datetime, timedelta
 from pathlib import Path
-import os
 
 class Cache:
     """Cache implementation for MCP."""

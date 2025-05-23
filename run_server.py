@@ -6,7 +6,6 @@ import sys
 import time
 from typing import Optional
 import logging
-import subprocess
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

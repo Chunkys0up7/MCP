@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv
 from typing import Any, Optional, Dict, List
 import redis
-from datetime import timedelta
 
 load_dotenv()
 

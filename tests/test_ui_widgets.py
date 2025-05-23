@@ -1,5 +1,4 @@
 import pytest
-import streamlit as st
 from unittest.mock import patch, MagicMock
 from mcp.ui.widgets.llm_config import build_llm_config
 from mcp.ui.widgets.notebook_config import build_notebook_config
@@ -95,9 +94,10 @@ def test_notebook_save_button(mock_streamlit):
     # Mock file operations
     with patch('builtins.open', MagicMock()) as mock_open, \
          patch('json.dump') as mock_json_dump, \
-         patch('os.makedirs') as mock_makedirs:
+         patch('os.makedirs') as mock_makedirs, \
+         patch('os.path.exists', return_value=False) as mock_exists:
         
-        config = build_notebook_config()
+        build_notebook_config()
         
         # Verify file operations
         mock_makedirs.assert_called_once()

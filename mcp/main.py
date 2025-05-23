@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import json
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Dict, Any
 import logging
 import uuid
 from datetime import datetime

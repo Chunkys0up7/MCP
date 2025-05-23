@@ -1,5 +1,4 @@
-import json
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from datetime import datetime
 from mcp.core.types import AIAssistantConfig
 from mcp.utils.logging import log_execution, log_error

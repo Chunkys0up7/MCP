@@ -1,6 +1,6 @@
 import pytest
 import aiohttp
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, AsyncMock
 from mcp.api.client import MCPClient
 from mcp.core.types import (
     MCPType,

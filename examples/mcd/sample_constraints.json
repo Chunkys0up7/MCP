@@ -1,0 +1,18 @@
+{
+    "allowed_mcp_types": [
+        "python_script",
+        "llm_prompt"
+    ],
+    "prohibited_mcp_types": [
+        "jupyter_notebook"
+    ],
+    "max_workflow_steps": 5,
+    "required_tags_all_steps": [
+        "approved-for-mission-alpha",
+        "data-source-internal"
+    ],
+    "prohibited_tags_any_step": [
+        "experimental",
+        "deprecated"
+    ]
+} 

@@ -1,50 +1,37 @@
-from fastapi import FastAPI, HTTPException, Depends, Security, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
-import uuid
 import os
 from datetime import datetime
-from prometheus_client import Counter, Histogram, generate_latest
 from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 import time
 from collections import defaultdict
-from dotenv import load_dotenv
-
-from ..core.base import BaseMCPServer
-from ..core.llm_prompt import LLMPromptMCP
-from ..core.jupyter_notebook import JupyterNotebookMCP
-from ..core.python_script import PythonScriptMCP
-from ..core.ai_assistant import AIAssistantMCP
+from sqlalchemy.orm import Session
 
 from mcp.core.types import (
-    BaseMCPConfig,
-    LLMPromptConfig,
-    JupyterNotebookConfig,
-    PythonScriptConfig,
-    AIAssistantConfig,
-    MCPType,
-    MCPConfig as AllMCPConfigUnion # Union of all config types
+    MCPType # Union of all config types
 )
-from ..core.models import MCPResult
 
-from ..core.registry import mcp_server_registry, save_mcp_servers
+from ..core.registry import mcp_server_registry
 
-from mcp.db.session import SessionLocal
+from mcp.db.session import SessionLocal, get_db
 from mcp.cache.redis_manager import RedisCacheManager
 
-from .dependencies import get_api_key, get_current_subject # Added get_current_subject
-from .routers import workflows as workflow_router # Added import
-from .routers import auth as auth_router # New auth router import
-from mcp.schemas.mcp import MCPDetail, MCPCreate, MCPUpdate, MCPListItem, MCPRead # Import the new schema
+from mcp.schemas.mcp import MCPDetail, MCPCreate, MCPUpdate, MCPListItem, MCPRead
+from mcp.core import registry as mcp_registry_service
+from mcp.core.security import get_current_subject
+
+from .routers import workflows as workflow_router
+from .routers import auth as auth_router
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
 rate_limit_store: Dict[str, List[float]] = defaultdict(list)
 
-app = FastAPI( # ADD app initialization here
+app = FastAPI(
     title="Model Context Protocol (MCP) Server",
     version="0.3.0",
     description="A server to manage and execute MCPs (LLM Prompts, Python Scripts, Jupyter Notebooks, AI Assistants) and orchestrate workflows."
@@ -72,7 +59,7 @@ app.add_middleware(
 
 # Include the workflow router
 app.include_router(workflow_router.router)
-app.include_router(auth_router.router) # Include the new auth router
+app.include_router(auth_router.router)
 
 # API Request model for creating MCPs
 class MCPCreationRequest(BaseModel):
@@ -183,6 +170,43 @@ async def delete_mcp_definition(
     if not deleted:
         raise HTTPException(status_code=404, detail="MCP definition not found for deletion")
     return Response(status_code=204) # Return 204 No Content
+
+@app.get("/context/search", response_model=List[MCPListItem])
+async def search_mcp_definitions(
+    query: str,
+    db: Session = Depends(get_db),
+    current_user_sub: str = Depends(get_current_subject),
+    limit: int = 10
+):
+    """
+    Searches for MCP definitions using semantic text search based on the query.
+    Results are ordered by relevance.
+    """
+    if not query or not query.strip():
+        raise HTTPException(status_code=400, detail="Search query cannot be empty.")
+    
+    # Use the mcp_registry_service alias consistent with other /context endpoints
+    db_mcps = mcp_registry_service.search_mcp_definitions_by_text(db=db, query_text=query, limit=limit)
+
+    response_items = []
+    for mcp in db_mcps:
+        latest_version_str = None
+        if mcp.versions:
+            latest_version_str = mcp.versions[-1].version_str if mcp.versions else "N/A" # Simplified
+
+        response_items.append(
+            MCPListItem(
+                id=mcp.id,
+                name=mcp.name,
+                type=MCPType(mcp.type), # Convert string from DB to Enum
+                description=mcp.description,
+                tags=mcp.tags,
+                latest_version_str=latest_version_str,
+                updated_at=mcp.updated_at
+                # MCPListItem does not include embedding
+            )
+        )
+    return response_items
 
 @app.get("/health")
 async def health_check():

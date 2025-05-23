@@ -1,8 +1,6 @@
 import pytest
-import json
 import time
-from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from mcp.utils.cache import Cache, FunctionCache
 
 @pytest.fixture

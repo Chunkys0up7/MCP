@@ -41,4 +41,10 @@ asyncpg>=0.29.0
 redis>=5.0.1
 
 # React Flow integration
-streamlit-component-lib>=1.0.0 
+streamlit-component-lib>=1.0.0
+
+# Added pgvector
+pgvector
+
+# Added sentence-transformers
+sentence-transformers 

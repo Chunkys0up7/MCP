@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional
 from mcp.core.types import BaseMCPConfig
 
 class BaseMCPServer(ABC):

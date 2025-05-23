@@ -1,10 +1,12 @@
 from sqlalchemy import Column, String, Text, ForeignKey, DateTime, JSON, func
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID # For PostgreSQL UUID type
+from pgvector.sqlalchemy import Vector # Import Vector type
 import uuid # For default factory
 
 from ..base_models import Base # Changed import
-from mcp.core.types import MCPType # For Enum type in DB (SQLAlchemy handles this)
+
+EMBEDDING_DIM = 384 # Define embedding dimension
 
 class MCP(Base):
     __tablename__ = "mcp__mcps"
@@ -15,6 +17,7 @@ class MCP(Base):
     type = Column(String(50), nullable=False, index=True) # Store enum as string
     description = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True) # Store list of strings as JSON array
+    embedding = Column(Vector(EMBEDDING_DIM), nullable=True) # Add embedding column
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 from jose import JWTError, jwt
 
 # --- JWT Configuration ---
@@ -30,7 +30,7 @@ def verify_access_token(token: str, credentials_exception: HTTPException) -> Dic
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         return payload
-    except JWTError as e:
+    except JWTError:
         # Log the specific JWTError for debugging if needed
         # print(f"JWTError during token decoding: {e}")
         raise credentials_exception 

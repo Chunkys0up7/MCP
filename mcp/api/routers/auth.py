@@ -1,6 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer # Will be used by the dependency, not directly here for this endpoint
-from typing import Dict
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel # Added import
 
 from ..dependencies import get_api_key # For protecting this dev token endpoint

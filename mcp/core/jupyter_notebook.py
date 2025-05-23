@@ -1,12 +1,8 @@
 import os
 import tempfile
-import subprocess
-import venv
-import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 import papermill as pm
 import nbformat
-from pathlib import Path
 
 from .base import BaseMCPServer
 from mcp.core.types import JupyterNotebookConfig
@@ -39,7 +35,6 @@ class JupyterNotebookMCP(BaseMCPServer):
             output_path = temp.name
         
         try:
-            kernel_name = None
             
             pm.execute_notebook(
                 input_path=self.config.notebook_path,

@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import os
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 # Set a consistent API key for testing environment
 TEST_API_KEY = str(uuid.uuid4())
@@ -11,7 +11,7 @@ os.environ["MCP_API_KEY"] = TEST_API_KEY
 
 # Now import the app after setting the env var
 from mcp.api.main import app # app from your FastAPI application
-from mcp.schemas.workflow import Workflow, WorkflowCreate, WorkflowStep, WorkflowStepInput, InputSourceType
+from mcp.schemas.workflow import Workflow, InputSourceType
 from mcp.core.registry import mcp_server_registry, WORKFLOW_STORAGE_FILE, MCP_REGISTRY_FILE # Added MCP_REGISTRY_FILE
 from mcp.api.routers.workflows import workflow_registry, save_workflows_to_storage, WORKFLOW_STORAGE_FILE # For cleanup and direct inspection
 from mcp.core.types import MCPType # Import MCPType

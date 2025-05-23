@@ -2,8 +2,6 @@ import streamlit as st
 import json
 from typing import Dict, List, Any
 import uuid
-import streamlit.components.v1 as components
-import os
 from pathlib import Path
 
 class ChainBuilder:
@@ -152,8 +150,8 @@ class ChainBuilder:
                                         <p style="margin: 5px 0; color: #666;">{mcp['type']}</p>
                                     </div>
                                     <div>
-                                        {f'⬆️' if i > 0 else ''}
-                                        {f'⬇️' if i < len(st.session_state.selected_mcps) - 1 else ''}
+                                        {'⬆️' if i > 0 else ''}
+                                        {'⬇️' if i < len(st.session_state.selected_mcps) - 1 else ''}
                                         <button onclick="removeNode({i})" style="
                                             background: none;
                                             border: none;

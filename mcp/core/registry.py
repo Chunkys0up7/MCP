@@ -1,10 +1,11 @@
-import os
 from typing import Any, Dict, Optional, List
 
 from sqlalchemy.orm import Session
 from mcp.db.models import MCP, MCPVersion
 from mcp.schemas.mcp import MCPCreate, MCPUpdate
 import uuid
+
+from sentence_transformers import SentenceTransformer
 
 # Imports needed from mcp.core for MCP instantiation
 from .base import BaseMCPServer
@@ -18,8 +19,7 @@ from .types import (
     JupyterNotebookConfig,
     PythonScriptConfig,
     AIAssistantConfig,
-    MCPType,
-    MCPConfig as AllMCPConfigUnion # Union of all config types
+    MCPType # Union of all config types
 )
 
 # MCP server registry and persistence
@@ -33,7 +33,15 @@ from .types import (
 # Initialize the global registry
 mcp_server_registry: Dict[str, Dict[str, Any]] = {} # Initialize as empty dict for now
 # print(f"MCP Server Registry initialized with {len(mcp_server_registry)} servers from {MCP_STORAGE_FILE}") # Removed print
-print(f"MCP Server Registry initialized as empty. DB loading pending.") # Placeholder print
+print("MCP Server Registry initialized as empty. DB loading pending.") # Placeholder print
+
+# Initialize embedding model (ensure this model is downloaded/available)
+# Using a smaller, efficient model for local dev. Consider larger models for production.
+try:
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2') 
+except Exception as e:
+    print(f"Error loading SentenceTransformer model: {e}. Semantic search features might not work.")
+    embedding_model = None
 
 def load_mcp_definition_from_db(db: Session, mcp_id_str: str) -> Optional[MCP]:
     """Loads a single MCP definition from the database by its ID."""
@@ -48,21 +56,94 @@ def load_all_mcp_definitions_from_db(db: Session) -> List[MCP]:
     """Loads all MCP definitions from the database."""
     return db.query(MCP).all()
 
+def _generate_mcp_embedding(mcp_data: MCPCreate | MCPUpdate | MCP, existing_mcp: Optional[MCP] = None):
+    if not embedding_model:
+        return None
+
+    text_parts = []
+    # For MCPCreate or MCPUpdate, mcp_data has the fields directly
+    if isinstance(mcp_data, (MCPCreate, MCPUpdate)):
+        text_parts.append(mcp_data.name or "") # MCPUpdate name can be None
+        if mcp_data.description:
+            text_parts.append(mcp_data.description)
+        if mcp_data.tags:
+            text_parts.extend(mcp_data.tags)
+    elif isinstance(mcp_data, MCP):
+        # For an existing MCP model instance
+        text_parts.append(mcp_data.name or "")
+        if mcp_data.description:
+            text_parts.append(mcp_data.description)
+        if mcp_data.tags:
+            text_parts.extend(mcp_data.tags) # Assuming tags are already a list of strings
+    
+    # If it's an update and some fields are not provided, use existing MCP's values if available
+    if isinstance(mcp_data, MCPUpdate) and existing_mcp:
+        if mcp_data.name is None and existing_mcp.name:
+             # If name was in text_parts due to mcp_data.name being None initially then being set to empty string,
+             # ensure we don't double add. A bit complex, simpler to reconstruct text_parts for update.
+            current_name = existing_mcp.name
+        else:
+            current_name = mcp_data.name or (existing_mcp.name if existing_mcp else "")
+        
+        current_description = mcp_data.description if mcp_data.description is not None else (existing_mcp.description if existing_mcp else None)
+        current_tags = mcp_data.tags if mcp_data.tags is not None else (existing_mcp.tags if existing_mcp else [])
+
+        text_parts = [current_name or ""]
+        if current_description:
+            text_parts.append(current_description)
+        if current_tags:
+            text_parts.extend(current_tags)
+            
+    if not any(text_parts):
+        return None
+    
+    full_text = " ".join(filter(None, text_parts))
+    if not full_text.strip():
+        return None
+        
+    embedding = embedding_model.encode(full_text)
+    return embedding.tolist() # pgvector expects a list or numpy array
+
 def save_mcp_definition_to_db(db: Session, mcp_data: MCPCreate) -> MCP:
-    """Saves a new MCP definition and its initial version to the database."""
+    """Saves a new MCP definition and its initial version to the database.
+    Performs type-specific validation on the initial_config.
+    """
+    
+    # Type-specific config validation
+    mcp_type_enum = mcp_data.type
+    if mcp_type_enum not in _MCP_TYPE_TO_CLASS_AND_CONFIG:
+        raise ValueError(f"Unknown MCPType: {mcp_type_enum}. Cannot validate config.")
+
+    _, config_class = _MCP_TYPE_TO_CLASS_AND_CONFIG[mcp_type_enum]
+    
+    try:
+        # Validate and parse the initial_config using the specific MCP's config model
+        # Pydantic will raise ValidationError if initial_config doesn't match config_class
+        validated_initial_config = config_class(**mcp_data.initial_config)
+    except Exception as e: # Catch Pydantic ValidationError or other issues
+        # Consider more specific exception handling for ValidationError if needed
+        raise ValueError(f"Invalid initial_config for MCP type {mcp_type_enum}: {e}")
+
     db_mcp = MCP(
         name=mcp_data.name,
         type=mcp_data.type.value, # Use enum value
         description=mcp_data.description,
         tags=mcp_data.tags
+        # Embedding will be set below
     )
+
+    # Generate and set embedding
+    embedding = _generate_mcp_embedding(mcp_data)
+    if embedding:
+        db_mcp.embedding = embedding
+
     # The MCP ID is generated upon instantiation if default=uuid.uuid4 is set in model
 
     db_initial_version = MCPVersion(
         mcp=db_mcp, # Associate with the MCP object
         version_str=mcp_data.initial_version_str,
         description=mcp_data.initial_version_description,
-        config_snapshot=mcp_data.initial_config
+        config_snapshot=validated_initial_config.model_dump() # Store the validated and structured config
     )
     
     # Add MCP first, so it gets an ID if not already set by default factory (though it should)
@@ -93,8 +174,18 @@ def update_mcp_definition_in_db(db: Session, mcp_id_str: str, mcp_data: MCPUpdat
         return None
 
     update_data = mcp_data.model_dump(exclude_unset=True)
+    needs_embedding_update = False
     for key, value in update_data.items():
+        if key in ["name", "description", "tags"] and getattr(db_mcp, key) != value:
+            needs_embedding_update = True
         setattr(db_mcp, key, value)
+    
+    if needs_embedding_update:
+        # Pass the db_mcp instance itself which now has updated fields (prior to commit)
+        # Or pass mcp_data with existing_mcp=db_mcp to _generate_mcp_embedding
+        embedding = _generate_mcp_embedding(mcp_data, existing_mcp=db_mcp) # Pass mcp_data and original db_mcp
+        if embedding:
+            db_mcp.embedding = embedding
     
     try:
         db.commit()
@@ -229,7 +320,25 @@ def get_mcp_instance_from_db(db: Session, mcp_id_str: str, mcp_version_str: Opti
         # mcp_instance.mcp_version_id = mcp_version.id
 
         return mcp_instance
-    except Exception as e:
+    except Exception:
         # Log error during config parsing or MCP instantiation (e.g., Pydantic ValidationError)
         # print(f"Error instantiating MCP {mcp_id_str} version {mcp_version_str}: {e}")
         return None 
+
+def search_mcp_definitions_by_text(db: Session, query_text: str, limit: int = 10) -> List[MCP]:
+    """Searches for MCP definitions using semantic similarity of the query_text to MCP embeddings."""
+    if not embedding_model:
+        # Log or raise error: embedding model not available
+        return []
+    if not query_text or not query_text.strip():
+        return []
+
+    query_embedding = embedding_model.encode(query_text)
+    
+    # Assuming MCP model has an 'embedding' field of type Vector
+    # and pgvector extension is enabled with appropriate distance function.
+    # Using cosine distance: 0 is most similar, 1 is least similar.
+    # For other distances like L2, smaller is better.
+    # results = db.query(MCP).order_by(MCP.embedding.l2_distance(query_embedding)).limit(limit).all()
+    results = db.query(MCP).order_by(MCP.embedding.cosine_distance(query_embedding)).limit(limit).all()
+    return results 

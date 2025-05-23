@@ -6,11 +6,9 @@ A simple hello world example that demonstrates:
 4. Unicode character support
 """
 
-import requests
 import sys
 import json
 from datetime import datetime
-import locale
 
 # Set default encoding to UTF-8
 if sys.stdout.encoding != 'utf-8':

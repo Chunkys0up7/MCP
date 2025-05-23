@@ -1,9 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
-import json
-import os
 
 from .base import BaseMCPServer
-from mcp.core.types import AIAssistantConfig, MCPType
+from mcp.core.types import AIAssistantConfig
 from mcp.core.llm_prompt import ClaudeLLM # Reusing ClaudeLLM for now
 
 # Placeholder for actual tool execution logic if tools are internal

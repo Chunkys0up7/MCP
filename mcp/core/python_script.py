@@ -8,10 +8,8 @@ A simple hello world example that demonstrates:
 import os
 import tempfile
 import subprocess
-import venv
 import json
-from typing import Any, Dict, List, Optional
-from pathlib import Path
+from typing import Any, Dict, Optional
 import atexit
 import logging
 import sys

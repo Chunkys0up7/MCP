@@ -1,9 +1,9 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 
-from mcp.core.types import MCPType, MCPConfig # MCPType enum and the Union of all config types
+from mcp.core.types import MCPType # MCPType enum and the Union of all config types
 
 
 # --- MCP Version Schemas ---

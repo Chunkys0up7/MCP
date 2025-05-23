@@ -1,10 +1,8 @@
-from typing import Any, Dict, Optional, List, Union
+from typing import Any, Dict, Optional, List
 import os
 from dotenv import load_dotenv
 import requests
-import anthropic
 import json
-from pathlib import Path
 
 from .base import BaseMCPServer
 from mcp.core.types import LLMPromptConfig
