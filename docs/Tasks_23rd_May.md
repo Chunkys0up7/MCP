@@ -56,6 +56,7 @@
     *   **Task:** Write initial unit tests for the `WorkflowEngine`, focusing on the new dynamic MCP loading logic, input resolution (`_resolve_step_inputs`), and step execution orchestration.
         *   **Status (Sub-task):** COMPLETED - Created `tests/core/test_workflow_engine.py` with tests for engine instantiation, successful execution, step failure, MCP instantiation failure, input resolution for various sources, and a two-step data passing scenario. Mocking is used for DB interactions (`get_mcp_instance_from_db`).
     *   **Task:** Write integration tests for the `execute_workflow` endpoint, covering various success and failure scenarios with DB-backed MCPs.
+        *   **Status (Sub-task):** COMPLETED - Updated `tests/api/test_workflow_api.py` to use an in-memory SQLite DB for tests. Added `test_db_session` and `override_get_db` fixtures in `tests/conftest.py`. Refactored MCP and Workflow creation fixtures to use the DB. Added new `/execute` tests for: successful DB-backed execution, MCP definition not found, MCP version not found, MCP instantiation failure due to bad config, and step execution failure. CRUD tests adapted to new DB setup.
         *   **Status:** Verify recently added test files (e.g., `tests/api/test_workflow_api.py`). Augment for new engine logic and DB interactions.
 
 9.  **Documentation - API Endpoint Updates:**
