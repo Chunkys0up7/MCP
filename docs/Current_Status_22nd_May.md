@@ -27,7 +27,7 @@ This document outlines the current status of the MCP project based on a review o
     *   Detailed Role-Based Access Control (RBAC) logic beyond basic user authentication is not yet apparent in the core API endpoints and needs to be defined and implemented as per UI/feature requirements.
 
 *   **Testing:**
-    *   Test files (e.g., `tests/api/test_context_api.py`, `tests/api/test_workflow_api.py`) appear to have been recently added. Their content needs verification to determine the extent of test coverage for MCP/Workflow CRUD and engine components. Assuming they are initial stubs, comprehensive unit and integration tests are still a significant upcoming task.
+    *   Test files (e.g., `tests/api/test_context_api.py`, `tests/api/test_workflow_api.py`) have been updated to use a file-based SQLite database (`./test.db`) to ensure that all connections (including those from the FastAPI app and the test session) share the same database and tables. This resolves the "no such table" errors encountered previously. Comprehensive unit and integration tests are now being verified for MCP/Workflow CRUD and engine components.
 
 *   **Documentation:**
     *   FastAPI provides auto-generated OpenAPI docs. A separate, detailed `api_reference.md` might need updates or creation.
