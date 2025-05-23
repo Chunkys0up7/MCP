@@ -1,8 +1,8 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -15,8 +15,8 @@ class MCPConfiguration(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), unique=True, nullable=False)
     type = Column(String(50), nullable=False)
-    config = Column(JSONB, nullable=False)
-    dependencies = Column(JSONB)
+    config = Column(JSON, nullable=False)
+    dependencies = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     last_modified = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -33,7 +33,7 @@ class MCPChain(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     name = Column(String(255), unique=True, nullable=False)
-    workflow = Column(JSONB, nullable=False)
+    workflow = Column(JSON, nullable=False)
     version = Column(Integer, default=1)
     parent_chain = Column(UUID(as_uuid=True), ForeignKey("mcp_chains.id"))
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
@@ -47,7 +47,7 @@ class ChainSession(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     session_id = Column(String(255), unique=True, nullable=False)
-    chain_data = Column(JSONB, nullable=False)
+    chain_data = Column(JSON, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     last_activity = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -74,5 +74,5 @@ class AuditLog(Base):
     user_id = Column(UUID(as_uuid=True), nullable=False)
     action_type = Column(String(50), nullable=False)
     target_id = Column(UUID(as_uuid=True), nullable=False)
-    details = Column(JSONB)
+    details = Column(JSON, nullable=True)
  

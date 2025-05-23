@@ -22,7 +22,7 @@ from mcp.cache.redis_manager import RedisCacheManager
 
 from mcp.schemas.mcp import MCPDetail, MCPCreate, MCPUpdate, MCPListItem, MCPRead
 from mcp.core import registry as mcp_registry_service
-from mcp.core.security import get_current_subject
+from .dependencies import get_current_subject
 
 from .routers import workflows as workflow_router
 from .routers import auth as auth_router

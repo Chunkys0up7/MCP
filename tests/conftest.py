@@ -1,5 +1,6 @@
 import pytest
 import os
+import pathlib
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -16,8 +17,18 @@ from mcp.cache.redis_manager import RedisCacheManager
 # Test API key
 TEST_API_KEY = "test-api-key"
 
-# --- Test Database Setup (SQLite in-memory) ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+# --- Test Database Setup (file-based SQLite) ---
+TEST_DB_PATH = "./test.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
+
+def remove_test_db():
+    try:
+        os.remove(TEST_DB_PATH)
+    except FileNotFoundError:
+        pass
+
+# Remove test.db before the test session starts
+remove_test_db()
 
 test_engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} # check_same_thread is for SQLite
@@ -35,6 +46,12 @@ def test_db_session():
         db.close()
         Base.metadata.drop_all(bind=test_engine) # Drop tables after test
 
+# Remove test.db after the test session ends
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_db():
+    yield
+    remove_test_db()
+
 # Fixture to override the 'get_db' dependency in the FastAPI app
 @pytest.fixture(scope="function") # Or "session" if you want the override for the whole session
 def override_get_db(test_db_session): # Depends on the test_db_session fixture
@@ -47,7 +64,6 @@ def override_get_db(test_db_session): # Depends on the test_db_session fixture
     app.dependency_overrides[get_db] = _override_get_db
     yield
     app.dependency_overrides.clear() # Clear overrides after test
-
 
 # --- Original Fixtures (keeping them as they might be used or adapted) ---
 
@@ -84,6 +100,8 @@ def redis_client():
 # Fixture for TestClient that uses the overridden DB
 @pytest.fixture(scope="function")
 def test_app_client(override_get_db): # Depends on the override_get_db fixture
+    # Set the API key in environment before creating TestClient
+    os.environ["MCP_API_KEY"] = TEST_API_KEY
     # The override_get_db fixture ensures that app.dependency_overrides[get_db] is set
     # before the TestClient is created and yielded.
     with TestClient(app) as c:

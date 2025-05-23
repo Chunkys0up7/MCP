@@ -1,6 +1,6 @@
 import uuid
-from sqlalchemy import Column, String, Text, DateTime, func, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID, JSONB
+from sqlalchemy import Column, String, Text, DateTime, func, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from ..base_models import Base  # Assuming Base is in base_models.py at mcp/db/
 
 class WorkflowDefinition(Base):
@@ -9,7 +9,7 @@ class WorkflowDefinition(Base):
     workflow_id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
-    steps = Column(JSONB, nullable=False)  # Stores the list of steps/nodes and edges
+    steps = Column(JSON, nullable=False)  # Stores the list of steps/nodes and edges
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -27,9 +27,9 @@ class WorkflowRun(Base):
     started_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     finished_at = Column(DateTime(timezone=True), nullable=True) # Nullable as it's set upon completion/failure
     
-    inputs = Column(JSONB, nullable=True) # Initial inputs to the workflow run
-    outputs = Column(JSONB, nullable=True) # Final outputs of the workflow run
-    step_results = Column(JSONB, nullable=True) # Detailed results/logs from each step
+    inputs = Column(JSON, nullable=True) # Initial inputs to the workflow run
+    outputs = Column(JSON, nullable=True) # Final outputs of the workflow run
+    step_results = Column(JSON, nullable=True) # Detailed results/logs from each step
     error_message = Column(Text, nullable=True) # If the workflow run failed
 
     # Relationship to WorkflowDefinition (optional, but good for ORM-level access)

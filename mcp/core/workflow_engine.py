@@ -10,6 +10,10 @@ from mcp.schemas.workflow import (
     InputSourceType, 
     WorkflowExecutionResult
 )
+# ADD: Import ArchitecturalConstraints
+from mcp.schemas.mcd_constraints import ArchitecturalConstraints
+# ADD: Import MCP model for type hinting
+from mcp.db.models import MCP as MCPModel 
 
 # Placeholder for a more detailed StepExecutionResult model
 # from mcp.schemas.workflow import StepExecutionResult 
@@ -25,14 +29,16 @@ class WorkflowEngine:
     data flow between steps, error handling, and result aggregation.
     """
 
-    def __init__(self, db_session: Session): # MODIFIED: Accept db_session
+    def __init__(self, db_session: Session, constraints: Optional[ArchitecturalConstraints] = None): # MODIFIED
         """
         Initializes the WorkflowEngine.
 
         Args:
             db_session (Session): The SQLAlchemy database session.
+            constraints (Optional[ArchitecturalConstraints]): Architectural constraints for the workflow.
         """
-        self.db_session = db_session # MODIFIED: Store db_session
+        self.db_session = db_session
+        self.constraints = constraints # ADDED
         # self.mcp_server_registry = mcp_server_registry # REMOVED
 
     async def run_workflow(
@@ -67,6 +73,10 @@ class WorkflowEngine:
         print(f"[{start_time}] Starting workflow '{workflow.name}' (ID: {workflow.workflow_id}, Execution ID: {execution_id})")
 
         try:
+            # ADDED: Validate workflow against constraints
+            if self.constraints:
+                self._validate_workflow_against_constraints(workflow)
+
             if workflow.execution_mode == "sequential":
                 for step in workflow.steps:
                     print(f"  Executing step '{step.name}' (ID: {step.step_id}, MCP: {step.mcp_id})")
@@ -179,6 +189,86 @@ class WorkflowEngine:
                 final_outputs=final_workflow_outputs,
                 error_message=workflow_error_message
             )
+
+    def _validate_workflow_against_constraints(self, workflow: Workflow) -> None:
+        """
+        Validates the workflow definition against the architectural constraints
+        provided to the engine.
+
+        Args:
+            workflow (Workflow): The workflow to validate.
+
+        Raises:
+            ValueError: If any constraint is violated.
+        """
+        if not self.constraints: # Should not happen if called correctly, but good practice
+            return
+
+        print(f"Validating workflow '{workflow.name}' against architectural constraints.")
+
+        # Check max_workflow_steps
+        if self.constraints.max_workflow_steps is not None:
+            if len(workflow.steps) > self.constraints.max_workflow_steps:
+                raise ValueError(
+                    f"Workflow validation failed: Number of steps ({len(workflow.steps)}) "
+                    f"exceeds maximum allowed ({self.constraints.max_workflow_steps})."
+                )
+
+        for step in workflow.steps:
+            # Fetch MCP definition for type and tag checking
+            # We use load_mcp_definition_from_db which returns the SQLAlchemy model
+            mcp_def: Optional[MCPModel] = registry.load_mcp_definition_from_db(
+                db=self.db_session, 
+                mcp_id_str=step.mcp_id
+            )
+            if not mcp_def:
+                raise ValueError(
+                    f"Workflow validation failed: MCP definition for ID '{step.mcp_id}' "
+                    f"in step '{step.name}' not found."
+                )
+            
+            mcp_type_str = mcp_def.type # This is a string from the DB model
+            mcp_tags: List[str] = mcp_def.tags if mcp_def.tags else [] # Tags stored as JSON in DB, expect list
+
+            # Check allowed_mcp_types
+            if self.constraints.allowed_mcp_types:
+                # The constraint stores MCPType enum members. Their .value gives the string.
+                # mcp_type_str is already the string value from the DB model.
+                allowed_type_values = [mcp_enum_member.value for mcp_enum_member in self.constraints.allowed_mcp_types]
+                if mcp_type_str not in allowed_type_values:
+                    raise ValueError(
+                        f"Workflow validation failed: MCP type '{mcp_type_str}' for step '{step.name}' (MCP ID: {step.mcp_id}) "
+                        f"is not in the list of allowed types: {allowed_type_values}."
+                    )
+
+            # Check prohibited_mcp_types
+            if self.constraints.prohibited_mcp_types:
+                prohibited_type_values = [mcp_enum_member.value for mcp_enum_member in self.constraints.prohibited_mcp_types]
+                if mcp_type_str in prohibited_type_values:
+                    raise ValueError(
+                        f"Workflow validation failed: MCP type '{mcp_type_str}' for step '{step.name}' (MCP ID: {step.mcp_id}) "
+                        f"is in the list of prohibited types: {prohibited_type_values}."
+                    )
+
+            # Check required_tags_all_steps
+            if self.constraints.required_tags_all_steps:
+                for req_tag in self.constraints.required_tags_all_steps:
+                    if req_tag not in mcp_tags:
+                        raise ValueError(
+                            f"Workflow validation failed: MCP for step '{step.name}' (ID: {step.mcp_id}) "
+                            f"is missing required tag '{req_tag}'. Required: {self.constraints.required_tags_all_steps}. Present: {mcp_tags}"
+                        )
+
+            # Check prohibited_tags_any_step
+            if self.constraints.prohibited_tags_any_step:
+                for pro_tag in self.constraints.prohibited_tags_any_step:
+                    if pro_tag in mcp_tags:
+                        raise ValueError(
+                            f"Workflow validation failed: MCP for step '{step.name}' (ID: {step.mcp_id}) "
+                            f"has prohibited tag '{pro_tag}'. Prohibited: {self.constraints.prohibited_tags_any_step}. Present: {mcp_tags}"
+                        )
+        
+        print(f"Workflow '{workflow.name}' passed architectural constraint validation.")
 
     def _resolve_step_inputs(
         self, 
