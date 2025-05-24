@@ -75,9 +75,12 @@
     *   **Task:** Create mock data or a stub service for the MCD system to allow the Workflow Engine to test this handoff.
     *   **Status:** COMPLETED. Mock data representing `ArchitecturalConstraints` has been created and saved to `examples/mcd/sample_constraints.json`. This file can be used for testing integration if the WorkflowEngine is updated to consume these constraints.
 
-7.  **Security Subsystem - JWT & RBAC Review:**
-    *   **Task:** Review JWT issuance/validation flow. Document initial RBAC permission checks for Marketplace/Workflow Builder.
-    *   **Status:** COMPLETED. JWT issuance/validation flow reviewed. Initial RBAC roles (`user`, `developer`, `admin`) and permission checks for MCP (Marketplace) and Workflow operations have been documented in `docs/security_rbac.md`. Actual RBAC implementation is pending.
+7.  **Security - JWT & RBAC:**
+    *   **Task:** Implement JWT token validation and role-based access control.
+        *   **Sub-task:** Implement JWT token validation for protecting endpoints.
+        *   **Status (Sub-task):** COMPLETED. JWT token validation is implemented via `get_current_subject` dependency in `mcp/api/dependencies.py`. Token issuance is handled by `/auth/issue-dev-token` endpoint in `mcp/api/routers/auth.py`. Tests in `tests/api/test_context_api.py` verify JWT validation.
+        *   **Sub-task:** Implement role-based access control (RBAC) for API endpoints.
+        *   **Status (Sub-task):** COMPLETED. Role definitions in `UserRole` enum, role-based access control dependencies, and integration with API endpoints are implemented. Tests for role-based access control have been added to `tests/api/test_context_api.py`.
 
 8.  **Testing - Unit & Integration Tests (HIGH PRIORITY post-execution logic):**
     *   **Task:** Write/update comprehensive unit tests for MCP CRUD operations (`mcp/core/registry.py`, `mcp/api/main.py`).
