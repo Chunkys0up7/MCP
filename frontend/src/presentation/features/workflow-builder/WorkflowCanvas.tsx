@@ -6,11 +6,12 @@ import ReactFlow, {
   Node,
   Edge,
   ReactFlowInstance,
-  useNodesState,
-  useEdgesState,
-  addEdge,
+  NodeChange,
+  EdgeChange,
   Connection,
   Panel,
+  applyNodeChanges,
+  applyEdgeChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Box, Drawer } from '@mui/material';
@@ -24,6 +25,7 @@ import { LLMNode } from './nodes/LLMNode';
 import { NodeConfigPanel } from './NodeConfigPanel';
 import { NodePalette } from './NodePalette';
 import { ValidationPanel } from './ValidationPanel';
+import { ExecutionPanel } from './ExecutionPanel';
 
 const nodeTypes = {
   mcp: MCPNode,
@@ -41,46 +43,41 @@ export const WorkflowCanvas: React.FC = () => {
   const { nodes, edges, setNodes, setEdges, updateNodeData, updateEdgeLabel } = useWorkflowStore();
 
   const onNodesChange = useCallback(
-    (changes: any) => {
-      setNodes((nds) => {
-        const updatedNodes = changes.reduce((acc: Node[], change: any) => {
-          if (change.type === 'position' && change.dragging === false) {
-            const node = nds.find((n) => n.id === change.id);
-            if (node) {
-              updateNodeData(change.id, { position: change.position });
-            }
-          }
-          return acc;
-        }, []);
-        return updatedNodes.length > 0 ? updatedNodes : nds;
+    (changes: NodeChange[]) => {
+      setNodes(applyNodeChanges(changes, nodes));
+      changes.forEach((change) => {
+        if (change.type === 'position' && change.dragging === false) {
+          updateNodeData(change.id, { position: change.position });
+        }
       });
     },
-    [setNodes, updateNodeData]
+    [setNodes, updateNodeData, nodes]
   );
 
   const onEdgesChange = useCallback(
-    (changes: any) => {
-      setEdges((eds) => {
-        const updatedEdges = changes.reduce((acc: Edge[], change: any) => {
-          if (change.type === 'label') {
-            const edge = eds.find((e) => e.id === change.id);
-            if (edge) {
-              updateEdgeLabel(change.id, change.label);
-            }
-          }
-          return acc;
-        }, []);
-        return updatedEdges.length > 0 ? updatedEdges : eds;
-      });
+    (changes: EdgeChange[]) => {
+      setEdges(applyEdgeChanges(changes, edges));
     },
-    [setEdges, updateEdgeLabel]
+    [setEdges, edges]
   );
 
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds) => addEdge(params, eds));
+      if (params.source && params.target) {
+        setEdges([
+          ...edges,
+          {
+            ...params,
+            id: `edge-${Date.now()}`,
+            source: params.source,
+            target: params.target,
+            sourceHandle: params.sourceHandle ?? undefined,
+            targetHandle: params.targetHandle ?? undefined,
+          } as Edge,
+        ]);
+      }
     },
-    [setEdges]
+    [setEdges, edges]
   );
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -110,9 +107,9 @@ export const WorkflowCanvas: React.FC = () => {
         data: { label: `${type} node` },
       };
 
-      setNodes((nds) => [...nds, newNode]);
+      setNodes([...nodes, newNode]);
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, nodes]
   );
 
   const onNodeClick = useCallback(
@@ -157,6 +154,7 @@ export const WorkflowCanvas: React.FC = () => {
             </Box>
           </Panel>
           <ValidationPanel />
+          <ExecutionPanel />
         </ReactFlow>
       </Box>
       <Drawer

@@ -1,9 +1,8 @@
 import React, { ReactNode } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, NodeProps } from 'reactflow';
 import { Box, Typography, IconButton } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SettingsIcon from '@mui/icons-material/Settings';
-import type { NodeProps } from 'reactflow';
 
 interface MCPNodeData {
   label: string;
@@ -12,11 +11,11 @@ interface MCPNodeData {
   onConfigure?: (id: string) => void;
 }
 
-interface MCPNodeProps extends NodeProps<MCPNodeData> {
+export interface MCPNodeProps extends NodeProps<MCPNodeData> {
   children?: ReactNode;
 }
 
-export const MCPNode: React.FC<MCPNodeProps> = ({ data, id, children }) => {
+export const MCPNode: React.FC<MCPNodeProps> = ({ data, id, selected, type, zIndex, isConnectable, xPos, yPos, dragging, ...rest }) => {
   const getNodeColor = (type: string) => {
     switch (type) {
       case 'llm':
@@ -25,6 +24,10 @@ export const MCPNode: React.FC<MCPNodeProps> = ({ data, id, children }) => {
         return '#00bcd4';
       case 'data':
         return '#4caf50';
+      case 'input':
+        return '#ff9800';
+      case 'output':
+        return '#9c27b0';
       default:
         return '#314c68';
     }
@@ -52,7 +55,7 @@ export const MCPNode: React.FC<MCPNodeProps> = ({ data, id, children }) => {
         minWidth: 150,
       }}
     >
-      <Handle type="target" position={Position.Top} />
+      <Handle type="target" position={Position.Top} isConnectable={isConnectable} />
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="subtitle2" sx={{ color: getNodeColor(data.type) }}>
           {data.type.toUpperCase()}
@@ -67,8 +70,8 @@ export const MCPNode: React.FC<MCPNodeProps> = ({ data, id, children }) => {
         </Box>
       </Box>
       <Typography variant="body2">{data.label}</Typography>
-      {children}
-      <Handle type="source" position={Position.Bottom} />
+      {rest.children}
+      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} />
     </Box>
   );
 }; 
