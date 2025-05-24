@@ -1,50 +1,88 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
+import { websocketService, WebSocketMessage, ExecutionUpdate, ResourceUpdate } from '../../infrastructure/services/websocketService';
 
-interface WebSocketMessage {
-  type: string;
-  data?: any;
+interface WebSocketState {
+  isConnected: boolean;
+  executionUpdates: Map<string, ExecutionUpdate>;
+  resourceUpdates: ResourceUpdate[];
+  errors: string[];
 }
 
-export const useWebSocket = (url: string) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [lastMessage, setLastMessage] = useState<MessageEvent | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+export const useWebSocket = (workflowId: string) => {
+  const [state, setState] = useState<WebSocketState>({
+    isConnected: false,
+    executionUpdates: new Map(),
+    resourceUpdates: [],
+    errors: [],
+  });
+
+  const handleMessage = useCallback((message: WebSocketMessage) => {
+    switch (message.type) {
+      case 'execution_update':
+        setState(prev => ({
+          ...prev,
+          executionUpdates: new Map(prev.executionUpdates).set(
+            message.payload.nodeId,
+            message.payload as ExecutionUpdate
+          ),
+        }));
+        break;
+
+      case 'resource_update':
+        setState(prev => ({
+          ...prev,
+          resourceUpdates: [...prev.resourceUpdates, message.payload as ResourceUpdate].slice(-100), // Keep last 100 updates
+        }));
+        break;
+
+      case 'error':
+        setState(prev => ({
+          ...prev,
+          errors: [...prev.errors, message.payload].slice(-10), // Keep last 10 errors
+        }));
+        break;
+
+      case 'status':
+        setState(prev => ({
+          ...prev,
+          isConnected: message.payload.connected,
+        }));
+        break;
+    }
+  }, []);
 
   useEffect(() => {
-    const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}${url}`);
+    const unsubscribe = websocketService.subscribe(handleMessage);
 
-    ws.onopen = () => {
-      setIsConnected(true);
-    };
-
-    ws.onclose = () => {
-      setIsConnected(false);
-    };
-
-    ws.onmessage = (event) => {
-      setLastMessage(event);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    setSocket(ws);
+    // Subscribe to workflow updates
+    websocketService.send({
+      type: 'status',
+      payload: { workflowId },
+      timestamp: Date.now(),
+    });
 
     return () => {
-      ws.close();
+      unsubscribe();
     };
-  }, [url]);
+  }, [workflowId, handleMessage]);
 
-  const sendMessage = useCallback((message: WebSocketMessage) => {
-    if (socket && isConnected) {
-      socket.send(JSON.stringify(message));
-    }
-  }, [socket, isConnected]);
+  const getNodeStatus = useCallback((nodeId: string) => {
+    return state.executionUpdates.get(nodeId);
+  }, [state.executionUpdates]);
+
+  const getLatestResourceUpdate = useCallback(() => {
+    return state.resourceUpdates[state.resourceUpdates.length - 1];
+  }, [state.resourceUpdates]);
+
+  const clearErrors = useCallback(() => {
+    setState(prev => ({ ...prev, errors: [] }));
+  }, []);
 
   return {
-    lastMessage,
-    sendMessage,
-    isConnected
+    isConnected: state.isConnected,
+    getNodeStatus,
+    getLatestResourceUpdate,
+    errors: state.errors,
+    clearErrors,
   };
 }; 
