@@ -82,6 +82,16 @@ The execution panel provides:
 - Error handling and recovery
 - Output collection
 
+### Gantt Chart Visualization
+The execution monitor includes a Gantt chart that provides:
+1. Timeline view of workflow execution
+2. Real-time status updates for each task
+3. Visual representation of task dependencies
+4. Execution duration tracking
+5. Resource allocation timeline
+6. Color-coded task status indicators
+7. Interactive timeline with time markers
+
 ### DAG Optimization
 The workflow engine automatically:
 1. Detects cycles in the workflow
@@ -96,6 +106,7 @@ The workflow engine automatically:
 - `WorkflowCanvas`: Main canvas component
 - `ValidationPanel`: Real-time validation feedback
 - `ExecutionPanel`: Workflow execution control
+- `GanttChart`: Timeline visualization
 - `NodeTypes`: Specialized node components
 - `WorkflowEngine`: Core execution engine
 - `DAGOptimizer`: Graph optimization and analysis
