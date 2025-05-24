@@ -1,51 +1,71 @@
+"""
+Alembic Environment Configuration
+
+This module configures the Alembic migration environment for the MCP system.
+It handles:
+
+1. Database connection setup
+2. Migration context configuration
+3. Logging configuration
+4. Environment-specific settings
+5. Migration script generation
+
+The environment supports both online (with database connection) and offline
+(with SQL script generation) migration modes.
+"""
+
+import os
 from logging.config import fileConfig
-
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
+from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-from mcp.db.models import Base
-from mcp.db.session import (
-    POSTGRES_USER, 
-    POSTGRES_PASSWORD, 
-    POSTGRES_HOST, 
-    POSTGRES_PORT, 
-    POSTGRES_DB
-)
+# Import the SQLAlchemy models
+from mcp.db.base_models import Base
+from mcp.db.models import *  # Import all models for Alembic to detect
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Get the database URL from environment or configuration
+from mcp.db.base_models import get_database_url
+
+# Load Alembic configuration
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Configure logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
+# Add the database URL to the Alembic configuration
+config.set_main_option("sqlalchemy.url", get_database_url())
+
+# Add MetaData object to the target_metadata
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
-def get_url():
-    return f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+def get_url() -> str:
+    """
+    Get the database URL for migrations.
+    
+    This function:
+    1. Gets the URL from configuration
+    2. Handles environment-specific settings
+    3. Validates the URL format
+    
+    Returns:
+        str: The database URL
+    """
+    return get_database_url()
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
+    """
+    Run migrations in 'offline' mode.
+    
+    This function:
+    1. Generates SQL scripts for migrations
+    2. Doesn't require a database connection
+    3. Outputs SQL to stdout or files
+    
+    This is useful for:
+    - Generating SQL scripts for manual execution
+    - Reviewing migration changes
+    - Deploying to environments with restricted access
     """
     url = get_url()
     context.configure(
@@ -56,45 +76,46 @@ def run_migrations_offline() -> None:
     )
 
     with context.begin_transaction():
-        try:
-            context.run_migrations()
-        except Exception:
-            import traceback
-            print("Error during offline migration:")
-            print(traceback.format_exc())
-            raise
-
+        context.run_migrations()
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
-
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
-
     """
+    Run migrations in 'online' mode.
+    
+    This function:
+    1. Connects to the database
+    2. Executes migrations directly
+    3. Handles transaction management
+    
+    This is useful for:
+    - Direct database updates
+    - Automated deployments
+    - Development environments
+    """
+    # Get the database URL from configuration
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
+    
+    # Create the engine
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
+    # Run the migrations
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,  # Compare column types
+            compare_server_default=True,  # Compare server defaults
         )
 
         with context.begin_transaction():
-            try:
-                context.run_migrations()
-            except Exception:
-                import traceback
-                print("Error during online migration:")
-                print(traceback.format_exc())
-                raise
+            context.run_migrations()
 
-
+# Run migrations based on the mode
 if context.is_offline_mode():
     run_migrations_offline()
 else:

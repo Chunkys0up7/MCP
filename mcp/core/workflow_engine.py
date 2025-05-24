@@ -1,7 +1,42 @@
-from typing import Dict, Any, Optional, List
+"""
+Workflow Engine Module
+
+This module provides the core workflow execution engine for the MCP system.
+It handles the orchestration of workflow steps, manages data flow between steps,
+and ensures proper error handling and result aggregation.
+
+The engine supports:
+1. Sequential and parallel execution modes
+2. Dynamic MCP loading from the database
+3. Input resolution from various sources (static values, workflow inputs, step outputs)
+4. Error handling with configurable strategies
+5. Architectural constraint validation
+6. Comprehensive logging and monitoring
+
+Example usage:
+    ```python
+    # Initialize the engine with a database session
+    engine = WorkflowEngine(db_session=db, constraints=arch_constraints)
+    
+    # Execute a workflow
+    result = await engine.run_workflow(workflow, initial_inputs={
+        "param1": "value1",
+        "param2": "value2"
+    })
+    
+    # Check the result
+    if result.status == "SUCCESS":
+        print(f"Workflow completed successfully. Outputs: {result.final_outputs}")
+    else:
+        print(f"Workflow failed: {result.error_message}")
+    ```
+"""
+
+from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 import traceback
-import uuid # ADDED
+import uuid
+import logging
 
 from mcp.schemas.workflow import (
     Workflow, 
@@ -23,23 +58,80 @@ from sqlalchemy.orm import Session
 # ADD: Import registry functions
 from mcp.core import registry # Assuming registry.py is in the same directory or mcp.core is a package
 
+logger = logging.getLogger(__name__)
+
 class WorkflowEngine:
     """
-    Orchestrates the execution of a defined workflow, managing step-by-step processing,
+    Orchestrates the execution of defined workflows, managing step-by-step processing,
     data flow between steps, error handling, and result aggregation.
+
+    The engine supports:
+    - Sequential and parallel execution modes
+    - Dynamic MCP loading from the database
+    - Input resolution from various sources
+    - Error handling with configurable strategies
+    - Architectural constraint validation
+
+    Attributes:
+        db_session (Session): The SQLAlchemy database session for MCP loading.
+        constraints (Optional[ArchitecturalConstraints]): Architectural constraints for workflow validation.
+
+    Example:
+        ```python
+        # Create a workflow with two steps
+        workflow = Workflow(
+            name="Test Workflow",
+            steps=[
+                WorkflowStep(
+                    name="Step 1",
+                    mcp_id="mcp-1",
+                    inputs={
+                        "input1": WorkflowStepInput(
+                            source_type=InputSourceType.WORKFLOW_INPUT,
+                            workflow_input_key="param1"
+                        )
+                    }
+                ),
+                WorkflowStep(
+                    name="Step 2",
+                    mcp_id="mcp-2",
+                    inputs={
+                        "input2": WorkflowStepInput(
+                            source_type=InputSourceType.STEP_OUTPUT,
+                            source_step_id="step-1",
+                            source_output_name="output1"
+                        )
+                    }
+                )
+            ]
+        )
+
+        # Execute the workflow
+        engine = WorkflowEngine(db_session=db)
+        result = await engine.run_workflow(workflow, initial_inputs={"param1": "value1"})
+        ```
     """
 
-    def __init__(self, db_session: Session, constraints: Optional[ArchitecturalConstraints] = None): # MODIFIED
+    def __init__(self, db_session: Session, constraints: Optional[ArchitecturalConstraints] = None):
         """
-        Initializes the WorkflowEngine.
+        Initialize the WorkflowEngine.
 
         Args:
-            db_session (Session): The SQLAlchemy database session.
-            constraints (Optional[ArchitecturalConstraints]): Architectural constraints for the workflow.
+            db_session (Session): The SQLAlchemy database session for MCP loading.
+            constraints (Optional[ArchitecturalConstraints]): Architectural constraints for workflow validation.
+
+        Example:
+            ```python
+            # Initialize with constraints
+            constraints = ArchitecturalConstraints(
+                allowed_mcp_types=[MCPType.PYTHON_SCRIPT],
+                max_workflow_steps=5
+            )
+            engine = WorkflowEngine(db_session=db, constraints=constraints)
+            ```
         """
         self.db_session = db_session
-        self.constraints = constraints # ADDED
-        # self.mcp_server_registry = mcp_server_registry # REMOVED
+        self.constraints = constraints
 
     async def run_workflow(
         self, 
@@ -47,159 +139,278 @@ class WorkflowEngine:
         initial_inputs: Optional[Dict[str, Any]] = None
     ) -> WorkflowExecutionResult:
         """
-        Executes the given workflow.
+        Execute a workflow with the given inputs.
+
+        This method orchestrates the execution of a workflow by:
+        1. Validating the workflow against architectural constraints
+        2. Executing steps in the configured mode (sequential/parallel)
+        3. Managing data flow between steps
+        4. Handling errors according to the workflow's error strategy
+        5. Aggregating results and generating the final output
 
         Args:
             workflow (Workflow): The workflow definition to execute.
-            initial_inputs (Optional[Dict[str, Any]]): 
-                A dictionary of inputs provided at the start of the workflow execution.
-                These can be referenced by steps using `InputSourceType.WORKFLOW_INPUT`.
+            initial_inputs (Optional[Dict[str, Any]]): Initial inputs for the workflow.
 
         Returns:
-            WorkflowExecutionResult: An object detailing the outcome of the workflow execution,
-                                     including status, step results, and any final outputs or errors.
+            WorkflowExecutionResult: The execution result containing:
+                - status: "SUCCESS" or "FAILED"
+                - step_results: List of results from each step
+                - final_outputs: The final outputs of the workflow
+                - error_message: Error message if the workflow failed
+
+        Raises:
+            ValueError: If the workflow fails validation against architectural constraints.
+            RuntimeError: If there's an error during workflow execution.
+
+        Example:
+            ```python
+            # Execute a workflow with inputs
+            result = await engine.run_workflow(
+                workflow,
+                initial_inputs={
+                    "param1": "value1",
+                    "param2": "value2"
+                }
+            )
+
+            # Check the result
+            if result.status == "SUCCESS":
+                print(f"Final outputs: {result.final_outputs}")
+            else:
+                print(f"Error: {result.error_message}")
+            ```
         """
-        execution_id = str(uuid.uuid4()) # Generate a unique ID for this execution run
+        execution_id = str(uuid.uuid4())
         start_time = datetime.utcnow()
-        overall_status = "RUNNING" # Initial status
-        step_results_log: List[Dict[str, Any]] = [] # To store results of each step
-        workflow_context: Dict[str, Any] = {} # Stores outputs of completed steps, keyed by step_id
-        final_workflow_outputs: Optional[Dict[str, Any]] = None
-        workflow_error_message: Optional[str] = None
-
-        if initial_inputs:
-            workflow_context["workflow_initial_inputs"] = initial_inputs
-
-        print(f"[{start_time}] Starting workflow '{workflow.name}' (ID: {workflow.workflow_id}, Execution ID: {execution_id})")
+        logger.info(f"Starting workflow '{workflow.name}' (ID: {workflow.workflow_id}, Execution ID: {execution_id})")
 
         try:
-            # ADDED: Validate workflow against constraints
             if self.constraints:
                 self._validate_workflow_against_constraints(workflow)
 
             if workflow.execution_mode == "sequential":
-                for step in workflow.steps:
-                    print(f"  Executing step '{step.name}' (ID: {step.step_id}, MCP: {step.mcp_id})")
-                    step_start_time = datetime.utcnow()
-                    step_status = "FAILED" # Default to FAILED
-                    step_output_data: Optional[Dict[str, Any]] = None
-                    step_error: Optional[str] = None
-                    resolved_inputs: Dict[str, Any] = {}
-
-                    try:
-                        # 1. Resolve Inputs for the current step
-                        resolved_inputs = self._resolve_step_inputs(step, workflow_context)
-                        print(f"    Resolved inputs for step '{step.name}': {resolved_inputs}")
-
-                        # 2. Get MCP Instance from DB
-                        # MODIFIED: Use registry to get MCP instance
-                        mcp_instance = registry.get_mcp_instance_from_db(
-                            db=self.db_session, 
-                            mcp_id_str=step.mcp_id, 
-                            mcp_version_str=step.mcp_version_id # Pass the version from the step
-                        )
-                        
-                        if not mcp_instance:
-                            raise ValueError(f"MCP instance for ID '{step.mcp_id}' (Version: {step.mcp_version_id or 'latest'}) not found or failed to instantiate.")
-                        
-                        # Old way:
-                        # mcp_data = self.mcp_server_registry.get(step.mcp_id)
-                        # if not mcp_data or not mcp_data.get("instance"):
-                        #     raise ValueError(f"MCP instance for ID '{step.mcp_id}' not found or not executable.")
-                        # mcp_instance: BaseMCPServer = mcp_data["instance"]
-
-                        # 3. Execute MCP
-                        # Assuming mcp_instance.execute returns a dict like MCPResult Pydantic model
-                        # (or at least fields: success, result, error, stdout, stderr)
-                        mcp_execution_result: Dict[str, Any] = await mcp_instance.execute(resolved_inputs)
-                        
-                        if mcp_execution_result.get("success"):
-                            step_status = "SUCCESS"
-                            step_output_data = mcp_execution_result.get("result")
-                            # Store step output in workflow_context for subsequent steps
-                            workflow_context[step.step_id] = {"outputs": step_output_data}
-                            print(f"    Step '{step.name}' completed successfully. Output: {step_output_data}")
-                        else:
-                            step_error = mcp_execution_result.get("error", "Unknown error during MCP execution.")
-                            print(f"    Step '{step.name}' failed. Error: {step_error}")
-                            # Apply error handling strategy
-                            if workflow.error_handling.strategy == "Stop on Error":
-                                overall_status = "FAILED"
-                                workflow_error_message = f"Workflow failed at step '{step.name}': {step_error}"
-                                break # Stop workflow execution
-                            # TODO: Implement other strategies like "Retry with Backoff", "Fallback Chain"
-                            # For Retry: a loop here with delays (asyncio.sleep)
-                            # For Fallback: trigger another workflow (would need another run_workflow call)
-
-                    except Exception as e:
-                        step_error = f"Error during step '{step.name}' execution: {str(e)}\n{traceback.format_exc()}"
-                        print(f"    {step_error}")
-                        if workflow.error_handling.strategy == "Stop on Error":
-                            overall_status = "FAILED"
-                            workflow_error_message = step_error
-                            break 
-                        # Handle other strategies if applicable
-                    
-                    finally:
-                        step_end_time = datetime.utcnow()
-                        step_results_log.append({
-                            "step_id": step.step_id,
-                            "mcp_id": step.mcp_id,
-                            "name": step.name,
-                            "status": step_status,
-                            "started_at": step_start_time.isoformat(),
-                            "finished_at": step_end_time.isoformat(),
-                            "inputs_used": resolved_inputs, # For debugging and auditing
-                            "outputs_generated": step_output_data,
-                            "error": step_error
-                        })
-                        if overall_status == "FAILED": # If a step caused workflow to fail and stop
-                            break
+                return await self._execute_sequential_workflow(workflow, initial_inputs, execution_id, start_time)
             else:
-                # TODO: Implement parallel execution logic if mode is "parallel"
-                # This would involve graph traversal (based on step.depends_on) and asyncio.gather for concurrent tasks.
-                overall_status = "FAILED"
-                workflow_error_message = f"Execution mode '{workflow.execution_mode}' not yet implemented."
-                print(workflow_error_message)
-
-            if overall_status != "FAILED":
-                overall_status = "SUCCESS"
-                # TODO: Define how final_workflow_outputs are determined. 
-                # E.g., output of the last step, or a specifically designated set of outputs from various steps.
-                # For now, let's assume the output of the last successful step if sequential.
-                if workflow.steps and step_results_log and step_results_log[-1]["status"] == "SUCCESS":
-                    final_workflow_outputs = step_results_log[-1]["outputs_generated"]
-                print(f"Workflow '{workflow.name}' completed successfully.")
+                error_msg = f"Execution mode '{workflow.execution_mode}' not yet implemented."
+                logger.error(error_msg)
+                return WorkflowExecutionResult(
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None
+                )
 
         except Exception as e:
-            overall_status = "FAILED"
-            workflow_error_message = f"Critical error during workflow execution: {str(e)}\n{traceback.format_exc()}"
-            print(workflow_error_message)
-        
-        finally:
-            end_time = datetime.utcnow()
-            print(f"[{end_time}] Workflow '{workflow.name}' finished with status: {overall_status}")
+            error_msg = f"Workflow execution failed: {str(e)}\n{traceback.format_exc()}"
+            logger.error(error_msg)
             return WorkflowExecutionResult(
-                workflow_id=workflow.workflow_id,
-                execution_id=execution_id,
-                status=overall_status,
-                started_at=start_time,
-                finished_at=end_time,
-                step_results=step_results_log,
-                final_outputs=final_workflow_outputs,
-                error_message=workflow_error_message
+                status="FAILED",
+                error_message=error_msg,
+                step_results=[],
+                final_outputs=None
             )
+
+    async def _execute_sequential_workflow(
+        self,
+        workflow: Workflow,
+        initial_inputs: Optional[Dict[str, Any]],
+        execution_id: str,
+        start_time: datetime
+    ) -> WorkflowExecutionResult:
+        """
+        Execute a workflow in sequential mode.
+
+        This method executes workflow steps one after another, maintaining
+        the workflow context and handling errors according to the workflow's
+        error strategy.
+
+        Args:
+            workflow (Workflow): The workflow to execute.
+            initial_inputs (Optional[Dict[str, Any]]): Initial inputs for the workflow.
+            execution_id (str): Unique identifier for this execution.
+            start_time (datetime): When the workflow started.
+
+        Returns:
+            WorkflowExecutionResult: The execution result containing:
+                - status: "SUCCESS" or "FAILED"
+                - step_results: List of results from each step
+                - final_outputs: The final outputs of the workflow
+                - error_message: Error message if the workflow failed
+
+        Example:
+            ```python
+            # Execute a sequential workflow
+            result = await engine._execute_sequential_workflow(
+                workflow,
+                initial_inputs={"param1": "value1"},
+                execution_id="exec-123",
+                start_time=datetime.utcnow()
+            )
+            ```
+        """
+        workflow_context = {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        step_results = []
+
+        for step in workflow.steps:
+            step_result = await self._execute_workflow_step(step, workflow_context, workflow.error_handling.strategy)
+            step_results.append(step_result)
+
+            if step_result["status"] == "FAILED":
+                return WorkflowExecutionResult(
+                    status="FAILED",
+                    error_message=step_result["error"],
+                    step_results=step_results,
+                    final_outputs=None
+                )
+
+        # If we get here, all steps succeeded
+        final_outputs = step_results[-1]["outputs_generated"] if step_results else None
+        return WorkflowExecutionResult(
+            status="SUCCESS",
+            error_message=None,
+            step_results=step_results,
+            final_outputs=final_outputs
+        )
+
+    async def _execute_workflow_step(
+        self,
+        step: WorkflowStep,
+        workflow_context: Dict[str, Any],
+        error_strategy: str
+    ) -> Dict[str, Any]:
+        """
+        Execute a single workflow step.
+
+        This method handles the execution of an individual workflow step by:
+        1. Resolving the step's inputs from the workflow context
+        2. Loading and instantiating the required MCP
+        3. Executing the MCP with the resolved inputs
+        4. Handling any errors that occur during execution
+        5. Storing the step's results in the workflow context
+
+        Args:
+            step (WorkflowStep): The step to execute.
+            workflow_context (Dict[str, Any]): Current workflow context containing:
+                - workflow_initial_inputs: Initial inputs for the workflow
+                - step_id: Outputs from previously executed steps
+            error_strategy (str): How to handle errors (e.g., "stop_on_error", "continue").
+
+        Returns:
+            Dict[str, Any]: Step execution result containing:
+                - step_id: ID of the executed step
+                - mcp_id: ID of the MCP used
+                - name: Name of the step
+                - status: "SUCCESS" or "FAILED"
+                - started_at: When the step started
+                - finished_at: When the step finished
+                - inputs_used: Inputs used for execution
+                - outputs_generated: Outputs generated by the step
+                - error: Error message if the step failed
+
+        Example:
+            ```python
+            # Execute a workflow step
+            result = await engine._execute_workflow_step(
+                step,
+                workflow_context={
+                    "workflow_initial_inputs": {"param1": "value1"},
+                    "step-1": {"outputs": {"output1": "value2"}}
+                },
+                error_strategy="stop_on_error"
+            )
+            ```
+        """
+        step_start_time = datetime.utcnow()
+        logger.info(f"Executing step '{step.name}' (ID: {step.step_id}, MCP: {step.mcp_id})")
+
+        try:
+            resolved_inputs = self._resolve_step_inputs(step, workflow_context)
+            logger.debug(f"Resolved inputs for step '{step.name}': {resolved_inputs}")
+
+            mcp_instance = registry.get_mcp_instance_from_db(
+                db=self.db_session,
+                mcp_id_str=step.mcp_id,
+                mcp_version_str=step.mcp_version_id
+            )
+
+            if not mcp_instance:
+                raise ValueError(
+                    f"MCP instance for ID '{step.mcp_id}' "
+                    f"(Version: {step.mcp_version_id or 'latest'}) not found or failed to instantiate."
+                )
+
+            mcp_result = await mcp_instance.execute(resolved_inputs)
+            
+            if mcp_result.get("success"):
+                workflow_context[step.step_id] = {"outputs": mcp_result.get("result")}
+                return {
+                    "step_id": step.step_id,
+                    "mcp_id": step.mcp_id,
+                    "name": step.name,
+                    "status": "SUCCESS",
+                    "started_at": step_start_time.isoformat(),
+                    "finished_at": datetime.utcnow().isoformat(),
+                    "inputs_used": resolved_inputs,
+                    "outputs_generated": mcp_result.get("result"),
+                    "error": None
+                }
+            else:
+                error_msg = mcp_result.get("error", "Unknown error during MCP execution.")
+                logger.error(f"Step '{step.name}' failed: {error_msg}")
+                return {
+                    "step_id": step.step_id,
+                    "mcp_id": step.mcp_id,
+                    "name": step.name,
+                    "status": "FAILED",
+                    "started_at": step_start_time.isoformat(),
+                    "finished_at": datetime.utcnow().isoformat(),
+                    "inputs_used": resolved_inputs,
+                    "outputs_generated": None,
+                    "error": error_msg
+                }
+
+        except Exception as e:
+            error_msg = f"Error during step '{step.name}' execution: {str(e)}\n{traceback.format_exc()}"
+            logger.error(error_msg)
+            return {
+                "step_id": step.step_id,
+                "mcp_id": step.mcp_id,
+                "name": step.name,
+                "status": "FAILED",
+                "started_at": step_start_time.isoformat(),
+                "finished_at": datetime.utcnow().isoformat(),
+                "inputs_used": resolved_inputs if 'resolved_inputs' in locals() else None,
+                "outputs_generated": None,
+                "error": error_msg
+            }
 
     def _validate_workflow_against_constraints(self, workflow: Workflow) -> None:
         """
         Validates the workflow definition against the architectural constraints
         provided to the engine.
 
+        This method checks:
+        1. Maximum number of steps
+        2. Allowed/prohibited MCP types
+        3. Required/prohibited tags
+        4. Other architectural constraints
+
         Args:
             workflow (Workflow): The workflow to validate.
 
         Raises:
             ValueError: If any constraint is violated.
+
+        Example:
+            ```python
+            # Validate a workflow
+            try:
+                engine._validate_workflow_against_constraints(workflow)
+                print("Workflow passed validation")
+            except ValueError as e:
+                print(f"Validation failed: {e}")
+            ```
         """
         if not self.constraints: # Should not happen if called correctly, but good practice
             return
@@ -277,14 +488,16 @@ class WorkflowEngine:
     ) -> Dict[str, Any]:
         """
         Resolves the actual input values for an MCP step based on its input definitions
-        and the current workflow context (initial inputs, outputs of previous steps).
+        and the current workflow context.
+
+        This method handles three types of input sources:
+        1. STATIC_VALUE: A constant value defined in the workflow
+        2. WORKFLOW_INPUT: A value from the workflow's initial inputs
+        3. STEP_OUTPUT: A value from a previously executed step's output
 
         Args:
             step (WorkflowStep): The workflow step for which to resolve inputs.
-            workflow_context (Dict[str, Any]): 
-                The current context of the workflow execution, containing initial inputs 
-                and outputs from already executed steps.
-                Example structure:
+            workflow_context (Dict[str, Any]): The current context of the workflow execution:
                 {
                     "workflow_initial_inputs": { "input1": "value1", ... },
                     "step_id_1": { "outputs": { "output_A": "dataA" } },
@@ -295,10 +508,22 @@ class WorkflowEngine:
         Returns:
             Dict[str, Any]: A dictionary where keys are the MCP's expected input parameter names
                             and values are the resolved actual input values.
-        
+
         Raises:
             ValueError: If an input cannot be resolved (e.g., missing source step output,
                         missing workflow input, or invalid configuration).
+
+        Example:
+            ```python
+            # Resolve inputs for a step
+            inputs = engine._resolve_step_inputs(
+                step,
+                workflow_context={
+                    "workflow_initial_inputs": {"param1": "value1"},
+                    "step-1": {"outputs": {"output1": "value2"}}
+                }
+            )
+            ```
         """
         resolved_inputs: Dict[str, Any] = {}
         for mcp_input_name, step_input_config in step.inputs.items():

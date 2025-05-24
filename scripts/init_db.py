@@ -1,71 +1,63 @@
-import sys
-import os
+"""
+Database Initialization Script
 
-# Correctly set up PYTHONPATH before other imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+This script initializes the database for the MCP system.
+It performs:
+
+1. Database schema creation
+2. Initial data seeding
+3. Index creation
+4. Constraint setup
+5. Migration handling
+
+Usage:
+    ```bash
+    # Initialize the database
+    python scripts/init_db.py
+    ```
+"""
+
+import os
+import sys
+import logging
+from pathlib import Path
+
+# Add the project root to the Python path
+project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
-from alembic.config import Config
-from alembic import command
-from mcp.db.session import DB_CONFIG
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-
-def create_database():
-    """Create the database if it doesn't exist."""
-    # Connect to PostgreSQL server
-    conn = psycopg2.connect(
-        host=DB_CONFIG['host'],
-        port=DB_CONFIG['port'],
-        user=DB_CONFIG['user'],
-        password=DB_CONFIG['password']
-    )
-    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    
-    # Create a cursor
-    cur = conn.cursor()
-    
-    try:
-        # Check if database exists
-        cur.execute("SELECT 1 FROM pg_catalog.pg_database WHERE datname = %s", (DB_CONFIG['database'],))
-        exists = cur.fetchone()
-        
-        if not exists:
-            # Create database
-            cur.execute(f"CREATE DATABASE {DB_CONFIG['database']}")
-            print(f"Database {DB_CONFIG['database']} created successfully.")
-        else:
-            print(f"Database {DB_CONFIG['database']} already exists.")
-            
-    except Exception as e:
-        print(f"Error creating database: {e}")
-        raise
-    finally:
-        cur.close()
-        conn.close()
-
-def run_migrations():
-    """Run database migrations using Alembic."""
-    # Create Alembic configuration
-    alembic_cfg = Config("alembic.ini")
-    
-    try:
-        # Run migrations
-        command.upgrade(alembic_cfg, "head")
-        print("Database migrations completed successfully.")
-    except Exception as e:
-        print(f"Error running migrations: {e}")
-        raise
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def main():
-    """Initialize the database and run migrations."""
-    print("Initializing database...")
-    create_database()
+    """
+    Main function to initialize the database.
     
-    print("Running migrations...")
-    run_migrations()
+    This function:
+    1. Sets up the database connection
+    2. Creates all tables
+    3. Seeds initial data
+    4. Handles any errors
     
-    print("Database initialization completed successfully.")
+    Raises:
+        Exception: If database initialization fails
+    """
+    try:
+        # Import here to ensure proper path setup
+        from mcp.db.init_db import init_database
+        
+        # Initialize the database
+        logger.info("Starting database initialization...")
+        init_database()
+        logger.info("Database initialized successfully!")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main() 

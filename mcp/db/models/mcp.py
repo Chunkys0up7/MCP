@@ -1,54 +1,110 @@
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, JSON, func
+"""
+MCP Database Models
+
+This module defines the SQLAlchemy models for storing MCP (Model Context Protocol)
+definitions and their versions in the database. These models are used to track
+the evolution of MCPs over time and maintain their metadata.
+
+The models support:
+1. Version control of MCP definitions
+2. Metadata tracking (creation, modification, status)
+3. Tag-based categorization
+4. Input/output schema validation
+5. Configuration management
+"""
+
+from datetime import datetime
+from typing import List, Optional
+from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Enum, Table
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID # For PostgreSQL UUID type
-from pgvector.sqlalchemy import Vector # Import Vector type
-import uuid # For default factory
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
-from ..base_models import Base # Changed import
+from ..base_models import Base
+from ...schemas.mcp import MCPType, MCPStatus
 
-EMBEDDING_DIM = 384 # Define embedding dimension
+# Association table for MCP tags
+mcp_tags = Table(
+    'mcp_tags',
+    Base.metadata,
+    Column('mcp_id', UUID(as_uuid=True), ForeignKey('mcps.id')),
+    Column('tag', String)
+)
 
 class MCP(Base):
-    __tablename__ = "mcp__mcps"
-
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), nullable=False, index=True)
-    # For MCPType, store as string. SQLAlchemy can handle Enum directly too.
-    type = Column(String(50), nullable=False, index=True) # Store enum as string
-    description = Column(Text, nullable=True)
-    tags = Column(JSON, nullable=True) # Store list of strings as JSON array
-    embedding = Column(Vector(EMBEDDING_DIM), nullable=True) # Add embedding column
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-
-    versions = relationship("MCPVersion", back_populates="mcp", cascade="all, delete-orphan")
-    # latest_version_id = Column(PG_UUID(as_uuid=True), ForeignKey("mcp__mcp_versions.id"), nullable=True) # Optional: direct link to latest version
-    # latest_version = relationship("MCPVersion", foreign_keys=[latest_version_id])
+    """
+    Represents a Model Context Protocol (MCP) definition in the database.
+    
+    An MCP is a reusable component that defines:
+    1. Input/output schemas
+    2. Configuration parameters
+    3. Implementation details
+    4. Metadata and versioning
+    
+    Attributes:
+        id (UUID): Unique identifier for the MCP
+        name (str): Human-readable name of the MCP
+        description (str): Detailed description of the MCP's purpose and functionality
+        type (MCPType): Type of the MCP (e.g., PYTHON_SCRIPT, API_ENDPOINT)
+        current_version_id (UUID): ID of the current active version
+        tags (List[str]): List of tags for categorization
+        created_at (datetime): When the MCP was created
+        updated_at (datetime): When the MCP was last updated
+        versions (List[MCPVersion]): List of all versions of this MCP
+        current_version (MCPVersion): The current active version
+    """
+    
+    __tablename__ = 'mcps'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    description = Column(String)
+    type = Column(Enum(MCPType), nullable=False)
+    current_version_id = Column(UUID(as_uuid=True), ForeignKey('mcp_versions.id'))
+    tags = relationship('Tag', secondary=mcp_tags, backref='mcps')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    versions = relationship('MCPVersion', back_populates='mcp')
+    current_version = relationship('MCPVersion', foreign_keys=[current_version_id])
 
 class MCPVersion(Base):
-    __tablename__ = "mcp__mcp_versions"
-
-    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mcp_id = Column(PG_UUID(as_uuid=True), ForeignKey("mcp__mcps.id"), nullable=False, index=True)
+    """
+    Represents a specific version of an MCP definition.
     
-    version_str = Column(String(50), nullable=False, index=True)
-    description = Column(Text, nullable=True)
-    config_snapshot = Column(JSON, nullable=False) # Store config as JSON
-    # manifest_hash = Column(String(64), nullable=True, index=True) # e.g., SHA256
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    mcp = relationship("MCP", back_populates="versions")
-
-    __table_args__ = (
-        # Unique constraint for mcp_id and version_str to ensure a version is unique per MCP
-        # Consider if 'latest' or other special tags for version_str need different handling
-        # If version_str can be non-unique for things like 'latest' pointing to different actual versions over time,
-        # then this unique constraint might be too strict or need adjustment.
-        # For now, assuming version_str should be unique per mcp_id.
-        # sqlalchemy.schema.UniqueConstraint('mcp_id', 'version_str', name='uq_mcp_version_str'),
-    )
+    Each version contains:
+    1. The complete MCP definition
+    2. Input/output schemas
+    3. Configuration parameters
+    4. Implementation details
+    5. Status and metadata
+    
+    Attributes:
+        id (UUID): Unique identifier for the version
+        mcp_id (UUID): ID of the parent MCP
+        version (str): Version number (e.g., "1.0.0")
+        definition (dict): Complete MCP definition including:
+            - input_schema: JSON Schema for inputs
+            - output_schema: JSON Schema for outputs
+            - config_schema: JSON Schema for configuration
+            - implementation: Implementation details
+        status (MCPStatus): Current status (e.g., DRAFT, ACTIVE, DEPRECATED)
+        created_at (datetime): When the version was created
+        updated_at (datetime): When the version was last updated
+        mcp (MCP): Reference to the parent MCP
+    """
+    
+    __tablename__ = 'mcp_versions'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    mcp_id = Column(UUID(as_uuid=True), ForeignKey('mcps.id'), nullable=False)
+    version = Column(String, nullable=False)
+    definition = Column(JSON, nullable=False)
+    status = Column(Enum(MCPStatus), default=MCPStatus.DRAFT)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    mcp = relationship('MCP', back_populates='versions')
 
 # Ensure mcp.db.base_class.Base is correctly defined, e.g.:
 # from sqlalchemy.ext.declarative import as_declarative, declared_attr

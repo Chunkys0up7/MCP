@@ -4,7 +4,15 @@ Revision ID: 20240321_initial
 Revises: 
 Create Date: 2024-03-21 10:00:00.000000
 
+This is the initial migration that creates the base database schema.
+It sets up the following tables:
+1. mcp_configurations - Stores MCP configuration definitions
+2. mcp_chains - Stores MCP chain definitions and their relationships
+3. chain_sessions - Stores active chain execution sessions
+4. mcp_permissions - Stores user permissions for MCP chains
+5. audit_logs - Stores audit trail of system actions
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -17,6 +25,16 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """
+    Create the initial database schema.
+    
+    This function creates all the base tables needed for the MCP system:
+    - mcp_configurations: Stores MCP configuration definitions
+    - mcp_chains: Stores MCP chain definitions and their relationships
+    - chain_sessions: Stores active chain execution sessions
+    - mcp_permissions: Stores user permissions for MCP chains
+    - audit_logs: Stores audit trail of system actions
+    """
     # Create mcp_configurations table
     op.create_table(
         'mcp_configurations',
@@ -81,6 +99,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """
+    Remove the initial database schema.
+    
+    This function drops all tables created in the upgrade function in the
+    reverse order of their creation to handle foreign key dependencies.
+    """
     op.drop_table('audit_logs')
     op.drop_table('mcp_permissions')
     op.drop_table('chain_sessions')

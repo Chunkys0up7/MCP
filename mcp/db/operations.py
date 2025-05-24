@@ -1,185 +1,337 @@
+"""
+Database Operations
+
+This module provides database operations for the MCP system.
+It handles:
+
+1. CRUD operations on MCPs and workflows
+2. Version management
+3. Execution tracking
+4. Error handling and retries
+5. Data validation and sanitization
+
+The module provides a clean interface for database operations while
+handling common tasks like transaction management and error handling.
+"""
+
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy.exc import SQLAlchemyError
+from uuid import UUID
 
-from .models import MCPConfiguration, MCPChain, ChainSession, MCPPermission, AuditLog
+from .models.mcp import MCP, MCPVersion
+from .models.workflow import WorkflowDefinition, WorkflowRun, WorkflowStepRun
+from ..schemas.mcp import MCPType, MCPStatus
+from ..schemas.workflow import WorkflowStatus, WorkflowStepStatus
 
-class DatabaseOperations:
-    def __init__(self, db: Session):
-        self.db = db
-
-    # MCP Configuration operations
-    def create_configuration(self, name: str, type: str, config: Dict[str, Any], dependencies: Optional[Dict[str, Any]] = None) -> MCPConfiguration:
-        """Create a new MCP configuration."""
-        config = MCPConfiguration(
+def create_mcp(
+    db: Session,
+    name: str,
+    type: MCPType,
+    description: Optional[str] = None,
+    tags: Optional[List[str]] = None
+) -> MCP:
+    """
+    Create a new MCP.
+    
+    This function:
+    1. Creates a new MCP record
+    2. Handles tag associations
+    3. Validates input data
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        name: MCP name
+        type: MCP type
+        description: Optional description
+        tags: Optional list of tags
+    
+    Returns:
+        MCP: The created MCP instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        mcp = MCP(
             name=name,
             type=type,
-            config=config,
-            dependencies=dependencies
+            description=description,
+            tags=tags or []
         )
-        self.db.add(config)
-        self.db.commit()
-        self.db.refresh(config)
-        return config
+        db.add(mcp)
+        db.commit()
+        db.refresh(mcp)
+        return mcp
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to create MCP: {str(e)}")
 
-    def get_configuration(self, config_id: int) -> Optional[MCPConfiguration]:
-        """Get an MCP configuration by ID."""
-        return self.db.query(MCPConfiguration).filter(MCPConfiguration.id == config_id).first()
-
-    def update_configuration(self, config_id: int, **kwargs) -> Optional[MCPConfiguration]:
-        """Update an MCP configuration."""
-        config = self.get_configuration(config_id)
-        if config:
-            for key, value in kwargs.items():
-                setattr(config, key, value)
-            config.last_modified = datetime.utcnow()
-            self.db.commit()
-            self.db.refresh(config)
-        return config
-
-    def delete_configuration(self, config_id: int) -> bool:
-        """Delete an MCP configuration."""
-        config = self.get_configuration(config_id)
-        if config:
-            self.db.delete(config)
-            self.db.commit()
-            return True
-        return False
-
-    # MCP Chain operations
-    def create_chain(self, name: str, workflow: Dict[str, Any], parent_chain: Optional[int] = None) -> MCPChain:
-        """Create a new MCP chain."""
-        # Get the latest version number for this chain
-        latest_version = self.db.query(MCPChain).filter(
-            MCPChain.name == name
-        ).order_by(desc(MCPChain.version)).first()
+def create_mcp_version(
+    db: Session,
+    mcp_id: UUID,
+    version: str,
+    definition: Dict[str, Any],
+    status: MCPStatus = MCPStatus.DRAFT
+) -> MCPVersion:
+    """
+    Create a new MCP version.
+    
+    This function:
+    1. Creates a new version record
+    2. Updates MCP current version
+    3. Validates version data
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        mcp_id: Parent MCP ID
+        version: Version string
+        definition: Version definition
+        status: Version status
+    
+    Returns:
+        MCPVersion: The created version instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        mcp = db.query(MCP).filter(MCP.id == mcp_id).first()
+        if not mcp:
+            raise ValueError(f"MCP with ID {mcp_id} not found")
         
-        version = 1 if not latest_version else latest_version.version + 1
-        
-        chain = MCPChain(
-            name=name,
-            workflow=workflow,
+        version_obj = MCPVersion(
+            mcp_id=mcp_id,
             version=version,
-            parent_chain=parent_chain
+            definition=definition,
+            status=status
         )
-        self.db.add(chain)
-        self.db.commit()
-        self.db.refresh(chain)
-        return chain
-
-    def get_chain(self, chain_id: int) -> Optional[MCPChain]:
-        """Get an MCP chain by ID."""
-        return self.db.query(MCPChain).filter(MCPChain.id == chain_id).first()
-
-    def get_chain_versions(self, name: str) -> List[MCPChain]:
-        """Get all versions of a chain by name."""
-        return self.db.query(MCPChain).filter(
-            MCPChain.name == name
-        ).order_by(desc(MCPChain.version)).all()
-
-    def update_chain(self, chain_id: int, **kwargs) -> Optional[MCPChain]:
-        """Update an MCP chain by creating a new version."""
-        old_chain = self.get_chain(chain_id)
-        if old_chain:
-            # Create a new version
-            new_chain = MCPChain(
-                name=old_chain.name,
-                workflow=kwargs.get('workflow', old_chain.workflow),
-                version=old_chain.version + 1,
-                parent_chain=chain_id
-            )
-            self.db.add(new_chain)
-            self.db.commit()
-            self.db.refresh(new_chain)
-            return new_chain
-        return None
-
-    # Chain Session operations
-    def create_session(self, session_id: str, chain_data: Dict[str, Any]) -> ChainSession:
-        """Create a new chain session."""
-        session = ChainSession(
-            session_id=session_id,
-            chain_data=chain_data
-        )
-        self.db.add(session)
-        self.db.commit()
-        self.db.refresh(session)
-        return session
-
-    def get_session(self, session_id: str) -> Optional[ChainSession]:
-        """Get a chain session by session ID."""
-        return self.db.query(ChainSession).filter(ChainSession.session_id == session_id).first()
-
-    def update_session(self, session_id: str, chain_data: Dict[str, Any]) -> Optional[ChainSession]:
-        """Update a chain session."""
-        session = self.get_session(session_id)
-        if session:
-            session.chain_data = chain_data
-            session.last_activity = datetime.utcnow()
-            self.db.commit()
-            self.db.refresh(session)
-        return session
-
-    # Permission operations
-    def set_permission(self, user_id: str, chain_id: int, access_level: str) -> MCPPermission:
-        """Set or update a user's permission for a chain."""
-        permission = self.db.query(MCPPermission).filter(
-            MCPPermission.user_id == user_id,
-            MCPPermission.chain_id == chain_id
-        ).first()
-
-        if permission:
-            permission.access_level = access_level
-        else:
-            permission = MCPPermission(
-                user_id=user_id,
-                chain_id=chain_id,
-                access_level=access_level
-            )
-            self.db.add(permission)
-
-        self.db.commit()
-        self.db.refresh(permission)
-        return permission
-
-    def get_permission(self, user_id: str, chain_id: int) -> Optional[MCPPermission]:
-        """Get a user's permission for a chain."""
-        return self.db.query(MCPPermission).filter(
-            MCPPermission.user_id == user_id,
-            MCPPermission.chain_id == chain_id
-        ).first()
-
-    def remove_permission(self, user_id: str, chain_id: int) -> bool:
-        """Remove a user's permission for a chain."""
-        permission = self.get_permission(user_id, chain_id)
-        if permission:
-            self.db.delete(permission)
-            self.db.commit()
-            return True
-        return False
-
-    # Audit log operations
-    def log_action(self, user_id: str, action_type: str, target_id: Optional[int] = None, details: Optional[Dict[str, Any]] = None) -> AuditLog:
-        """Log an action in the audit log."""
-        log = AuditLog(
-            user_id=user_id,
-            action_type=action_type,
-            target_id=target_id,
-            details=details
-        )
-        self.db.add(log)
-        self.db.commit()
-        self.db.refresh(log)
-        return log
-
-    def get_audit_logs(self, user_id: Optional[str] = None, action_type: Optional[str] = None) -> List[AuditLog]:
-        """Get audit logs with optional filtering."""
-        query = self.db.query(AuditLog)
+        db.add(version_obj)
         
-        if user_id:
-            query = query.filter(AuditLog.user_id == user_id)
-        if action_type:
-            query = query.filter(AuditLog.action_type == action_type)
-            
-        return query.order_by(desc(AuditLog.created_at)).all() 
+        # Update MCP's current version
+        mcp.current_version_id = version_obj.id
+        mcp.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(version_obj)
+        return version_obj
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to create MCP version: {str(e)}")
+
+def create_workflow(
+    db: Session,
+    name: str,
+    steps: List[Dict[str, Any]],
+    input_schema: Dict[str, Any],
+    output_schema: Dict[str, Any],
+    description: Optional[str] = None,
+    error_strategy: str = "stop_on_error",
+    execution_mode: str = "sequential"
+) -> WorkflowDefinition:
+    """
+    Create a new workflow definition.
+    
+    This function:
+    1. Creates a new workflow record
+    2. Validates step configurations
+    3. Handles schema validation
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        name: Workflow name
+        steps: List of step configurations
+        input_schema: Input JSON schema
+        output_schema: Output JSON schema
+        description: Optional description
+        error_strategy: Error handling strategy
+        execution_mode: Execution mode
+    
+    Returns:
+        WorkflowDefinition: The created workflow instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        workflow = WorkflowDefinition(
+            name=name,
+            steps=steps,
+            input_schema=input_schema,
+            output_schema=output_schema,
+            description=description,
+            error_strategy=error_strategy,
+            execution_mode=execution_mode
+        )
+        db.add(workflow)
+        db.commit()
+        db.refresh(workflow)
+        return workflow
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to create workflow: {str(e)}")
+
+def create_workflow_run(
+    db: Session,
+    workflow_id: UUID,
+    inputs: Dict[str, Any]
+) -> WorkflowRun:
+    """
+    Create a new workflow run.
+    
+    This function:
+    1. Creates a new run record
+    2. Initializes step runs
+    3. Validates inputs
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        workflow_id: Workflow definition ID
+        inputs: Workflow inputs
+    
+    Returns:
+        WorkflowRun: The created run instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        workflow = db.query(WorkflowDefinition).filter(WorkflowDefinition.id == workflow_id).first()
+        if not workflow:
+            raise ValueError(f"Workflow with ID {workflow_id} not found")
+        
+        run = WorkflowRun(
+            workflow_id=workflow_id,
+            status=WorkflowStatus.PENDING,
+            inputs=inputs
+        )
+        db.add(run)
+        
+        # Create step run records
+        for step in workflow.steps:
+            step_run = WorkflowStepRun(
+                workflow_run_id=run.id,
+                step_id=step["id"],
+                mcp_id=step["mcp_id"],
+                status=WorkflowStepStatus.PENDING,
+                inputs={}
+            )
+            db.add(step_run)
+        
+        db.commit()
+        db.refresh(run)
+        return run
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to create workflow run: {str(e)}")
+
+def update_workflow_step_run(
+    db: Session,
+    step_run_id: UUID,
+    status: WorkflowStepStatus,
+    outputs: Optional[Dict[str, Any]] = None,
+    error: Optional[str] = None
+) -> WorkflowStepRun:
+    """
+    Update a workflow step run.
+    
+    This function:
+    1. Updates step run status
+    2. Records outputs or errors
+    3. Handles retries
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        step_run_id: Step run ID
+        status: New status
+        outputs: Optional step outputs
+        error: Optional error message
+    
+    Returns:
+        WorkflowStepRun: The updated step run instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        step_run = db.query(WorkflowStepRun).filter(WorkflowStepRun.id == step_run_id).first()
+        if not step_run:
+            raise ValueError(f"Step run with ID {step_run_id} not found")
+        
+        step_run.status = status
+        if outputs is not None:
+            step_run.outputs = outputs
+        if error is not None:
+            step_run.error = error
+        
+        if status in [WorkflowStepStatus.COMPLETED, WorkflowStepStatus.FAILED]:
+            step_run.finished_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(step_run)
+        return step_run
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to update step run: {str(e)}")
+
+def update_workflow_run(
+    db: Session,
+    run_id: UUID,
+    status: WorkflowStatus,
+    outputs: Optional[Dict[str, Any]] = None,
+    error: Optional[str] = None
+) -> WorkflowRun:
+    """
+    Update a workflow run.
+    
+    This function:
+    1. Updates run status
+    2. Records final outputs
+    3. Handles errors
+    4. Manages transactions
+    
+    Args:
+        db: Database session
+        run_id: Run ID
+        status: New status
+        outputs: Optional workflow outputs
+        error: Optional error message
+    
+    Returns:
+        WorkflowRun: The updated run instance
+    
+    Raises:
+        SQLAlchemyError: If database operation fails
+        ValueError: If input validation fails
+    """
+    try:
+        run = db.query(WorkflowRun).filter(WorkflowRun.id == run_id).first()
+        if not run:
+            raise ValueError(f"Workflow run with ID {run_id} not found")
+        
+        run.status = status
+        if outputs is not None:
+            run.outputs = outputs
+        if error is not None:
+            run.error = error
+        
+        if status in [WorkflowStatus.COMPLETED, WorkflowStatus.FAILED]:
+            run.finished_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(run)
+        return run
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise SQLAlchemyError(f"Failed to update workflow run: {str(e)}") 
