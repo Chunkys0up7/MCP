@@ -18,8 +18,24 @@
 
 2.  **UI - Component Marketplace:**
     *   **Task:** Start developing the "Faceted Search Screen" UI elements. (Ref: `docs/plan` 4.1)
+        *   **Status:** COMPLETED - Implemented `FacetedSearchScreen` component with:
+            *   Responsive grid layout for component cards
+            *   Faceted search sidebar with filters for:
+                *   Component types
+                *   Tags
+                *   Minimum rating
+                *   Minimum usage count
+            *   Search input with debouncing
+            *   Pagination support
+            *   Loading states and error handling
+            *   Comprehensive unit tests
     *   **Task:** Integrate with a mocked or preliminary version of the Component Registry API for basic search functionality.
-    *   **Status:** Not Started (Frontend task). Backend APIs for MCP listing are available; advanced search (pgvector) is pending (see Task 5).
+        *   **Status:** COMPLETED - Implemented `componentRegistryService.ts` with:
+            *   Search components with filters
+            *   Get component by ID
+            *   Get available types
+            *   Get popular tags
+            *   All functions are ready to be connected to the backend API
 
 3.  **Backend - API Gateway & Workflow Execution Core Logic (HIGH PRIORITY):**
     *   **Task (Original):** Review existing `/workflows` and `/components/{id}` endpoints for new UI requirements.
