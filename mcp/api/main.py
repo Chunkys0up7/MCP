@@ -27,6 +27,8 @@ from .dependencies import get_current_subject
 from .routers import workflows as workflow_router
 from .routers import auth as auth_router
 
+from mcp.core.roles import UserRole, require_any_role
+
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
 rate_limit_store: Dict[str, List[float]] = defaultdict(list)
@@ -101,18 +103,19 @@ async def list_mcp_definitions(
         )
     return response_items
 
-@app.post("/context", response_model=MCPRead, status_code=201)
+@app.post("/context", response_model=MCPDetail)
 async def create_mcp_definition(
-    mcp_in: MCPCreate, 
-    db: Session = Depends(get_db), 
-    current_user_sub: str = Depends(get_current_subject)
+    mcp_data: MCPCreate,
+    db: Session = Depends(get_db),
+    current_user_sub: str = Depends(get_current_subject),
+    _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
+    """Creates a new MCP definition."""
     try:
-        created_mcp = mcp_registry_service.save_mcp_definition_to_db(db=db, mcp_data=mcp_in)
-        return created_mcp # MCPRead schema should be compatible if ORM mode is enabled
-    except Exception as e:
-        # Log the exception e
-        raise HTTPException(status_code=400, detail=f"Error creating MCP definition: {str(e)}")
+        db_mcp = mcp_registry_service.save_mcp_definition_to_db(db=db, mcp_data=mcp_data)
+        return db_mcp
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/context/{mcp_id}", response_model=MCPDetail)
 async def get_mcp_definition_details(
@@ -148,28 +151,37 @@ async def get_mcp_definition_details(
         latest_version_str=latest_version_str
     )
 
-@app.put("/context/{mcp_id}", response_model=MCPRead)
+@app.put("/context/{mcp_id}", response_model=MCPDetail)
 async def update_mcp_definition(
-    mcp_id: str, 
-    mcp_in: MCPUpdate, 
-    db: Session = Depends(get_db), 
-    current_user_sub: str = Depends(get_current_subject)
+    mcp_id: str,
+    mcp_data: MCPUpdate,
+    db: Session = Depends(get_db),
+    current_user_sub: str = Depends(get_current_subject),
+    _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
-    updated_mcp = mcp_registry_service.update_mcp_definition_in_db(db=db, mcp_id_str=mcp_id, mcp_data=mcp_in)
-    if updated_mcp is None:
-        raise HTTPException(status_code=404, detail="MCP definition not found for update")
-    return updated_mcp
+    """Updates an existing MCP definition."""
+    try:
+        db_mcp = mcp_registry_service.update_mcp_definition_in_db(db=db, mcp_id_str=mcp_id, mcp_data=mcp_data)
+        if db_mcp is None:
+            raise HTTPException(status_code=404, detail="MCP definition not found")
+        return db_mcp
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/context/{mcp_id}", status_code=204)
 async def delete_mcp_definition(
-    mcp_id: str, 
-    db: Session = Depends(get_db), 
-    current_user_sub: str = Depends(get_current_subject)
+    mcp_id: str,
+    db: Session = Depends(get_db),
+    current_user_sub: str = Depends(get_current_subject),
+    _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
-    deleted = mcp_registry_service.delete_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="MCP definition not found for deletion")
-    return Response(status_code=204) # Return 204 No Content
+    """Deletes an MCP definition."""
+    try:
+        success = mcp_registry_service.delete_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="MCP definition not found")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/context/search", response_model=List[MCPListItem])
 async def search_mcp_definitions(

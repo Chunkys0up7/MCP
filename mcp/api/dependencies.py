@@ -1,14 +1,15 @@
 """Common FastAPI dependencies, e.g., for security."""
 
-from fastapi import Security, HTTPException
+from fastapi import Security, HTTPException, Depends
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.security import OAuth2PasswordBearer
 import os
 from dotenv import load_dotenv
 import uuid # For random key generation
-from typing import Optional
+from typing import Optional, List
 from fastapi import status
 from .auth_utils import verify_access_token
+from .routers.auth import UserRole
 
 # Load environment variables from .env file
 load_dotenv()
@@ -60,3 +61,36 @@ async def get_current_subject(token: str = Security(oauth2_scheme)) -> str:
         # This case should ideally not happen if token creation always includes 'sub'
         raise CREDENTIALS_EXCEPTION_UNAUTHORIZED # Or a more specific error
     return subject 
+
+async def get_current_roles(token: str = Security(oauth2_scheme)) -> List[str]:
+    """
+    FastAPI dependency to validate JWT and extract the roles.
+    This can be used to protect endpoints that require specific roles.
+    """
+    payload = verify_access_token(token, CREDENTIALS_EXCEPTION_UNAUTHORIZED)
+    roles: List[str] = payload.get("roles", [])
+    return roles
+
+def require_role(required_role: UserRole):
+    """
+    Dependency factory to require a specific role.
+    Usage: Depends(require_role(UserRole.ADMIN))
+    """
+    async def role_dependency(token: str = Security(oauth2_scheme)):
+        roles = await get_current_roles(token)
+        if required_role not in roles:
+            raise CREDENTIALS_EXCEPTION_FORBIDDEN
+        return roles
+    return role_dependency
+
+def require_any_role(required_roles: List[UserRole]):
+    """
+    Dependency factory to require any of the specified roles.
+    Usage: Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
+    """
+    async def roles_dependency(token: str = Security(oauth2_scheme)):
+        roles = await get_current_roles(token)
+        if not any(role in roles for role in required_roles):
+            raise CREDENTIALS_EXCEPTION_FORBIDDEN
+        return roles
+    return roles_dependency 
