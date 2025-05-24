@@ -2,6 +2,8 @@ import { Node, Edge } from 'reactflow';
 import { LLMService } from './llmService';
 import { NotebookService } from './notebookService';
 import { DataService } from './dataService';
+import { apiClient } from './apiClient';
+import { WorkflowExecutionResult } from '../../domain/models/workflow';
 
 export interface ExecutionResult {
   nodeId: string;
@@ -164,6 +166,26 @@ class WorkflowExecutionService {
 
   getExecutionState(): ExecutionState {
     return { ...this.state };
+  }
+
+  private baseUrl = '/api/workflows';
+
+  async startExecution(workflowId: string): Promise<void> {
+    await apiClient.post(`${this.baseUrl}/${workflowId}/execute`);
+  }
+
+  async stopExecution(workflowId: string): Promise<void> {
+    await apiClient.post(`${this.baseUrl}/${workflowId}/stop`);
+  }
+
+  async getExecutionStatus(workflowId: string): Promise<WorkflowExecutionResult> {
+    const response = await apiClient.get(`${this.baseUrl}/${workflowId}/status`);
+    return response.data;
+  }
+
+  async getExecutionHistory(workflowId: string): Promise<WorkflowExecutionResult[]> {
+    const response = await apiClient.get(`${this.baseUrl}/${workflowId}/history`);
+    return response.data;
   }
 }
 

@@ -26,6 +26,14 @@ import { NodeConfigPanel } from './NodeConfigPanel';
 import { NodePalette } from './NodePalette';
 import { ValidationPanel } from './ValidationPanel';
 import { ExecutionPanel } from './ExecutionPanel';
+import { ExecutionMonitor } from './ExecutionMonitor';
+import { WorkflowExecutionStatus } from '../../../domain/models/workflow';
+
+interface WorkflowCanvasProps {
+  workflowId: string;
+  onSave?: () => void;
+  onValidationChange?: (isValid: boolean) => void;
+}
 
 const nodeTypes = {
   mcp: MCPNode,
@@ -36,7 +44,11 @@ const nodeTypes = {
   llm: LLMNode,
 };
 
-export const WorkflowCanvas: React.FC = () => {
+export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
+  workflowId,
+  onSave,
+  onValidationChange
+}) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -128,35 +140,37 @@ export const WorkflowCanvas: React.FC = () => {
   }, []);
 
   return (
-    <Box sx={{ width: '100%', height: '100vh', display: 'flex' }}>
-      <NodePalette />
-      <Box ref={reactFlowWrapper} sx={{ flex: 1 }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <ExecutionMonitor
+        workflowId={workflowId}
+        onExecutionComplete={(status) => {
+          if (status === 'COMPLETED') {
+            // Handle successful execution
+            console.log('Workflow execution completed successfully');
+          } else if (status === 'FAILED') {
+            // Handle failed execution
+            console.error('Workflow execution failed');
+          }
+        }}
+      />
+      <Box sx={{ flex: 1, position: 'relative' }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onInit={setReactFlowInstance}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          onNodeClick={onNodeClick}
-          onPaneClick={onPaneClick}
           nodeTypes={nodeTypes}
           fitView
         >
-          <Background />
           <Controls />
           <MiniMap />
-          <Panel position="top-center">
-            <Box sx={{ bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-              Workflow Builder
-            </Box>
-          </Panel>
-          <ValidationPanel />
-          <ExecutionPanel />
+          <Background />
         </ReactFlow>
       </Box>
+      <NodePalette />
       <Drawer
         anchor="right"
         open={!!selectedNode}
