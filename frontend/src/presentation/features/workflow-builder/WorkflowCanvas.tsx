@@ -35,6 +35,7 @@ import { PerformancePanel } from './PerformancePanel';
 import { usePerformance } from '../../../application/hooks/usePerformance';
 import { OptimizationPanel } from './OptimizationPanel';
 import { ExecutionStatus } from './ExecutionStatus';
+import { SandboxPreview } from './SandboxPreview';
 
 interface WorkflowCanvasProps {
   workflowId: string;
@@ -260,6 +261,9 @@ export const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           </Panel>
           <Panel position="top-left">
             <ExecutionStatus workflowId={workflowId} />
+          </Panel>
+          <Panel position="bottom-right">
+            <SandboxPreview workflowId={workflowId} />
           </Panel>
         </ReactFlow>
       </Box>
