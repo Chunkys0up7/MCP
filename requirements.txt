@@ -47,4 +47,7 @@ redis>=5.0.1
 pgvector
 
 # Added sentence-transformers
-sentence-transformers 
+sentence-transformers
+
+# Added networkx
+networkx>=3.1 

@@ -12,6 +12,7 @@ The engine supports:
 4. Error handling with configurable strategies
 5. Architectural constraint validation
 6. Comprehensive logging and monitoring
+7. DAG optimization and parallel execution
 
 Example usage:
     ```python
@@ -37,6 +38,7 @@ from datetime import datetime
 import traceback
 import uuid
 import logging
+import asyncio
 
 from mcp.schemas.workflow import (
     Workflow, 
@@ -57,6 +59,7 @@ from mcp.db.models import MCP as MCPModel
 from sqlalchemy.orm import Session
 # ADD: Import registry functions
 from mcp.core import registry # Assuming registry.py is in the same directory or mcp.core is a package
+from mcp.core.dag import DAGOptimizer
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +74,7 @@ class WorkflowEngine:
     - Input resolution from various sources
     - Error handling with configurable strategies
     - Architectural constraint validation
+    - DAG optimization and parallel execution
 
     Attributes:
         db_session (Session): The SQLAlchemy database session for MCP loading.
@@ -132,6 +136,7 @@ class WorkflowEngine:
         """
         self.db_session = db_session
         self.constraints = constraints
+        self.dag_optimizer = DAGOptimizer()
 
     async def run_workflow(
         self, 
@@ -143,10 +148,11 @@ class WorkflowEngine:
 
         This method orchestrates the execution of a workflow by:
         1. Validating the workflow against architectural constraints
-        2. Executing steps in the configured mode (sequential/parallel)
-        3. Managing data flow between steps
-        4. Handling errors according to the workflow's error strategy
-        5. Aggregating results and generating the final output
+        2. Building and optimizing the workflow DAG
+        3. Executing steps in the configured mode (sequential/parallel)
+        4. Managing data flow between steps
+        5. Handling errors according to the workflow's error strategy
+        6. Aggregating results and generating the final output
 
         Args:
             workflow (Workflow): The workflow definition to execute.
@@ -189,10 +195,39 @@ class WorkflowEngine:
             if self.constraints:
                 self._validate_workflow_against_constraints(workflow)
 
+            # Build and validate the workflow DAG
+            self.dag_optimizer.build_graph(workflow)
+            
+            # Check for cycles
+            cycles = self.dag_optimizer.detect_cycles()
+            if cycles:
+                error_msg = f"Workflow contains cycles: {cycles}"
+                logger.error(error_msg)
+                return WorkflowExecutionResult(
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None
+                )
+            
+            # Validate dependencies
+            dependency_errors = self.dag_optimizer.validate_dependencies()
+            if dependency_errors:
+                error_msg = "Workflow has invalid dependencies:\n" + "\n".join(dependency_errors)
+                logger.error(error_msg)
+                return WorkflowExecutionResult(
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None
+                )
+
             if workflow.execution_mode == "sequential":
                 return await self._execute_sequential_workflow(workflow, initial_inputs, execution_id, start_time)
+            elif workflow.execution_mode == "parallel":
+                return await self._execute_parallel_workflow(workflow, initial_inputs, execution_id, start_time)
             else:
-                error_msg = f"Execution mode '{workflow.execution_mode}' not yet implemented."
+                error_msg = f"Execution mode '{workflow.execution_mode}' not supported."
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
                     status="FAILED",
@@ -263,6 +298,82 @@ class WorkflowEngine:
                     step_results=step_results,
                     final_outputs=None
                 )
+
+        # If we get here, all steps succeeded
+        final_outputs = step_results[-1]["outputs_generated"] if step_results else None
+        return WorkflowExecutionResult(
+            status="SUCCESS",
+            error_message=None,
+            step_results=step_results,
+            final_outputs=final_outputs
+        )
+
+    async def _execute_parallel_workflow(
+        self,
+        workflow: Workflow,
+        initial_inputs: Optional[Dict[str, Any]],
+        execution_id: str,
+        start_time: datetime
+    ) -> WorkflowExecutionResult:
+        """
+        Execute a workflow in parallel mode.
+
+        This method executes workflow steps in parallel where possible, based on the DAG optimization.
+        Steps that can run in parallel are executed concurrently, while maintaining proper dependency order.
+
+        Args:
+            workflow (Workflow): The workflow to execute.
+            initial_inputs (Optional[Dict[str, Any]]): Initial inputs for the workflow.
+            execution_id (str): Unique identifier for this execution.
+            start_time (datetime): When the workflow started.
+
+        Returns:
+            WorkflowExecutionResult: The execution result containing:
+                - status: "SUCCESS" or "FAILED"
+                - step_results: List of results from each step
+                - final_outputs: The final outputs of the workflow
+                - error_message: Error message if the workflow failed
+        """
+        workflow_context = {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        step_results = []
+        
+        # Get parallel execution groups
+        execution_groups = self.dag_optimizer.optimize_parallel_execution()
+        
+        for group in execution_groups:
+            # Execute steps in this group in parallel
+            group_tasks = []
+            for step_id in group:
+                step = next(s for s in workflow.steps if s.step_id == step_id)
+                task = self._execute_workflow_step(step, workflow_context, workflow.error_handling.strategy)
+                group_tasks.append(task)
+            
+            # Wait for all steps in the group to complete
+            group_results = await asyncio.gather(*group_tasks, return_exceptions=True)
+            
+            # Process results
+            for result in group_results:
+                if isinstance(result, Exception):
+                    error_msg = f"Step execution failed: {str(result)}"
+                    logger.error(error_msg)
+                    return WorkflowExecutionResult(
+                        status="FAILED",
+                        error_message=error_msg,
+                        step_results=step_results,
+                        final_outputs=None
+                    )
+                
+                step_results.append(result)
+                if result["status"] == "FAILED":
+                    return WorkflowExecutionResult(
+                        status="FAILED",
+                        error_message=result["error"],
+                        step_results=step_results,
+                        final_outputs=None
+                    )
+                
+                # Update workflow context with step outputs
+                workflow_context[result["step_id"]] = {"outputs": result["outputs_generated"]}
 
         # If we get here, all steps succeeded
         final_outputs = step_results[-1]["outputs_generated"] if step_results else None
