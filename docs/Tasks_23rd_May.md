@@ -90,8 +90,16 @@
     *   **Task:** Write integration tests for the `execute_workflow` endpoint, covering various success and failure scenarios with DB-backed MCPs.
         *   **Status (Sub-task):** COMPLETED - Updated `tests/api/test_workflow_api.py` to use an in-memory SQLite DB for tests. Added `test_db_session` and `override_get_db` fixtures in `tests/conftest.py`. Refactored MCP and Workflow creation fixtures to use the DB. Added new `/execute` tests for: successful DB-backed execution, MCP definition not found, MCP version not found, MCP instantiation failure due to bad config, and step execution failure. CRUD tests adapted to new DB setup.
         *   **Status:** Overall testing status for core backend components (MCP context, Workflow Engine, Workflow Execution API) significantly improved. Key functionalities have unit and/or integration tests.
-    *   **Testing:**
-        *   Test files (e.g., `tests/api/test_context_api.py`, `tests/api/test_workflow_api.py`) have been updated to use a file-based SQLite database (`./test.db`) to ensure that all connections (including those from the FastAPI app and the test session) share the same database and tables. This resolves the "no such table" errors encountered previously. Comprehensive unit and integration tests are now being verified for MCP/Workflow CRUD and engine components.
+    *   **Task:** Add comprehensive tests for workflow execution scenarios.
+        *   **Status:** COMPLETED - Created `tests/api/test_workflow_execution.py` with tests for:
+            *   Empty inputs handling
+            *   Invalid step references
+            *   Missing step outputs
+            *   Concurrent step execution
+            *   Retry on failure
+            *   Fallback workflow execution
+        *   **Testing:**
+            *   Test files (e.g., `tests/api/test_context_api.py`, `tests/api/test_workflow_api.py`, `tests/api/test_workflow_execution.py`) have been updated to use a file-based SQLite database (`./test.db`) to ensure that all connections (including those from the FastAPI app and the test session) share the same database and tables. This resolves the "no such table" errors encountered previously. Comprehensive unit and integration tests are now being verified for MCP/Workflow CRUD and engine components.
 
 9.  **Documentation - API Endpoint Updates:**
     *   **Task:** Update/create `docs/api_reference.md` with detailed explanations for all `/context/*` and `/workflows/*` endpoints, including the refactored `/execute` endpoint behavior.
