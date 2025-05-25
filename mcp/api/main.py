@@ -30,6 +30,7 @@ from .routers import reviews as reviews_router
 from .routers import components as components_router
 
 from mcp.core.auth import UserRole, require_any_role
+from mcp.db.base_models import log_audit_action
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
@@ -117,6 +118,7 @@ async def create_mcp_definition(
     """Creates a new MCP definition."""
     try:
         db_mcp = mcp_registry_service.save_mcp_definition_to_db(db=db, mcp_data=mcp_data)
+        log_audit_action(db, user_id=current_user_sub, action_type="create_mcp", target_id=db_mcp.id, details=mcp_data.dict())
         return db_mcp
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -168,6 +170,7 @@ async def update_mcp_definition(
         db_mcp = mcp_registry_service.update_mcp_definition_in_db(db=db, mcp_id_str=mcp_id, mcp_data=mcp_data)
         if db_mcp is None:
             raise HTTPException(status_code=404, detail="MCP definition not found")
+        log_audit_action(db, user_id=current_user_sub, action_type="update_mcp", target_id=db_mcp.id, details=mcp_data.dict())
         return db_mcp
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

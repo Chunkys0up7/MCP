@@ -20,7 +20,7 @@
 ### 3. Implement Advanced Security Features
 - [x] Role-based access control (RBAC) (all routers audited and patched for RBAC enforcement; reviews creation/deletion now role-restricted)
 - [x] Secrets management (all secrets/config loaded from env vars or .env; .env.example provided; Vault integration planned)
-- [ ] Audit logging
+- [x] Audit logging (audit logs now written for MCP create/update actions; more endpoints to be covered)
 - [ ] User management
 - [ ] API key management
 

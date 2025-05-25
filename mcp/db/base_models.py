@@ -229,4 +229,15 @@ class AuditLog(BaseModel):
     action_type: Mapped[str] = mapped_column(String(50), nullable=False)
     target_id: Mapped[Any] = mapped_column(UUID(as_uuid=True), nullable=False)
     details: Mapped[dict] = mapped_column(JSON, nullable=True)
- 
+
+def log_audit_action(db, user_id, action_type, target_id, details=None):
+    """Insert an audit log entry."""
+    from mcp.db.models import AuditLog
+    log = AuditLog(
+        user_id=user_id,
+        action_type=action_type,
+        target_id=target_id,
+        details=details or {}
+    )
+    db.add(log)
+    db.commit() 
