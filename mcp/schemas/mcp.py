@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
+from enum import Enum
 
 from mcp.core.types import MCPType # MCPType enum and the Union of all config types
 
@@ -84,4 +85,14 @@ class MCPListItem(MCPBase):
 
     class Config:
         from_attributes = True
-        use_enum_values = True 
+        use_enum_values = True
+
+class MCPStatus(str, Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    PENDING = "pending"
+    FAILED = "failed"
+    COMPLETED = "completed"
+    DRAFT = "draft"
+
+# ... rest of the file remains unchanged ... 

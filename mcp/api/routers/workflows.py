@@ -6,8 +6,8 @@ import json
 from pathlib import Path
 
 from sqlalchemy.orm import Session
-from mcp.db.session import get_db # DB session dependency
-from mcp.db.models import WorkflowDefinition, WorkflowRun # Workflow models and MCP for checking existence
+from mcp.db.session import get_db_session
+from mcp.db.models import WorkflowDefinition, WorkflowRun, WorkflowStepRun # Workflow models and MCP for checking existence
 
 from mcp.schemas.workflow import (
     Workflow as WorkflowSchema, # Rename to avoid clash with model
@@ -23,8 +23,7 @@ from ..dependencies import get_current_subject # Changed from get_api_key to get
 from ...core import registry as mcp_registry_service # For MCP DB functions
 from ...core.workflow_engine import WorkflowEngine # Added import
 from ...schemas.mcd_constraints import ArchitecturalConstraints
-from ...core.auth import require_any_role
-from ...core.types import UserRole
+from ...core.auth import require_any_role, UserRole
 
 # Placeholder for get_api_key and mcp_server_registry for standalone router testing
 # In real integration, these would come from the main app
@@ -110,7 +109,7 @@ async def get_mcp_instance_for_execution(mcp_id: str, db: Session):
 @router.post("/", response_model=WorkflowSchema)
 async def create_workflow_definition(
     workflow_data: WorkflowCreateSchema,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -123,7 +122,7 @@ async def create_workflow_definition(
 
 @router.get("/", response_model=List[WorkflowSchema])
 async def list_workflow_definitions(
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db_session), 
     skip: int = 0, 
     limit: int = 100, 
     current_user_sub: str = Depends(get_current_subject)
@@ -134,7 +133,7 @@ async def list_workflow_definitions(
 @router.get("/{workflow_id}", response_model=WorkflowSchema)
 async def get_workflow_definition(
     workflow_id: str, 
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db_session), 
     current_user_sub: str = Depends(get_current_subject)
 ):
     try:
@@ -151,7 +150,7 @@ async def get_workflow_definition(
 async def update_workflow_definition(
     workflow_id: str,
     workflow_data: WorkflowCreateSchema,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -167,7 +166,7 @@ async def update_workflow_definition(
 @router.delete("/{workflow_id}", status_code=204)
 async def delete_workflow_definition(
     workflow_id: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -183,7 +182,7 @@ async def delete_workflow_definition(
 async def execute_workflow(
     workflow_id: str,
     initial_inputs: Optional[Dict[str, Any]] = Body(None, description="Initial inputs for the workflow"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -251,7 +250,7 @@ async def execute_workflow(
 @router.get("/runs/{run_id}", response_model=WorkflowExecutionResultSchema) # This might need a more DB-aligned schema
 async def get_workflow_run_status(
     run_id: str, 
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db_session), 
     current_user_sub: str = Depends(get_current_subject)
 ):
     try:
@@ -288,7 +287,7 @@ async def get_workflow_run_status(
 @router.get("/runs/", response_model=List[WorkflowExecutionResultSchema]) # Again, schema might need adjustment
 async def list_all_workflow_runs(
     workflow_id: Optional[str] = None, # Optional filter by workflow_id
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     skip: int = 0,
     limit: int = 100,
     current_user_sub: str = Depends(get_current_subject)

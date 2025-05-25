@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 # Import Base from your models file to create/drop tables
 from mcp.db.models import Base # Adjust this import if your Base is elsewhere
-from mcp.db.session import get_db # Original get_db
+from mcp.db.session import get_db_session # Original get_db
 from mcp.api.main import app # Your FastAPI app
 
 from mcp.api.client import MCPClient
@@ -52,7 +52,7 @@ def cleanup_test_db():
     yield
     remove_test_db()
 
-# Fixture to override the 'get_db' dependency in the FastAPI app
+# Fixture to override the 'get_db_session' dependency in the FastAPI app
 @pytest.fixture(scope="function") # Or "session" if you want the override for the whole session
 def override_get_db(test_db_session): # Depends on the test_db_session fixture
     def _override_get_db():
@@ -61,7 +61,7 @@ def override_get_db(test_db_session): # Depends on the test_db_session fixture
         finally:
             test_db_session.close() # Ensure session is closed, though test_db_session fixture already does.
     
-    app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_db_session] = _override_get_db
     yield
     app.dependency_overrides.clear() # Clear overrides after test
 

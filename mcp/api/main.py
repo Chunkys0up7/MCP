@@ -17,7 +17,7 @@ from mcp.core.types import (
 
 from ..core.registry import mcp_server_registry
 
-from mcp.db.session import SessionLocal, get_db
+from mcp.db.session import get_db_session
 from mcp.cache.redis_manager import RedisCacheManager
 
 from mcp.schemas.mcp import MCPDetail, MCPCreate, MCPUpdate, MCPListItem, MCPRead
@@ -27,7 +27,7 @@ from .dependencies import get_current_subject
 from .routers import workflows as workflow_router
 from .routers import auth as auth_router
 
-from mcp.core.roles import UserRole, require_any_role
+from mcp.core.auth import UserRole, require_any_role
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
@@ -73,7 +73,7 @@ class MCPCreationRequest(BaseModel):
 
 @app.get("/context", response_model=List[MCPListItem])
 async def list_mcp_definitions(
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db_session), 
     current_user_sub: str = Depends(get_current_subject),
     skip: int = 0,
     limit: int = 100
@@ -106,7 +106,7 @@ async def list_mcp_definitions(
 @app.post("/context", response_model=MCPDetail)
 async def create_mcp_definition(
     mcp_data: MCPCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -120,7 +120,7 @@ async def create_mcp_definition(
 @app.get("/context/{mcp_id}", response_model=MCPDetail)
 async def get_mcp_definition_details(
     mcp_id: str, 
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db_session), 
     current_user_sub: str = Depends(get_current_subject)
 ):
     db_mcp = mcp_registry_service.load_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
@@ -155,7 +155,7 @@ async def get_mcp_definition_details(
 async def update_mcp_definition(
     mcp_id: str,
     mcp_data: MCPUpdate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -171,7 +171,7 @@ async def update_mcp_definition(
 @app.delete("/context/{mcp_id}", status_code=204)
 async def delete_mcp_definition(
     mcp_id: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN]))
 ):
@@ -186,7 +186,7 @@ async def delete_mcp_definition(
 @app.get("/context/search", response_model=List[MCPListItem])
 async def search_mcp_definitions(
     query: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     limit: int = 10
 ):
@@ -224,7 +224,7 @@ async def search_mcp_definitions(
 async def health_check():
     health = {"status": "healthy", "message": "Service is running", "database": "not_checked", "redis": "not_checked"}
     try:
-        db = SessionLocal()
+        db = get_db_session()
         db.execute("SELECT 1") # type: ignore
         db.close()
         health["database"] = "ok"

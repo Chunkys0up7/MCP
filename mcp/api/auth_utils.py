@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Security
 from jose import JWTError, jwt
+from fastapi.security.api_key import APIKeyHeader
+import os
 
 # --- JWT Configuration ---
 # TODO: Move these to environment variables or a secure settings management system
@@ -10,6 +12,18 @@ JWT_SECRET_KEY = "a_very_secure_random_secret_key_for_mcp_project"  # CHANGE THI
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# API Key header scheme
+api_key_header_scheme = APIKeyHeader(name="X-API-KEY", auto_error=False)
+
+async def get_api_key(api_key_header_value: str = Security(api_key_header_scheme)) -> str:
+    """Validate API key from header."""
+    API_KEY = os.getenv("MCP_API_KEY")  # Load API key dynamically
+    if api_key_header_value != API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API Key"
+        )
+    return api_key_header_value
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()

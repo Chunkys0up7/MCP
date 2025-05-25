@@ -18,12 +18,13 @@ The base models provide:
 
 from datetime import datetime
 from typing import Dict, Any, Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import DeclarativeMeta
+from sqlalchemy.orm import DeclarativeMeta, Mapped, mapped_column
+from ..base_models import Base
 
 class TimestampMixin:
     """
@@ -43,8 +44,8 @@ class TimestampMixin:
         ```
     """
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class UUIDMixin:
     """
@@ -64,17 +65,9 @@ class UUIDMixin:
         ```
     """
     
-    @declared_attr
-    def id(cls) -> Column:
-        """
-        UUID primary key column.
-        
-        Returns:
-            Column: UUID primary key column
-        """
-        return Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
 
-class BaseModel(metaclass=DeclarativeMeta):
+class BaseModel(Base):
     """
     Base model class with common functionality.
     

@@ -13,16 +13,15 @@ It includes:
 from datetime import datetime
 from uuid import uuid4
 from typing import Any, Dict
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import registry
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, CheckConstraint, JSON
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, Mapped, mapped_column
 from sqlalchemy import create_engine
 import os
 
-# Create the base class for all models
-Base = declarative_base()
+mapper_registry = registry()
+Base = mapper_registry.generate_base()
 
 class TimestampMixin:
     """
@@ -41,8 +40,8 @@ class TimestampMixin:
         ```
     """
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 class UUIDMixin:
     """
@@ -61,15 +60,7 @@ class UUIDMixin:
         ```
     """
     
-    @declared_attr
-    def id(cls) -> Column:
-        """
-        Declares the id column with UUID type and primary key constraint.
-        
-        Returns:
-            Column: The id column definition
-        """
-        return Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[Any] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
 class BaseModel(Base, UUIDMixin, TimestampMixin):
     """
@@ -91,6 +82,7 @@ class BaseModel(Base, UUIDMixin, TimestampMixin):
     """
     
     __abstract__ = True
+    __allow_unmapped__ = True
     
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -178,14 +170,14 @@ def init_db():
     engine = create_db_engine()
     Base.metadata.create_all(bind=engine)
 
-class MCPConfiguration(Base):
+class MCPConfiguration(BaseModel):
     """Model for storing MCP configurations."""
     __tablename__ = "mcp_configurations"
 
-    name = Column(String(255), unique=True, nullable=False)
-    type = Column(String(50), nullable=False)
-    config = Column(JSON, nullable=False)
-    dependencies = Column(JSON, nullable=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    type: Mapped[str] = mapped_column(String(50), nullable=False)
+    config: Mapped[dict] = mapped_column(JSON, nullable=False)
+    dependencies: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
@@ -194,46 +186,47 @@ class MCPConfiguration(Base):
         ),
     )
 
-class MCPChain(Base):
+class MCPChain(BaseModel):
     """Model for storing MCP chains."""
     __tablename__ = "mcp_chains"
 
-    name = Column(String(255), unique=True, nullable=False)
-    workflow = Column(JSON, nullable=False)
-    version = Column(Integer, default=1)
-    parent_chain = Column(UUID(as_uuid=True), ForeignKey("mcp_chains.id"))
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    workflow: Mapped[dict] = mapped_column(JSON, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    parent_chain: Mapped[Any] = mapped_column(UUID(as_uuid=True), ForeignKey("mcp_chains.id"), nullable=True)
 
     # Relationships
-    parent = relationship("MCPChain", remote_side=[id], backref="child_chains")
+    parent = relationship("MCPChain", remote_side="MCPChain.id", back_populates="child_chains")
+    child_chains = relationship("MCPChain", back_populates="parent", cascade="all, delete-orphan")
 
-class ChainSession(Base):
+class ChainSession(BaseModel):
     """Model for storing chain execution sessions."""
     __tablename__ = "chain_sessions"
 
-    session_id = Column(String(255), unique=True, nullable=False)
-    chain_data = Column(JSON, nullable=False)
+    session_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    chain_data: Mapped[dict] = mapped_column(JSON, nullable=False)
 
-class MCPPermission(Base):
+class MCPPermission(BaseModel):
     """Model for storing MCP access permissions."""
     __tablename__ = "mcp_permissions"
 
-    user_id = Column(UUID(as_uuid=True), primary_key=True)
-    chain_id = Column(UUID(as_uuid=True), ForeignKey("mcp_chains.id"), primary_key=True)
-    access_level = Column(Integer, nullable=False)
+    user_id: Mapped[Any] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    chain_id: Mapped[Any] = mapped_column(UUID(as_uuid=True), ForeignKey("mcp_chains.id"), primary_key=True)
+    access_level: Mapped[int] = mapped_column(Integer, nullable=False)
 
     __table_args__ = (
         CheckConstraint(
-            "access_level BETWEEN 1 AND 3",
+            "access_level IN (1, 2, 3)",
             name="valid_access_level"
         ),
     )
 
-class AuditLog(Base):
+class AuditLog(BaseModel):
     """Model for storing audit logs."""
     __tablename__ = "audit_logs"
 
-    user_id = Column(UUID(as_uuid=True), nullable=False)
-    action_type = Column(String(50), nullable=False)
-    target_id = Column(UUID(as_uuid=True), nullable=False)
-    details = Column(JSON, nullable=True)
+    user_id: Mapped[Any] = mapped_column(UUID(as_uuid=True), nullable=False)
+    action_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    target_id: Mapped[Any] = mapped_column(UUID(as_uuid=True), nullable=False)
+    details: Mapped[dict] = mapped_column(JSON, nullable=True)
  

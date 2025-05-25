@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 import uuid # For random key generation
 from typing import Optional, List
 from fastapi import status
-from .auth_utils import verify_access_token
+from .auth_utils import verify_access_token, get_api_key
 from .routers.auth import UserRole
 
 # Load environment variables from .env file

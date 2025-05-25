@@ -61,11 +61,11 @@ class MCP(Base):
     description = Column(String)
     type = Column(Enum(MCPType), nullable=False)
     current_version_id = Column(UUID(as_uuid=True), ForeignKey('mcp_versions.id'))
-    tags = relationship('Tag', secondary=mcp_tags, backref='mcps')
+    # tags = relationship('Tag', secondary=mcp_tags, backref='mcps')  # Commented out: Tag model not defined
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    versions = relationship('MCPVersion', back_populates='mcp')
+    versions = relationship('MCPVersion', back_populates='mcp', foreign_keys='MCPVersion.mcp_id')
     current_version = relationship('MCPVersion', foreign_keys=[current_version_id])
 
 class MCPVersion(Base):
@@ -104,7 +104,7 @@ class MCPVersion(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    mcp = relationship('MCP', back_populates='versions')
+    mcp = relationship('MCP', back_populates='versions', foreign_keys=[mcp_id])
 
 # Ensure mcp.db.base_class.Base is correctly defined, e.g.:
 # from sqlalchemy.ext.declarative import as_declarative, declared_attr

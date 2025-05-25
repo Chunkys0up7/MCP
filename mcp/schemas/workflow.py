@@ -104,9 +104,9 @@ class WorkflowStep(BaseModel):
     mcp_version_id: Optional[str] = Field(default=None, description="Optional identifier for a specific version of the MCP. If None, the latest version might be used.")
     name: str = Field(..., description="A user-defined, descriptive name for this step within the workflow.")
     inputs: Dict[str, WorkflowStepInput] = Field(default_factory=dict, description="A dictionary mapping the MCP's input parameter names to their WorkflowStepInput definitions, specifying how each input is sourced.")
+    depends_on: List[str] = Field(default_factory=list, description="List of step_ids that must complete before this step can start. For DAGs.")
     # Consider adding:
     # description: Optional[str] = Field(default=None, description="Optional further description for this step.")
-    # depends_on: List[str] = Field(default_factory=list, description="List of step_ids that must complete before this step can start. For DAGs.")
 
 class ErrorHandlingConfig(BaseModel):
     """
