@@ -50,4 +50,46 @@ pgvector
 sentence-transformers
 
 # Added networkx
-networkx>=3.1 
+networkx>=3.1
+
+# Added sqlalchemy
+sqlalchemy>=1.4.0
+
+# Added psycopg2-binary
+psycopg2-binary>=2.9.0
+
+# Added python-dotenv
+python-dotenv>=0.19.0
+
+# Added fastapi
+fastapi>=0.68.0
+
+# Added uvicorn
+uvicorn>=0.15.0
+
+# Added psutil
+psutil>=5.8.0
+
+# Added prometheus-client
+prometheus-client>=0.11.0
+
+# Added grafana-api-client
+grafana-api-client>=1.0.0
+
+# Added matplotlib
+matplotlib>=3.4.0
+
+# Added pygraphviz
+pygraphviz>=1.7.0
+
+# Added black
+black>=21.7b0
+
+# Added isort
+isort>=5.9.0
+
+# Added flake8
+flake8>=3.9.0
+
+# Added mypy
+mypy>=0.910 
