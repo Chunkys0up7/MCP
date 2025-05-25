@@ -13,7 +13,7 @@
 ### 2. Enhance Component Marketplace (Next)
 - [ ] Implement faceted search for components
 - [x] Add component preview and metadata display
-- [x] Integrate ratings and reviews (backend API endpoints implemented, DB model and schemas added)
+- [x] Integrate ratings and reviews (backend API endpoints, DB model, schemas, and frontend UI in Marketplace modal)
 - [ ] Support version compatibility and dependency resolution
 - [ ] Add advanced filtering and sorting
 

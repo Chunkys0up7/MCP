@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { componentRegistryService, Component, ComponentFilter, SearchResponse } from '../../services/componentRegistryService';
+import { componentRegistryService, Component, ComponentFilter, SearchResponse, Review, ReviewCreate } from '../../services/componentRegistryService';
 import { useDebounce } from '../../hooks/useDebounce';
 
 // Modal for component preview
@@ -7,6 +7,47 @@ const ComponentPreviewModal: React.FC<{
   component: Component | null;
   onClose: () => void;
 }> = ({ component, onClose }) => {
+  const [reviews, setReviews] = React.useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = React.useState(false);
+  const [reviewText, setReviewText] = React.useState('');
+  const [reviewRating, setReviewRating] = React.useState(5);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!component) return;
+    setLoadingReviews(true);
+    componentRegistryService.getReviewsForComponent(component.id)
+      .then(setReviews)
+      .catch(() => setReviews([]))
+      .finally(() => setLoadingReviews(false));
+  }, [component]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!component) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      // TODO: Replace with actual user_id from auth context
+      const user_id = '00000000-0000-0000-0000-000000000000';
+      const newReview: ReviewCreate = {
+        component_id: component.id,
+        user_id,
+        rating: reviewRating,
+        review_text: reviewText,
+      };
+      const saved = await componentRegistryService.addReview(newReview);
+      setReviews(prev => [saved, ...prev]);
+      setReviewText('');
+      setReviewRating(5);
+    } catch (err) {
+      setError('Failed to submit review.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (!component) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -48,6 +89,47 @@ const ComponentPreviewModal: React.FC<{
             </ul>
           </div>
         )}
+        {/* Reviews Section */}
+        <div className="mt-4">
+          <h3 className="font-semibold text-lg mb-2">Reviews</h3>
+          {loadingReviews ? (
+            <div>Loading reviews...</div>
+          ) : reviews.length === 0 ? (
+            <div className="text-gray-500">No reviews yet.</div>
+          ) : (
+            <ul className="mb-4 max-h-40 overflow-auto">
+              {reviews.map(r => (
+                <li key={r.id} className="mb-2 border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-yellow-500">{'★'.repeat(r.rating)}</span>
+                    <span className="text-xs text-gray-500">{new Date(r.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="text-sm text-gray-700">{r.review_text}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={handleSubmitReview} className="mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <label className="text-sm">Your Rating:</label>
+              <select value={reviewRating} onChange={e => setReviewRating(Number(e.target.value))} className="border rounded p-1">
+                {[5,4,3,2,1].map(n => <option key={n} value={n}>{n} Star{n > 1 ? 's' : ''}</option>)}
+              </select>
+            </div>
+            <textarea
+              value={reviewText}
+              onChange={e => setReviewText(e.target.value)}
+              placeholder="Write your review..."
+              className="w-full border rounded p-2 mb-2"
+              rows={2}
+              required
+            />
+            {error && <div className="text-red-500 text-sm mb-2">{error}</div>}
+            <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded" disabled={submitting}>
+              {submitting ? 'Submitting...' : 'Submit Review'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

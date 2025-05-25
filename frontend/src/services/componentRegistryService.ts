@@ -36,6 +36,23 @@ export interface SearchResponse {
   };
 }
 
+export interface Review {
+  id: string;
+  component_id: string;
+  user_id: string;
+  rating: number;
+  review_text?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReviewCreate {
+  component_id: string;
+  user_id: string;
+  rating: number;
+  review_text?: string;
+}
+
 export const componentRegistryService = {
   async searchComponents(
     filters: ComponentFilter,
@@ -65,5 +82,19 @@ export const componentRegistryService = {
   async getPopularTags(): Promise<string[]> {
     const response = await axios.get(`${API_BASE_URL}/api/components/tags`);
     return response.data;
+  },
+
+  async getReviewsForComponent(componentId: string): Promise<Review[]> {
+    const response = await axios.get(`${API_BASE_URL}/reviews/component/${componentId}`);
+    return response.data;
+  },
+
+  async addReview(review: ReviewCreate): Promise<Review> {
+    const response = await axios.post(`${API_BASE_URL}/reviews/`, review);
+    return response.data;
+  },
+
+  async deleteReview(reviewId: string): Promise<void> {
+    await axios.delete(`${API_BASE_URL}/reviews/${reviewId}`);
   }
 }; 
