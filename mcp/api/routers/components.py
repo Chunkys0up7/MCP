@@ -17,6 +17,8 @@ def search_components(
     minRating: Optional[int] = None,
     minUsage: Optional[int] = None,
     searchTerm: Optional[str] = None,
+    compatibleWith: Optional[str] = Query(None, description="Component ID to check compatibility with (format: <component_id>:<version>)"),
+    requires: Optional[List[str]] = Query(None, description="List of component IDs that must be dependencies"),
     page: int = 1,
     pageSize: int = 10,
     db: Session = Depends(get_db_session),
@@ -36,6 +38,38 @@ def search_components(
     if minRating:
         subq = db.query(Review.component_id, func.avg(Review.rating).label("avg_rating")).group_by(Review.component_id).subquery()
         query = query.join(subq, MCP.id == subq.c.component_id).filter(subq.c.avg_rating >= minRating)
+    # Compatibility filter
+    if compatibleWith:
+        # Format: <component_id>:<version>
+        try:
+            comp_id, comp_version = compatibleWith.split(":")
+        except ValueError:
+            comp_id, comp_version = compatibleWith, None
+        # Only include MCPs whose latest version's dependencies include the given component_id (and version if specified)
+        filtered_ids = []
+        for mcp in query.all():
+            latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+            if not latest_version:
+                continue
+            deps = (latest_version.definition or {}).get("dependencies", [])
+            for dep in deps:
+                if dep.get("component_id") == comp_id:
+                    if not comp_version or dep.get("version") == comp_version:
+                        filtered_ids.append(mcp.id)
+                        break
+        query = query.filter(MCP.id.in_(filtered_ids))
+    # Requires filter
+    if requires:
+        filtered_ids = []
+        for mcp in query.all():
+            latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+            if not latest_version:
+                continue
+            deps = (latest_version.definition or {}).get("dependencies", [])
+            dep_ids = [dep.get("component_id") for dep in deps]
+            if all(req in dep_ids for req in requires):
+                filtered_ids.append(mcp.id)
+        query = query.filter(MCP.id.in_(filtered_ids))
     total = query.count()
     results = query.offset((page-1)*pageSize).limit(pageSize).all()
     # Facets
@@ -44,8 +78,19 @@ def search_components(
     for mcp in db.query(MCP).all():
         for tag in mcp.tags or []:
             tag_counts[tag] = tag_counts.get(tag, 0) + 1
-    # Format response
-    components = [MCPListItem.model_validate(mcp) for mcp in results]
+    # Format response: include version and dependency info
+    def mcp_to_dict(mcp):
+        latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+        dependencies = []
+        version = None
+        if latest_version:
+            dependencies = (latest_version.definition or {}).get("dependencies", [])
+            version = latest_version.version
+        item = MCPListItem.model_validate(mcp).model_dump()
+        item["version"] = version
+        item["dependencies"] = dependencies
+        return item
+    components = [mcp_to_dict(mcp) for mcp in results]
     return {
         "components": components,
         "total": total,

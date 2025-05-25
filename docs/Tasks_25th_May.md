@@ -14,7 +14,7 @@
 - [x] Implement faceted search for components (backend /api/components/search endpoint implemented and integrated with frontend)
 - [x] Add component preview and metadata display
 - [x] Integrate ratings and reviews (backend API endpoints, DB model, schemas, and frontend UI in Marketplace modal)
-- [ ] Support version compatibility and dependency resolution
+- [x] Support version compatibility and dependency resolution (backend search endpoint supports compatibility/dependency filters and returns version/dependency info)
 - [ ] Add advanced filtering and sorting
 
 ### 3. Implement Advanced Security Features
