@@ -108,5 +108,11 @@ The Model Context Protocol (MCP) is a modular, extensible framework for managing
 - Backend: Added advanced filtering and sorting to /api/components/search endpoint (author, cost, compliance, sort by rating/usage/newest/name) (25th May).
 - Security: Enforced RBAC across all routers; review creation/deletion now restricted by role (25th May).
 
+## Secrets Management
+- All sensitive configuration (DB credentials, API keys, JWT secrets, etc.) is loaded from environment variables or a `.env` file (see `.env.example`).
+- Never hardcode secrets in code or commit real secrets to version control.
+- To configure secrets, copy `.env.example` to `.env` and fill in real values.
+- (Planned) Integration with HashiCorp Vault for production secret management.
+
 ---
 For more details, see the README.md and module-level docs. 
