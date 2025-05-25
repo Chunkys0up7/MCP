@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- System Monitoring and Metrics
+  - Real-time system health monitoring
+  - Performance metrics collection
+  - Alerting system with severity levels
+  - Prometheus metrics integration
+  - Custom metric support
 - AI Co-Pilot for Workflow Builder
   - Schema repair suggestions
   - Workflow optimization hints
