@@ -99,5 +99,8 @@ The Model Context Protocol (MCP) is a modular, extensible framework for managing
 - [Monitoring System](../mcp/monitoring/README.md)
 - [Component Registry](../mcp/components/README.md)
 
+## [25th May]
+- Component preview and metadata modal implemented in FacetedSearchScreen (Marketplace UI).
+
 ---
 For more details, see the README.md and module-level docs. 

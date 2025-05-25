@@ -2,6 +2,57 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { componentRegistryService, Component, ComponentFilter, SearchResponse } from '../../services/componentRegistryService';
 import { useDebounce } from '../../hooks/useDebounce';
 
+// Modal for component preview
+const ComponentPreviewModal: React.FC<{
+  component: Component | null;
+  onClose: () => void;
+}> = ({ component, onClose }) => {
+  if (!component) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+        <button
+          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+          onClick={onClose}
+          aria-label="Close preview"
+        >
+          ×
+        </button>
+        <h2 className="text-2xl font-bold mb-2 text-indigo-700">{component.name}</h2>
+        <p className="mb-2 text-gray-700">{component.description}</p>
+        <div className="mb-2 flex flex-wrap gap-2">
+          {component.tags.map(tag => (
+            <span key={tag} className="text-xs px-2 py-1 bg-gray-100 rounded-full">{tag}</span>
+          ))}
+        </div>
+        <div className="mb-2 flex gap-4 text-sm">
+          <span className="flex items-center"><span className="text-yellow-500">★</span> {component.rating.toFixed(1)}</span>
+          <span>{component.usageCount} uses</span>
+          <span>Version: {component.version}</span>
+        </div>
+        <div className="mb-2 text-xs text-gray-500">
+          <p>Author: {component.author}</p>
+          <p>Last updated: {new Date(component.lastUpdated).toLocaleDateString()}</p>
+        </div>
+        {component.documentation && (
+          <div className="mb-2">
+            <h3 className="font-semibold text-sm mb-1">Documentation</h3>
+            <div className="bg-gray-50 p-2 rounded text-xs max-h-32 overflow-auto whitespace-pre-line">{component.documentation}</div>
+          </div>
+        )}
+        {component.dependencies && component.dependencies.length > 0 && (
+          <div className="mb-2">
+            <h3 className="font-semibold text-sm mb-1">Dependencies</h3>
+            <ul className="list-disc list-inside text-xs">
+              {component.dependencies.map(dep => <li key={dep}>{dep}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const FacetedSearchScreen: React.FC = () => {
   const [components, setComponents] = useState<Component[]>([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -17,6 +68,7 @@ const FacetedSearchScreen: React.FC = () => {
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [popularTags, setPopularTags] = useState<string[]>([]);
   const [facets, setFacets] = useState<SearchResponse['facets']>({ types: {}, tags: {} });
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
@@ -199,7 +251,11 @@ const FacetedSearchScreen: React.FC = () => {
                 {components.map(component => (
                   <div
                     key={component.id}
-                    className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                    className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setSelectedComponent(component)}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Preview ${component.name}`}
                   >
                     <h3 className="font-medium">{component.name}</h3>
                     <p className="text-sm text-gray-600 mt-1">{component.description}</p>
@@ -256,6 +312,9 @@ const FacetedSearchScreen: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Component Preview Modal */}
+      <ComponentPreviewModal component={selectedComponent} onClose={() => setSelectedComponent(null)} />
     </div>
   );
 };

@@ -186,4 +186,36 @@ describe('FacetedSearchScreen', () => {
       );
     });
   });
+
+  it('opens component preview modal with metadata when a component card is clicked', async () => {
+    render(<FacetedSearchScreen />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Component')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Test Component'));
+    // Modal should appear with detailed info
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Test Component')).toBeInTheDocument();
+    expect(screen.getByText('Test Description')).toBeInTheDocument();
+    expect(screen.getByText('Test Author')).toBeInTheDocument();
+    expect(screen.getByText('Test Documentation')).toBeInTheDocument();
+    expect(screen.getByText('Version: 1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('4.5')).toBeInTheDocument();
+    expect(screen.getByText('100 uses')).toBeInTheDocument();
+  });
+
+  it('closes the component preview modal when close button is clicked', async () => {
+    render(<FacetedSearchScreen />);
+    await waitFor(() => {
+      expect(screen.getByText('Test Component')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText('Test Component'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // Click the close button (×)
+    fireEvent.click(screen.getByLabelText('Close preview'));
+    // Modal should disappear
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  });
 }); 
