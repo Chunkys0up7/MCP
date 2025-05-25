@@ -105,6 +105,7 @@ The Model Context Protocol (MCP) is a modular, extensible framework for managing
 - Frontend: Ratings and reviews now displayed and can be submitted in the Marketplace component preview modal.
 - Backend: Implemented /api/components/search endpoint for faceted search and filtering (25th May).
 - Backend: Added compatibility and dependency filters to /api/components/search endpoint; results now include version and dependency info (25th May).
+- Backend: Added advanced filtering and sorting to /api/components/search endpoint (author, cost, compliance, sort by rating/usage/newest/name) (25th May).
 
 ---
 For more details, see the README.md and module-level docs. 

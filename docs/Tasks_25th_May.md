@@ -15,7 +15,7 @@
 - [x] Add component preview and metadata display
 - [x] Integrate ratings and reviews (backend API endpoints, DB model, schemas, and frontend UI in Marketplace modal)
 - [x] Support version compatibility and dependency resolution (backend search endpoint supports compatibility/dependency filters and returns version/dependency info)
-- [ ] Add advanced filtering and sorting
+- [x] Add advanced filtering and sorting (backend search endpoint supports sorting and advanced filters: author, cost, compliance, etc.)
 
 ### 3. Implement Advanced Security Features
 - [ ] Role-based access control (RBAC)
