@@ -18,7 +18,7 @@
 - [x] Add advanced filtering and sorting (backend search endpoint supports sorting and advanced filters: author, cost, compliance, etc.)
 
 ### 3. Implement Advanced Security Features
-- [ ] Role-based access control (RBAC)
+- [x] Role-based access control (RBAC) (all routers audited and patched for RBAC enforcement; reviews creation/deletion now role-restricted)
 - [ ] Secrets management
 - [ ] Audit logging
 - [ ] User management

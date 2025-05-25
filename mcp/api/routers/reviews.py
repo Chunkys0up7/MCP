@@ -6,7 +6,8 @@ import uuid
 from mcp.db.session import get_db_session
 from mcp.db.models.review import Review
 from mcp.schemas.review import ReviewCreate, ReviewRead
-from mcp.api.dependencies import get_current_subject
+from mcp.api.dependencies import get_current_subject, get_current_roles
+from .auth import UserRole
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -15,7 +16,10 @@ def create_review(
     review: ReviewCreate,
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
+    current_roles: List[str] = Depends(get_current_roles),
 ):
+    if not any(role in current_roles for role in [UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN]):
+        raise HTTPException(status_code=403, detail="Insufficient role to create review.")
     db_review = Review(
         component_id=review.component_id,
         user_id=review.user_id,
@@ -47,10 +51,13 @@ def delete_review(
     review_id: uuid.UUID,
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
+    current_roles: List[str] = Depends(get_current_roles),
 ):
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
+    if UserRole.ADMIN not in current_roles and str(review.user_id) != str(current_user_sub):
+        raise HTTPException(status_code=403, detail="Not permitted to delete this review.")
     db.delete(review)
     db.commit()
     return None 
