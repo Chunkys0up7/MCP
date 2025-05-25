@@ -187,6 +187,7 @@ async def delete_mcp_definition(
         success = mcp_registry_service.delete_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
         if not success:
             raise HTTPException(status_code=404, detail="MCP definition not found")
+        log_audit_action(db, user_id=current_user_sub, action_type="delete_mcp", target_id=mcp_id, details={"mcp_id": mcp_id})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

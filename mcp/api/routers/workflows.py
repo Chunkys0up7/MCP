@@ -8,6 +8,7 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from mcp.db.session import get_db_session
 from mcp.db.models import WorkflowDefinition, WorkflowRun, WorkflowStepRun # Workflow models and MCP for checking existence
+from mcp.db.base_models import log_audit_action
 
 from mcp.schemas.workflow import (
     Workflow as WorkflowSchema, # Rename to avoid clash with model
@@ -116,6 +117,7 @@ async def create_workflow_definition(
     """Creates a new workflow definition."""
     try:
         db_workflow = workflow_registry_service.save_workflow_definition_to_db(db=db, workflow_data=workflow_data)
+        log_audit_action(db, user_id=current_user_sub, action_type="create_workflow", target_id=db_workflow.workflow_id, details=workflow_data.dict())
         return db_workflow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -159,6 +161,7 @@ async def update_workflow_definition(
         db_workflow = workflow_registry_service.update_workflow_definition_in_db(db=db, workflow_id_str=workflow_id, workflow_data=workflow_data)
         if db_workflow is None:
             raise HTTPException(status_code=404, detail="Workflow definition not found")
+        log_audit_action(db, user_id=current_user_sub, action_type="update_workflow", target_id=db_workflow.workflow_id, details=workflow_data.dict())
         return db_workflow
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -175,6 +178,7 @@ async def delete_workflow_definition(
         success = workflow_registry_service.delete_workflow_definition_from_db(db=db, workflow_id_str=workflow_id)
         if not success:
             raise HTTPException(status_code=404, detail="Workflow definition not found")
+        log_audit_action(db, user_id=current_user_sub, action_type="delete_workflow", target_id=workflow_id, details={"workflow_id": workflow_id})
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

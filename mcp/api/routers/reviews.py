@@ -8,6 +8,7 @@ from mcp.db.models.review import Review
 from mcp.schemas.review import ReviewCreate, ReviewRead
 from mcp.api.dependencies import get_current_subject, get_current_roles
 from .auth import UserRole
+from mcp.db.base_models import log_audit_action
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
@@ -29,6 +30,7 @@ def create_review(
     db.add(db_review)
     db.commit()
     db.refresh(db_review)
+    log_audit_action(db, user_id=current_user_sub, action_type="create_review", target_id=db_review.id, details=review.dict())
     return db_review
 
 @router.get("/", response_model=List[ReviewRead])
@@ -60,4 +62,5 @@ def delete_review(
         raise HTTPException(status_code=403, detail="Not permitted to delete this review.")
     db.delete(review)
     db.commit()
+    log_audit_action(db, user_id=current_user_sub, action_type="delete_review", target_id=review_id, details={"review_id": str(review_id)})
     return None 
