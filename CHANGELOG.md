@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- AI Co-Pilot for Workflow Builder
+  - Schema repair suggestions
+  - Workflow optimization hints
+  - Error resolution suggestions
+  - Best practice recommendations
 - Dependency Visualizer component
   - Component relationship graph generation
   - Dependency conflict detection (circular, version, deprecated)
