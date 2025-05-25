@@ -15,7 +15,6 @@ querying. The mcp_versions table has a foreign key relationship to mcps.
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 # revision identifiers, used by Alembic.
@@ -45,28 +44,26 @@ def upgrade() -> None:
     # Create mcps table
     op.create_table(
         'mcps',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.UUID(as_uuid=True), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('type', sa.String(length=50), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('initial_config', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column('tags', postgresql.ARRAY(sa.String()), nullable=True),
-        sa.Column('embedding', postgresql.VECTOR(384), nullable=True),
+        sa.Column('initial_config', sa.JSON(), nullable=False),
+        sa.Column('tags', sa.Text(), nullable=True),
+        sa.Column('embedding', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_mcp_type', 'mcps', ['type'])
-    op.create_index('idx_mcp_tags', 'mcps', ['tags'], postgresql_using='gin')
-    op.create_index('idx_mcp_embedding', 'mcps', ['embedding'], postgresql_using='ivfflat')
 
     # Create mcp_versions table
     op.create_table(
         'mcp_versions',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('mcp_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('id', sa.UUID(as_uuid=True), nullable=False),
+        sa.Column('mcp_id', sa.UUID(as_uuid=True), nullable=False),
         sa.Column('version', sa.String(length=50), nullable=False),
-        sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column('config', sa.JSON(), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
         sa.ForeignKeyConstraint(['mcp_id'], ['mcps.id'], ondelete='CASCADE'),

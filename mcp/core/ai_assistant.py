@@ -1,21 +1,24 @@
 from typing import Any, Dict, List, Optional, Union
 
-from .base import BaseMCPServer
+from mcp.core.llm_prompt import ClaudeLLM  # Reusing ClaudeLLM for now
 from mcp.core.types import AIAssistantConfig
-from mcp.core.llm_prompt import ClaudeLLM # Reusing ClaudeLLM for now
+
+from .base import BaseMCPServer
 
 # Placeholder for actual tool execution logic if tools are internal
 # For external tools, this MCP would describe the call, and another system would execute.
+
 
 class AIAssistantMCP(BaseMCPServer):
     """
     MCP for managing an AI assistant, potentially with memory and tools.
     """
+
     def __init__(self, config: AIAssistantConfig):
         super().__init__(config)
-        self.config: AIAssistantConfig = config # Type hint for convenience
+        self.config: AIAssistantConfig = config  # Type hint for convenience
         self.llm = self._initialize_llm()
-        self.history: List[Dict[str, Any]] = [] # In-memory conversation history
+        self.history: List[Dict[str, Any]] = []  # In-memory conversation history
 
     def _initialize_llm(self) -> ClaudeLLM:
         """Initializes the LLM client based on the configuration."""
@@ -24,7 +27,7 @@ class AIAssistantMCP(BaseMCPServer):
             model_name=self.config.model_name,
             temperature=self.config.temperature,
             max_tokens=self.config.max_tokens,
-            system_prompt=self.config.system_prompt # ClaudeLLM can take a system_prompt
+            system_prompt=self.config.system_prompt,  # ClaudeLLM can take a system_prompt
         )
 
     def _add_to_history(self, role: str, content: Union[str, List[Dict[str, Any]]]):
@@ -34,11 +37,13 @@ class AIAssistantMCP(BaseMCPServer):
         # A 'turn' is usually a user message and an assistant response.
         # memory_size in config refers to number of turns.
         # If memory_size is 10, we keep 10 user messages and 10 assistant responses roughly.
-        max_messages = self.config.memory_size * 2 
+        max_messages = self.config.memory_size * 2
         if len(self.history) > max_messages:
             self.history = self.history[-max_messages:]
-            
-    async def _execute_tool_if_needed(self, assistant_response_content: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+
+    async def _execute_tool_if_needed(
+        self, assistant_response_content: List[Dict[str, Any]]
+    ) -> Optional[List[Dict[str, Any]]]:
         """
         Checks if the assistant response contains a tool_use request.
         If so, (currently) returns a placeholder for tool execution.
@@ -54,19 +59,25 @@ class AIAssistantMCP(BaseMCPServer):
 
                 # TODO: Implement actual tool execution dispatch here.
                 # For now, simulate a tool result.
-                print(f"[AIAssistantMCP] Assistant wants to use tool: {tool_name} with input: {tool_input}")
-                
+                print(
+                    f"[AIAssistantMCP] Assistant wants to use tool: {tool_name} with input: {tool_input}"
+                )
+
                 # This is where you'd call your actual tool_executor(tool_name, tool_input)
                 # and get the tool_output.
-                tool_output_content = f"Placeholder result for tool '{tool_name}' with input {tool_input}"
-                
-                tool_results_for_next_call.append({
-                    "type": "tool_result",
-                    "tool_use_id": tool_use_id,
-                    "content": tool_output_content,
-                    # "is_error": False # Optional: if the tool execution failed
-                })
-        
+                tool_output_content = (
+                    f"Placeholder result for tool '{tool_name}' with input {tool_input}"
+                )
+
+                tool_results_for_next_call.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_id,
+                        "content": tool_output_content,
+                        # "is_error": False # Optional: if the tool execution failed
+                    }
+                )
+
         return tool_results_for_next_call if tool_results_for_next_call else None
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
@@ -80,18 +91,18 @@ class AIAssistantMCP(BaseMCPServer):
 
         # Add user message to history before LLM call
         self._add_to_history(role="user", content=user_message_content)
-        
+
         # Prepare messages for LLM (current history + new user message is already done by _add_to_history)
         # The system prompt is handled by ClaudeLLM constructor
 
-        messages_for_llm = self.history.copy() # Send the current history
+        messages_for_llm = self.history.copy()  # Send the current history
 
         try:
             # First call to the LLM
             # The ClaudeLLM.call method expects a list of messages.
             # It does not directly support the 'tools' parameter in its current form.
             # We need to enhance ClaudeLLM or use the Anthropic SDK more directly if available.
-            
+
             # For now, let's assume ClaudeLLM is basic and doesn't handle tool structures in its response.
             # This means the tool_use flow might be more conceptual here until ClaudeLLM is enhanced.
             # If we were using the Anthropic SDK directly:
@@ -111,7 +122,7 @@ class AIAssistantMCP(BaseMCPServer):
             # It expects just a list of messages and returns a string.
             # This simplified version won't support structured tool calls directly.
             # We'll simulate the flow conceptually.
-            
+
             # To make this testable without full SDK integration yet, let's assume
             # ClaudeLLM.call can return a structured response if we mock/modify it later.
             # For now, let's call it and then manually check for tool-like patterns if possible,
@@ -119,17 +130,13 @@ class AIAssistantMCP(BaseMCPServer):
 
             # Let's simplify: for now, AIAssistant is conversational only, ignoring tools.
             # Tools would require ClaudeLLM to be more sophisticated or direct SDK use.
-            
+
             raw_assistant_response_text = self.llm.call(messages_for_llm)
-            
+
             # Add assistant's response to history
             self._add_to_history(role="assistant", content=raw_assistant_response_text)
 
-            return {
-                "success": True,
-                "result": raw_assistant_response_text,
-                "error": None
-            }
+            return {"success": True, "result": raw_assistant_response_text, "error": None}
 
             # --- Conceptual Tool Handling (if ClaudeLLM were more advanced) ---
             # This part is commented out as it depends on a more capable ClaudeLLM/SDK
@@ -173,6 +180,7 @@ class AIAssistantMCP(BaseMCPServer):
 
         except Exception as e:
             import traceback
+
             error_message = f"Error executing AI Assistant: {str(e)}\n{traceback.format_exc()}"
             print(error_message)
             # Do not add to history if LLM call fails catastrophically before a response
@@ -186,4 +194,4 @@ class AIAssistantMCP(BaseMCPServer):
     def description(self) -> Optional[str]:
         return self.config.description
 
-    # version and other properties can be added if needed by BaseMCPServer contract 
+    # version and other properties can be added if needed by BaseMCPServer contract

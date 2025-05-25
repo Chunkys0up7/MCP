@@ -1,30 +1,34 @@
 import json
 import os
-from dotenv import load_dotenv
-from typing import Any, Optional, Dict, List
+from typing import Any, Dict, List, Optional
+
 import redis
+from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class RedisCacheManager:
-    def __init__(self, 
-                 host: Optional[str] = None, 
-                 port: Optional[int] = None, 
-                 db: Optional[int] = None, 
-                 password: Optional[str] = None):
+    def __init__(
+        self,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        db: Optional[int] = None,
+        password: Optional[str] = None,
+    ):
         """Initialize Redis cache manager."""
-        
+
         redis_host = host if host is not None else os.getenv("REDIS_HOST", "localhost")
         redis_port = port if port is not None else int(os.getenv("REDIS_PORT", "6379"))
         redis_db = db if db is not None else int(os.getenv("REDIS_DB", "0"))
         redis_password = password if password is not None else os.getenv("REDIS_PASSWORD")
-        
+
         self.redis = redis.Redis(
             host=redis_host,
             port=redis_port,
             db=redis_db,
             password=redis_password,
-            decode_responses=True
+            decode_responses=True,
         )
 
     def set(self, key: str, value: Any, expire: Optional[int] = None) -> bool:
@@ -73,10 +77,9 @@ class RedisCacheManager:
     def set_hash(self, name: str, mapping: Dict[str, Any]) -> None:
         """Set hash fields to multiple values."""
         processed_mapping = {
-            k: json.dumps(v) if isinstance(v, (dict, list)) else v
-            for k, v in mapping.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in mapping.items()
         }
-        if hasattr(self.redis, 'hmset'):
+        if hasattr(self.redis, "hmset"):
             self.redis.hmset(name, processed_mapping)
         else:
             self.redis.hset(name, mapping=processed_mapping)
@@ -87,7 +90,7 @@ class RedisCacheManager:
             hash_data = self.redis.hgetall(name)
             if not hash_data:
                 return {}
-            
+
             # Try to parse JSON values
             processed_data = {}
             for key, value in hash_data.items():
@@ -114,10 +117,7 @@ class RedisCacheManager:
         """Set a list in the cache."""
         try:
             # Convert values to JSON strings if they are dicts or lists
-            processed_values = [
-                json.dumps(v) if isinstance(v, (dict, list)) else v
-                for v in values
-            ]
+            processed_values = [json.dumps(v) if isinstance(v, (dict, list)) else v for v in values]
             self.redis.delete(name)  # Clear existing list
             if processed_values:
                 self.redis.rpush(name, *processed_values)
@@ -134,7 +134,7 @@ class RedisCacheManager:
             values = self.redis.lrange(name, start, end)
             if not values:
                 return []
-            
+
             # Try to parse JSON values
             processed_values = []
             for value in values:
@@ -181,4 +181,4 @@ class RedisCacheManager:
             return bool(self.redis.ping())
         except Exception as e:
             print(f"Error pinging Redis: {e}")
-            return False 
+            return False

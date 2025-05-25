@@ -19,12 +19,14 @@ The models are designed to:
 """
 
 # Import Base and other models from base_models.py
-from ..base_models import Base, MCPConfiguration, MCPChain, ChainSession, MCPPermission, AuditLog
-
+from ..base_models import (AuditLog, Base, ChainSession, MCPChain,
+                           MCPConfiguration, MCPPermission)
+from .base import BaseModel, TimestampMixin, UUIDMixin
 # Import the new MCP and MCPVersion models
 from .mcp import MCP, MCPVersion
+from .review import Review
+from .user import User
 from .workflow import WorkflowDefinition, WorkflowRun, WorkflowStepRun
-from .base import BaseModel, TimestampMixin, UUIDMixin
 
 # Define what gets imported with 'from .models import *'
 __all__ = [
@@ -35,18 +37,17 @@ __all__ = [
     "ChainSession",
     "MCPPermission",
     "AuditLog",
-    
     # MCP models
     "MCP",
     "MCPVersion",
-    
     # Workflow models
     "WorkflowDefinition",
     "WorkflowRun",
     "WorkflowStepRun",
-
     # Base model classes
     "BaseModel",
     "TimestampMixin",
-    "UUIDMixin"
-] 
+    "UUIDMixin",
+    "Review",
+    "User",
+]

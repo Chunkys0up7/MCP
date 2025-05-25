@@ -14,7 +14,6 @@ querying. The workflow_runs table has a foreign key relationship to workflow_def
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql # Added for JSONB and UUID
 
 
 # revision identifiers, used by Alembic.
@@ -42,10 +41,10 @@ def upgrade() -> None:
     """
     # Create workflow_definitions table
     op.create_table('workflow_definitions',
-    sa.Column('workflow_id', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('workflow_id', sa.UUID(as_uuid=True), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('steps', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('steps', sa.JSON(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('workflow_id')
@@ -54,14 +53,14 @@ def upgrade() -> None:
     
     # Create workflow_runs table
     op.create_table('workflow_runs',
-    sa.Column('run_id', postgresql.UUID(as_uuid=True), nullable=False),
-    sa.Column('workflow_id', postgresql.UUID(as_uuid=True), nullable=False),
+    sa.Column('run_id', sa.UUID(as_uuid=True), nullable=False),
+    sa.Column('workflow_id', sa.UUID(as_uuid=True), nullable=False),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-    sa.Column('inputs', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('outputs', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('step_results', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('inputs', sa.JSON(), nullable=True),
+    sa.Column('outputs', sa.JSON(), nullable=True),
+    sa.Column('step_results', sa.JSON(), nullable=True),
     sa.Column('error_message', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['workflow_id'], ['workflow_definitions.workflow_id'], ),
     sa.PrimaryKeyConstraint('run_id')

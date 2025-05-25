@@ -15,7 +15,6 @@ It sets up the following tables:
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20240321_initial'
@@ -41,8 +40,8 @@ def upgrade() -> None:
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
         sa.Column('type', sa.String(length=50), nullable=False),
-        sa.Column('config', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column('dependencies', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('config', sa.JSON(), nullable=False),
+        sa.Column('dependencies', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.Column('last_modified', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -54,7 +53,7 @@ def upgrade() -> None:
         'mcp_chains',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=255), nullable=False),
-        sa.Column('workflow', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column('workflow', sa.JSON(), nullable=False),
         sa.Column('version', sa.Integer(), nullable=False),
         sa.Column('parent_chain', sa.Integer(), nullable=True),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
@@ -67,7 +66,7 @@ def upgrade() -> None:
         'chain_sessions',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('session_id', sa.String(length=255), nullable=False),
-        sa.Column('chain_data', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column('chain_data', sa.JSON(), nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.Column('last_activity', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -92,7 +91,7 @@ def upgrade() -> None:
         sa.Column('user_id', sa.String(length=255), nullable=False),
         sa.Column('action_type', sa.String(length=50), nullable=False),
         sa.Column('target_id', sa.Integer(), nullable=True),
-        sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('details', sa.JSON(), nullable=True),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
         sa.PrimaryKeyConstraint('id')
     )

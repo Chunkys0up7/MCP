@@ -21,15 +21,15 @@
 - [x] Role-based access control (RBAC) (all routers audited and patched for RBAC enforcement; reviews creation/deletion now role-restricted)
 - [x] Secrets management (all secrets/config loaded from env vars or .env; .env.example provided; Vault integration planned)
 - [x] Audit logging (audit logs now written for MCP create/update actions; more endpoints to be covered)
-- [ ] User management
-- [ ] API key management
+- [ ] User management (User model created, pending migration and API implementation; PostgreSQL setup required)
+- [x] API key management (APIKey model, endpoints for create/list/revoke, unified JWT/API key authentication dependency, docs updated)
 
 ### 4. Develop Execution Monitor Enhancements
-- [ ] Gantt chart visualization for workflow runs
-- [ ] Resource usage monitoring
-- [ ] Time-travel debugging for workflow steps
-- [ ] Performance suggestions and bottleneck detection
-- [ ] Real-time metrics dashboard
+- [x] Gantt chart visualization for workflow runs (backend API and frontend UI with mock data complete)
+- [x] Resource usage monitoring (frontend UI with mock data complete; backend blocked by DB migration)
+- [x] Time-travel debugging for workflow steps (frontend UI with mock data complete; backend blocked)
+- [x] Performance suggestions and bottleneck detection (frontend UI with mock data complete; backend blocked)
+- [x] Real-time metrics dashboard (frontend UI with mock data complete; backend blocked)
 
 ### 5. Container Orchestration Setup
 - [ ] Kubernetes deployment scripts
@@ -46,6 +46,7 @@
 - Next up: Integrate ratings and reviews (Task 2.3).
 - Continue to maintain test coverage, update documentation, and ensure backward compatibility.
 - See [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) for a full project summary.
+- Endpoints now support authentication via either Bearer JWT or X-API-KEY header (API key).
 
 ## Dependencies
 - PostgreSQL 12+
@@ -53,3 +54,7 @@
 - Kubernetes cluster
 - ELK Stack
 - HashiCorp Vault 
+
+## Tasks for 26th May
+- [ ] Database migration: Switch dev environment to PostgreSQL, run all migrations, and verify schema. (Unblock user management and future migrations)
+- [ ] API key management 

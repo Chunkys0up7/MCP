@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Query, Depends
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict, Any
-from mcp.db.session import get_db_session
+
+from mcp.api.dependencies import get_current_subject
 from mcp.db.models.mcp import MCP
 from mcp.db.models.review import Review
+from mcp.db.session import get_db_session
 from mcp.schemas.mcp import MCPListItem
-from mcp.api.dependencies import get_current_subject
-from sqlalchemy import func
 
 router = APIRouter(prefix="/api/components", tags=["components"])
+
 
 @router.get("/search")
 def search_components(
@@ -17,8 +20,13 @@ def search_components(
     minRating: Optional[int] = None,
     minUsage: Optional[int] = None,
     searchTerm: Optional[str] = None,
-    compatibleWith: Optional[str] = Query(None, description="Component ID to check compatibility with (format: <component_id>:<version>)"),
-    requires: Optional[List[str]] = Query(None, description="List of component IDs that must be dependencies"),
+    compatibleWith: Optional[str] = Query(
+        None,
+        description="Component ID to check compatibility with (format: <component_id>:<version>)",
+    ),
+    requires: Optional[List[str]] = Query(
+        None, description="List of component IDs that must be dependencies"
+    ),
     author: Optional[str] = None,
     cost: Optional[float] = None,
     compliance: Optional[str] = None,
@@ -38,7 +46,9 @@ def search_components(
     if minUsage:
         query = query.filter(MCP.usage_count >= minUsage)
     if searchTerm:
-        query = query.filter(MCP.name.ilike(f"%{searchTerm}%") | MCP.description.ilike(f"%{searchTerm}%"))
+        query = query.filter(
+            MCP.name.ilike(f"%{searchTerm}%") | MCP.description.ilike(f"%{searchTerm}%")
+        )
     if author:
         query = query.filter(MCP.author == author)
     # Advanced filters: cost, compliance (assume in latest_version.definition)
@@ -57,8 +67,14 @@ def search_components(
         query = query.filter(MCP.id.in_(filtered_ids))
     # Join with reviews for rating filter
     if minRating:
-        subq = db.query(Review.component_id, func.avg(Review.rating).label("avg_rating")).group_by(Review.component_id).subquery()
-        query = query.join(subq, MCP.id == subq.c.component_id).filter(subq.c.avg_rating >= minRating)
+        subq = (
+            db.query(Review.component_id, func.avg(Review.rating).label("avg_rating"))
+            .group_by(Review.component_id)
+            .subquery()
+        )
+        query = query.join(subq, MCP.id == subq.c.component_id).filter(
+            subq.c.avg_rating >= minRating
+        )
     # Compatibility filter
     if compatibleWith:
         try:
@@ -99,7 +115,11 @@ def search_components(
             order_col = MCP.updated_at
         elif sortBy == "rating":
             # Sort by average rating (requires join)
-            subq = db.query(Review.component_id, func.avg(Review.rating).label("avg_rating")).group_by(Review.component_id).subquery()
+            subq = (
+                db.query(Review.component_id, func.avg(Review.rating).label("avg_rating"))
+                .group_by(Review.component_id)
+                .subquery()
+            )
             query = query.outerjoin(subq, MCP.id == subq.c.component_id)
             order_col = subq.c.avg_rating
         else:
@@ -110,13 +130,14 @@ def search_components(
             else:
                 query = query.order_by(order_col.desc().nullslast())
     total = query.count()
-    results = query.offset((page-1)*pageSize).limit(pageSize).all()
+    results = query.offset((page - 1) * pageSize).limit(pageSize).all()
     # Facets
     type_counts = dict(db.query(MCP.type, func.count()).group_by(MCP.type).all())
     tag_counts = {}
     for mcp in db.query(MCP).all():
         for tag in mcp.tags or []:
             tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
     # Format response: include version and dependency info
     def mcp_to_dict(mcp):
         latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
@@ -136,6 +157,7 @@ def search_components(
         item["cost"] = cost_val
         item["compliance"] = compliance_val
         return item
+
     components = [mcp_to_dict(mcp) for mcp in results]
     return {
         "components": components,
@@ -146,4 +168,4 @@ def search_components(
             "types": type_counts,
             "tags": tag_counts,
         },
-    } 
+    }

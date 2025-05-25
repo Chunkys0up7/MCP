@@ -1,3 +1,7 @@
+// TODO: To connect to backend, fetch from `/workflows/runs/{run_id}/gantt` and map to TaskBar[]
+// Example backend shape: [{ id, step_id, mcp_id, started_at, finished_at, status }]
+// Map to: { id: step_id, label: step_id or mcp_id, startTime, endTime, status, dependencies: [] }
+
 import React, { useMemo } from 'react';
 import { Box, Paper, Typography, useTheme } from '@mui/material';
 import { useWorkflowStore } from '../../../application/stores/workflowStore';
@@ -6,6 +10,7 @@ import { WorkflowExecutionStatus } from '../../../domain/models/workflow';
 
 interface GanttChartProps {
   workflowId: string;
+  mockData?: TaskBar[]; // Optional mock data for demo/testing
 }
 
 interface TaskBar {
@@ -17,13 +22,34 @@ interface TaskBar {
   dependencies: string[];
 }
 
-export const GanttChart: React.FC<GanttChartProps> = ({ workflowId }) => {
+// Example mock data for demo/testing
+const exampleMockData: TaskBar[] = [
+  {
+    id: 'step-1',
+    label: 'Step 1',
+    startTime: Date.now() - 60000,
+    endTime: Date.now() - 30000,
+    status: 'COMPLETED' as WorkflowExecutionStatus,
+    dependencies: []
+  },
+  {
+    id: 'step-2',
+    label: 'Step 2',
+    startTime: Date.now() - 30000,
+    endTime: Date.now(),
+    status: 'RUNNING' as WorkflowExecutionStatus,
+    dependencies: ['step-1']
+  }
+];
+
+export const GanttChart: React.FC<GanttChartProps> = ({ workflowId, mockData }) => {
   const theme = useTheme();
   const { nodes, edges } = useWorkflowStore();
   const { getNodeStatus, getLatestResourceUpdate } = useWebSocket(workflowId);
 
-  // Calculate task bars for the Gantt chart
+  // Use mockData if provided, else use store/websocket
   const taskBars = useMemo(() => {
+    if (mockData) return mockData;
     return nodes.map(node => {
       const status = getNodeStatus(node.id);
       const startTime = status?.startTime ? new Date(status.startTime).getTime() : 0;
@@ -39,11 +65,11 @@ export const GanttChart: React.FC<GanttChartProps> = ({ workflowId }) => {
         label: node.data.label,
         startTime,
         endTime: endTime || startTime + 1000, // If not ended, show current progress
-        status: status?.status || 'PENDING',
+        status: (status?.status || 'PENDING') as WorkflowExecutionStatus,
         dependencies
       };
     });
-  }, [nodes, edges, getNodeStatus]);
+  }, [mockData, nodes, edges, getNodeStatus]);
 
   // Calculate chart dimensions
   const chartHeight = taskBars.length * 40 + 60; // 40px per task + padding
@@ -59,6 +85,7 @@ export const GanttChart: React.FC<GanttChartProps> = ({ workflowId }) => {
         return theme.palette.success.main;
       case 'FAILED':
         return theme.palette.error.main;
+      case 'PENDING':
       default:
         return theme.palette.grey[300];
     }

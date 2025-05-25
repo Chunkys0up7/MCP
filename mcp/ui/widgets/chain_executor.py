@@ -1,38 +1,38 @@
-import streamlit as st
 import json
-from typing import Dict, List, Any
-import requests
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Dict, List
+
+import requests
+import streamlit as st
+
 
 class ChainExecutor:
     def __init__(self):
         self.server_url = "http://localhost:8000"  # Updated server URL
-        
+
     def render(self):
         st.title("MCP Chain Executor")
-        
+
         # Load available chains
         chains = self._load_chains()
         if not chains:
             st.warning("No chains available. Please create a chain first.")
             return
-        
+
         # Chain selection
         selected_chain_id = st.selectbox(
-            "Select Chain",
-            options=list(chains.keys()),
-            format_func=lambda x: chains[x]["name"]
+            "Select Chain", options=list(chains.keys()), format_func=lambda x: chains[x]["name"]
         )
-        
+
         if selected_chain_id:
             chain = chains[selected_chain_id]
             st.write(f"**Description:** {chain['description']}")
-            
+
             # Display chain steps
             st.subheader("Chain Steps")
             for i, step in enumerate(chain["steps"], 1):
                 st.write(f"{i}. {self._get_mcp_name(step['mcp_id'])}")
-            
+
             # Input parameters
             st.subheader("Input Parameters")
             input_params = {}
@@ -42,10 +42,9 @@ class ChainExecutor:
                     for var in mcp["config"]["input_variables"]:
                         if var not in input_params:
                             input_params[var] = st.text_input(
-                                f"Input for {var}",
-                                key=f"input_{var}"
+                                f"Input for {var}", key=f"input_{var}"
                             )
-            
+
             # Execution controls
             st.subheader("Execution")
             if st.button("Execute Chain"):
@@ -55,7 +54,7 @@ class ChainExecutor:
                         self._display_results(results)
                     except Exception as e:
                         st.error(f"Error executing chain: {str(e)}")
-    
+
     def _load_chains(self) -> Dict[str, Any]:
         """Load chain configurations from storage."""
         try:
@@ -64,7 +63,7 @@ class ChainExecutor:
                 return data.get("chains", {})
         except FileNotFoundError:
             return {}
-    
+
     def _get_mcp(self, mcp_id: str) -> Dict[str, Any]:
         """Get MCP configuration by ID."""
         try:
@@ -73,66 +72,55 @@ class ChainExecutor:
             return mcp_data.get(mcp_id, {})
         except Exception:
             return {}
-    
+
     def _get_mcp_name(self, mcp_id: str) -> str:
         """Get MCP name by ID."""
         mcp = self._get_mcp(mcp_id)
         return mcp.get("name", "Unknown MCP")
-    
+
     def _execute_chain(
-        self,
-        chain: Dict[str, Any],
-        input_params: Dict[str, str]
+        self, chain: Dict[str, Any], input_params: Dict[str, str]
     ) -> List[Dict[str, Any]]:
         """Execute the chain and return results."""
         results = []
-        
+
         if chain["execution_mode"] == "Sequential":
             results = self._execute_sequential(chain, input_params)
         else:  # Parallel execution
             results = self._execute_parallel(chain, input_params)
-        
+
         return results
-    
+
     def _execute_sequential(
-        self,
-        chain: Dict[str, Any],
-        input_params: Dict[str, str]
+        self, chain: Dict[str, Any], input_params: Dict[str, str]
     ) -> List[Dict[str, Any]]:
         """Execute chain steps sequentially."""
         results = []
         for step in chain["steps"]:
             result = self._execute_step(step, input_params)
             results.append(result)
-            
+
             # Update input parameters with step output
             if result.get("output"):
                 input_params.update(result["output"])
-        
+
         return results
-    
+
     def _execute_parallel(
-        self,
-        chain: Dict[str, Any],
-        input_params: Dict[str, str]
+        self, chain: Dict[str, Any], input_params: Dict[str, str]
     ) -> List[Dict[str, Any]]:
         """Execute chain steps in parallel."""
         with ThreadPoolExecutor() as executor:
             futures = [
-                executor.submit(self._execute_step, step, input_params)
-                for step in chain["steps"]
+                executor.submit(self._execute_step, step, input_params) for step in chain["steps"]
             ]
             return [future.result() for future in futures]
-    
-    def _execute_step(
-        self,
-        step: Dict[str, Any],
-        input_params: Dict[str, str]
-    ) -> Dict[str, Any]:
+
+    def _execute_step(self, step: Dict[str, Any], input_params: Dict[str, str]) -> Dict[str, Any]:
         """Execute a single chain step."""
         mcp_id = step["mcp_id"]
         inputs = step["inputs"]
-        
+
         # Replace input references with actual values
         resolved_inputs = {}
         for key, value in inputs.items():
@@ -140,26 +128,21 @@ class ChainExecutor:
                 resolved_inputs[key] = input_params[value]
             else:
                 resolved_inputs[key] = value
-        
+
         # Execute MCP
         try:
             response = requests.post(
-                f"{self.server_url}/context/{mcp_id}/execute",
-                json=resolved_inputs
+                f"{self.server_url}/context/{mcp_id}/execute", json=resolved_inputs
             )
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            return {
-                "error": str(e),
-                "status": "error",
-                "mcp_id": mcp_id
-            }
-    
+            return {"error": str(e), "status": "error", "mcp_id": mcp_id}
+
     def _display_results(self, results: List[Dict[str, Any]]):
         """Display chain execution results."""
         st.subheader("Execution Results")
-        
+
         for i, result in enumerate(results, 1):
             with st.expander(f"Step {i} Result", expanded=True):
                 if "error" in result:
@@ -183,4 +166,4 @@ class ChainExecutor:
                         st.code(result["stdout"])
                     if "stderr" in result and result["stderr"]:
                         st.write("Standard Error:")
-                        st.code(result["stderr"]) 
+                        st.code(result["stderr"])

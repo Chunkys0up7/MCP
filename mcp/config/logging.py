@@ -5,10 +5,11 @@ from typing import Optional
 
 from .settings import settings
 
+
 def setup_logging(
     log_file: Optional[str] = None,
     log_level: Optional[str] = None,
-    log_format: Optional[str] = None
+    log_format: Optional[str] = None,
 ) -> None:
     """Set up logging configuration."""
     # Use settings if not provided
@@ -36,9 +37,7 @@ def setup_logging(
     # Add file handler if log file is specified
     if log_file:
         file_handler = logging.handlers.RotatingFileHandler(
-            log_file,
-            maxBytes=10 * 1024 * 1024,  # 10MB
-            backupCount=5
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5  # 10MB
         )
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
@@ -48,9 +47,11 @@ def setup_logging(
     logging.getLogger("sqlalchemy").setLevel(logging.WARNING)
     logging.getLogger("alembic").setLevel(logging.WARNING)
 
+
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the specified name."""
     return logging.getLogger(name)
 
+
 # Create a default logger for the application
-logger = get_logger("mcp") 
+logger = get_logger("mcp")

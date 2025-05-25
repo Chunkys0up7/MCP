@@ -6,21 +6,22 @@ A simple hello world example that demonstrates:
 4. Unicode character support
 """
 
-import sys
 import json
+import sys
 from datetime import datetime
 
 # Set default encoding to UTF-8
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stdout.encoding != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8")
+
 
 def main(name: str, language: str) -> dict:
     """Generate a hello world message in the specified language.
-    
+
     Args:
         name (str): The name to greet
         language (str): The language to use for the greeting
-        
+
     Returns:
         dict: The greeting message and metadata
     """
@@ -34,31 +35,34 @@ def main(name: str, language: str) -> dict:
         "ru": f"Привет, {name}!",
         "zh": f"你好，{name}！",
         "ja": f"こんにちは、{name}さん！",
-        "ko": f"안녕하세요, {name}님!"
+        "ko": f"안녕하세요, {name}님!",
     }
-    
+
     # Default to English if language not found
     greeting = greetings.get(language.lower(), f"Hello, {name}!")
-    
+
     # Return a dictionary with the greeting and metadata
     return {
         "greeting": greeting,
         "language": language,
         "name": name,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
+
 
 if __name__ == "__main__":
     # Get command line arguments
     if len(sys.argv) != 3:
-        print(json.dumps({
-            "error": "Usage: python hello_world.py <name> <language>"
-        }, ensure_ascii=False))
+        print(
+            json.dumps(
+                {"error": "Usage: python hello_world.py <name> <language>"}, ensure_ascii=False
+            )
+        )
         sys.exit(1)
-        
+
     name = sys.argv[1]
     language = sys.argv[2]
-    
+
     try:
         result = main(name, language)
         # Ensure we're using UTF-8 for JSON output and handle any encoding issues
@@ -68,7 +72,5 @@ if __name__ == "__main__":
             # Fallback to ASCII with escaped Unicode if UTF-8 fails
             print(json.dumps(result, ensure_ascii=True))
     except Exception as e:
-        print(json.dumps({
-            "error": str(e)
-        }, ensure_ascii=False))
-        sys.exit(1) 
+        print(json.dumps({"error": str(e)}, ensure_ascii=False))
+        sys.exit(1)

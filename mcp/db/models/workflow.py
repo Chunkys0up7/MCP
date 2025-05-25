@@ -19,25 +19,27 @@ The models support:
 """
 
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from sqlalchemy import Column, String, ForeignKey, Enum, JSON, DateTime, Integer
+from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
+                        String)
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from mcp.db.models.base import BaseModel, UUIDMixin, TimestampMixin
+from mcp.db.models.base import BaseModel, TimestampMixin, UUIDMixin
+
 
 class WorkflowDefinition(BaseModel, UUIDMixin, TimestampMixin):
     """
     Workflow definition model.
-    
+
     This model:
     1. Stores workflow definitions
     2. Manages steps
     3. Handles schemas
     4. Tracks metadata
-    
+
     Attributes:
         id: UUID primary key
         name: Workflow name
@@ -51,39 +53,44 @@ class WorkflowDefinition(BaseModel, UUIDMixin, TimestampMixin):
         updated_at: Last update timestamp
         runs: List of workflow runs
     """
-    
-    __tablename__ = 'workflow_definitions'
-    
+
+    __tablename__ = "workflow_definitions"
+
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     steps: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
     input_schema: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
     output_schema: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
-    error_strategy: Mapped[str] = mapped_column(Enum('stop', 'continue', 'retry', name='error_strategy'), nullable=False)
-    execution_mode: Mapped[str] = mapped_column(Enum('sequential', 'parallel', name='execution_mode'), nullable=False)
-    
+    error_strategy: Mapped[str] = mapped_column(
+        Enum("stop", "continue", "retry", name="error_strategy"), nullable=False
+    )
+    execution_mode: Mapped[str] = mapped_column(
+        Enum("sequential", "parallel", name="execution_mode"), nullable=False
+    )
+
     # Relationships
-    runs = relationship('WorkflowRun', back_populates='workflow', cascade='all, delete-orphan')
-    
+    runs = relationship("WorkflowRun", back_populates="workflow", cascade="all, delete-orphan")
+
     def __repr__(self) -> str:
         """
         String representation of workflow definition.
-        
+
         Returns:
             str: Workflow definition representation
         """
         return f"<WorkflowDefinition(name={self.name})>"
 
+
 class WorkflowRun(BaseModel, UUIDMixin, TimestampMixin):
     """
     Workflow execution model.
-    
+
     This model:
     1. Tracks workflow executions
     2. Manages status
     3. Handles inputs/outputs
     4. Records errors
-    
+
     Attributes:
         id: UUID primary key
         workflow_id: Workflow definition ID
@@ -96,40 +103,47 @@ class WorkflowRun(BaseModel, UUIDMixin, TimestampMixin):
         workflow: Workflow definition
         step_runs: List of step runs
     """
-    
-    __tablename__ = 'workflow_runs'
-    
-    workflow_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('workflow_definitions.id'), nullable=False)
-    status: Mapped[str] = mapped_column(Enum('pending', 'running', 'completed', 'failed', name='workflow_status'), nullable=False)
+
+    __tablename__ = "workflow_runs"
+
+    workflow_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("workflow_definitions.id"), nullable=False
+    )
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "running", "completed", "failed", name="workflow_status"), nullable=False
+    )
     inputs: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
     outputs: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    
+
     # Relationships
-    workflow = relationship('WorkflowDefinition', back_populates='runs', foreign_keys=[workflow_id])
-    step_runs = relationship('WorkflowStepRun', back_populates='workflow_run', cascade='all, delete-orphan')
-    
+    workflow = relationship("WorkflowDefinition", back_populates="runs", foreign_keys=[workflow_id])
+    step_runs = relationship(
+        "WorkflowStepRun", back_populates="workflow_run", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:
         """
         String representation of workflow run.
-        
+
         Returns:
             str: Workflow run representation
         """
         return f"<WorkflowRun(workflow={self.workflow.name}, status={self.status})>"
 
+
 class WorkflowStepRun(BaseModel, UUIDMixin, TimestampMixin):
     """
     Workflow step execution model.
-    
+
     This model:
     1. Tracks step executions
     2. Manages status
     3. Handles inputs/outputs
     4. Records errors
-    
+
     Attributes:
         id: UUID primary key
         workflow_run_id: Workflow run ID
@@ -143,29 +157,39 @@ class WorkflowStepRun(BaseModel, UUIDMixin, TimestampMixin):
         finished_at: Finish timestamp
         retry_count: Number of retries
         workflow_run: Parent workflow run
+        resource_usage: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)  # Stores CPU/memory usage and other metrics
     """
-    
-    __tablename__ = 'workflow_step_runs'
-    
-    workflow_run_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('workflow_runs.id'), nullable=False)
+
+    __tablename__ = "workflow_step_runs"
+
+    workflow_run_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("workflow_runs.id"), nullable=False
+    )
     step_id: Mapped[str] = mapped_column(String, nullable=False)
-    mcp_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey('mcps.id'), nullable=False)
-    status: Mapped[str] = mapped_column(Enum('pending', 'running', 'completed', 'failed', name='step_status'), nullable=False)
+    mcp_id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
+    status: Mapped[str] = mapped_column(
+        Enum("pending", "running", "completed", "failed", name="step_status"), nullable=False
+    )
     inputs: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
     outputs: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, default=0)
-    
+    resource_usage: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict
+    )  # Stores CPU/memory usage and other metrics
+
     # Relationships
-    workflow_run = relationship('WorkflowRun', back_populates='step_runs', foreign_keys=[workflow_run_id])
-    
+    workflow_run = relationship(
+        "WorkflowRun", back_populates="step_runs", foreign_keys=[workflow_run_id]
+    )
+
     def __repr__(self) -> str:
         """
         String representation of step run.
-        
+
         Returns:
             str: Step run representation
         """
-        return f"<WorkflowStepRun(step={self.step_id}, status={self.status})>" 
+        return f"<WorkflowStepRun(step={self.step_id}, status={self.status})>"

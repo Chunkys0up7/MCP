@@ -196,4 +196,33 @@ response = client.messages.create(
     ]
 )
 print('Claude says:', response.content[0].text)
-``` 
+```
+
+## API Key Management and Authentication
+
+### Creating and Managing API Keys
+- Use the `/api/apikeys/` endpoint to create a new API key (admin or self-service).
+- List your API keys with `GET /api/apikeys/`.
+- Revoke an API key with `POST /api/apikeys/revoke`.
+
+### Authenticating with API Keys
+- Pass your API key in the `X-API-KEY` header for any authenticated endpoint.
+- Alternatively, you can use a Bearer JWT in the `Authorization` header.
+- All endpoints that require authentication now support both methods.
+
+**Example:**
+```
+GET /api/apikeys/
+X-API-KEY: <your-api-key>
+```
+
+## Execution Monitor Enhancements (UI)
+
+The Execution Monitor now includes the following panels (with mock data, ready for backend integration):
+
+- **Resource Usage Panel:** View CPU and memory usage per workflow step.
+- **Time-Travel Debugging Panel:** Select a step to view its state at execution time.
+- **Performance Suggestions Panel:** See optimization and bottleneck suggestions.
+- **Real-Time Metrics Dashboard:** Monitor live metrics (CPU, memory, throughput, etc.).
+
+These panels are integrated into the workflow Execution Monitor and will display real data once backend support is available. 

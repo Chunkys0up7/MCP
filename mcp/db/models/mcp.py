@@ -13,34 +13,36 @@ The models support:
 5. Configuration management
 """
 
+import uuid
 from datetime import datetime
 from typing import List, Optional
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Enum, Table
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 
+from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String, Table
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from ...schemas.mcp import MCPStatus, MCPType
 from ..base_models import Base
-from ...schemas.mcp import MCPType, MCPStatus
 
 # Association table for MCP tags
 mcp_tags = Table(
-    'mcp_tags',
+    "mcp_tags",
     Base.metadata,
-    Column('mcp_id', UUID(as_uuid=True), ForeignKey('mcps.id')),
-    Column('tag', String)
+    Column("mcp_id", UUID(as_uuid=True), ForeignKey("mcps.id")),
+    Column("tag", String),
 )
+
 
 class MCP(Base):
     """
     Represents a Model Context Protocol (MCP) definition in the database.
-    
+
     An MCP is a reusable component that defines:
     1. Input/output schemas
     2. Configuration parameters
     3. Implementation details
     4. Metadata and versioning
-    
+
     Attributes:
         id (UUID): Unique identifier for the MCP
         name (str): Human-readable name of the MCP
@@ -53,32 +55,33 @@ class MCP(Base):
         versions (List[MCPVersion]): List of all versions of this MCP
         current_version (MCPVersion): The current active version
     """
-    
-    __tablename__ = 'mcps'
-    
+
+    __tablename__ = "mcps"
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     description = Column(String)
     type = Column(Enum(MCPType), nullable=False)
-    current_version_id = Column(UUID(as_uuid=True), ForeignKey('mcp_versions.id'))
+    current_version_id = Column(UUID(as_uuid=True), ForeignKey("mcp_versions.id"))
     # tags = relationship('Tag', secondary=mcp_tags, backref='mcps')  # Commented out: Tag model not defined
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    versions = relationship('MCPVersion', back_populates='mcp', foreign_keys='MCPVersion.mcp_id')
-    current_version = relationship('MCPVersion', foreign_keys=[current_version_id])
+
+    versions = relationship("MCPVersion", back_populates="mcp", foreign_keys="MCPVersion.mcp_id")
+    current_version = relationship("MCPVersion", foreign_keys=[current_version_id])
+
 
 class MCPVersion(Base):
     """
     Represents a specific version of an MCP definition.
-    
+
     Each version contains:
     1. The complete MCP definition
     2. Input/output schemas
     3. Configuration parameters
     4. Implementation details
     5. Status and metadata
-    
+
     Attributes:
         id (UUID): Unique identifier for the version
         mcp_id (UUID): ID of the parent MCP
@@ -93,18 +96,19 @@ class MCPVersion(Base):
         updated_at (datetime): When the version was last updated
         mcp (MCP): Reference to the parent MCP
     """
-    
-    __tablename__ = 'mcp_versions'
-    
+
+    __tablename__ = "mcp_versions"
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mcp_id = Column(UUID(as_uuid=True), ForeignKey('mcps.id'), nullable=False)
+    mcp_id = Column(UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
     version = Column(String, nullable=False)
     definition = Column(JSON, nullable=False)
     status = Column(Enum(MCPStatus), default=MCPStatus.DRAFT)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    mcp = relationship('MCP', back_populates='versions', foreign_keys=[mcp_id])
+
+    mcp = relationship("MCP", back_populates="versions", foreign_keys=[mcp_id])
+
 
 # Ensure mcp.db.base_class.Base is correctly defined, e.g.:
 # from sqlalchemy.ext.declarative import as_declarative, declared_attr
@@ -115,4 +119,4 @@ class MCPVersion(Base):
 #     # Generate __tablename__ automatically
 #     @declared_attr
 #     def __tablename__(cls) -> str:
-#         return cls.__name__.lower() 
+#         return cls.__name__.lower()

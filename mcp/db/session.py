@@ -10,19 +10,19 @@ It includes:
 4. Error handling and retries
 """
 
+import logging
 import os
-from dotenv import load_dotenv
 from contextlib import contextmanager
 from typing import Generator, Optional
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import QueuePool
 from sqlalchemy.exc import SQLAlchemyError
-import logging
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import QueuePool
 
-from .models import Base
 from .base_models import get_database_url
+from .models import Base
 from .pool import DatabasePool
 
 # Load environment variables from .env file
@@ -62,17 +62,18 @@ SessionLocal = sessionmaker(
 # Global connection pool instance
 _pool: Optional[DatabasePool] = None
 
+
 def init_pool(
     url: Optional[str] = None,
     pool_size: int = 5,
     max_overflow: int = 10,
     pool_timeout: int = 30,
     pool_recycle: int = 3600,
-    pool_pre_ping: bool = True
+    pool_pre_ping: bool = True,
 ) -> None:
     """
     Initialize the database connection pool.
-    
+
     Args:
         url: Database URL (uses DATABASE_URL env var if None)
         pool_size: Number of connections to keep open
@@ -89,17 +90,18 @@ def init_pool(
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
             pool_recycle=pool_recycle,
-            pool_pre_ping=pool_pre_ping
+            pool_pre_ping=pool_pre_ping,
         )
         logger.info("Initialized database connection pool")
+
 
 def get_pool() -> DatabasePool:
     """
     Get the database connection pool.
-    
+
     Returns:
         DatabasePool: The connection pool instance
-    
+
     Raises:
         RuntimeError: If pool is not initialized
     """
@@ -107,14 +109,15 @@ def get_pool() -> DatabasePool:
         raise RuntimeError("Database pool not initialized. Call init_pool() first.")
     return _pool
 
+
 @contextmanager
 def get_db_session() -> Session:
     """
     Get a database session from the pool.
-    
+
     Yields:
         Session: Database session
-    
+
     Raises:
         RuntimeError: If pool is not initialized
     """
@@ -122,55 +125,59 @@ def get_db_session() -> Session:
     with pool.get_session() as session:
         yield session
 
+
 def get_pool_stats() -> dict:
     """
     Get connection pool statistics.
-    
+
     Returns:
         dict: Pool statistics
-    
+
     Raises:
         RuntimeError: If pool is not initialized
     """
     pool = get_pool()
     return pool.get_pool_stats()
 
+
 def optimize_pool_size(target_utilization: float = 0.8) -> None:
     """
     Optimize pool size based on current usage.
-    
+
     Args:
         target_utilization: Target pool utilization (0.0 to 1.0)
-    
+
     Raises:
         RuntimeError: If pool is not initialized
     """
     pool = get_pool()
     pool.optimize_pool_size(target_utilization)
 
+
 def check_connection_health() -> bool:
     """
     Check the health of a test connection.
-    
+
     Returns:
         bool: True if connection is healthy
-    
+
     Raises:
         RuntimeError: If pool is not initialized
     """
     pool = get_pool()
     return pool.check_connection_health()
 
+
 def init_db() -> None:
     """
     Initialize the database.
-    
+
     This function:
     1. Creates all tables
     2. Sets up indexes
     3. Configures constraints
     4. Handles errors
-    
+
     Raises:
         Exception: If database initialization fails
     """
@@ -181,6 +188,7 @@ def init_db() -> None:
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
 
+
 def get_connection_pool():
     """Get the database connection pool."""
-    return engine.pool 
+    return engine.pool
