@@ -26,6 +26,7 @@ from .dependencies import get_current_subject
 
 from .routers import workflows as workflow_router
 from .routers import auth as auth_router
+from .routers import reviews as reviews_router
 
 from mcp.core.auth import UserRole, require_any_role
 
@@ -62,6 +63,7 @@ app.add_middleware(
 # Include the workflow router
 app.include_router(workflow_router.router)
 app.include_router(auth_router.router)
+app.include_router(reviews_router.router)
 
 # API Request model for creating MCPs
 class MCPCreationRequest(BaseModel):
