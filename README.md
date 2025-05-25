@@ -8,11 +8,19 @@ MCP is a modular framework for managing, executing, and monitoring AI model cont
 - Execute MCPs and view results in a web UI
 - Monitor server health and statistics
 - Extensible for new MCP types
+- High-performance database operations with connection pooling
+- Query caching with Redis
+- PostgreSQL index optimization
+- System monitoring and metrics collection
+- AI Co-Pilot for workflow optimization
+- Dependency visualization and analysis
 
 ## Setup
 
 ### Prerequisites
 - Python 3.9+
+- PostgreSQL 12+
+- Redis 6+
 - (Recommended) Create and activate a virtual environment
 
 ### Install dependencies
@@ -23,6 +31,8 @@ pip install -r requirements.txt
 ### Environment Variables
 - Set `MCP_API_KEY` for API authentication (optional, defaults provided)
 - For LLMs, set `ANTHROPIC_API_KEY` if using Claude
+- Set `DATABASE_URL` for PostgreSQL connection
+- Set `REDIS_URL` for Redis connection
 
 ### Start the backend
 ```bash
@@ -38,6 +48,35 @@ streamlit run mcp/ui/app.py
 - Access the dashboard at [http://localhost:8501](http://localhost:8501)
 - Create, manage, and test MCPs from the UI
 - Monitor health and stats from the sidebar
+- Use the AI Co-Pilot for workflow optimization
+- Visualize component dependencies
+- Monitor system performance
+
+## Components
+
+### Database Management
+- Connection pooling for efficient database access
+- Query caching with Redis for improved performance
+- PostgreSQL index optimization for faster queries
+- Database monitoring and statistics
+
+### System Monitoring
+- Real-time system health monitoring
+- Performance metrics collection
+- Alerting system with severity levels
+- Prometheus metrics integration
+
+### AI Co-Pilot
+- Workflow optimization suggestions
+- Error resolution assistance
+- Best practice recommendations
+- Performance improvements
+
+### Dependency Visualizer
+- Component relationship visualization
+- Dependency conflict detection
+- Version compatibility checking
+- Visual dependency mapping
 
 ## Adding New MCPs
 - Implement a new MCP class in `mcp/core/`
@@ -53,6 +92,9 @@ pytest
 - `mcp/api/` - FastAPI backend
 - `mcp/ui/` - Streamlit frontend
 - `mcp/core/` - Core MCP types and logic
+- `mcp/db/` - Database management and optimization
+- `mcp/monitoring/` - System monitoring and metrics
+- `mcp/components/` - AI Co-Pilot and Dependency Visualizer
 - `tests/` - Test suite
 
 ## License
@@ -72,6 +114,8 @@ Once the server is running, you can access:
 - Rate limiting is enabled by default
 - CORS is configured to allow only specific origins
 - All sensitive configuration is managed through environment variables
+- Database connection pooling with health checks
+- Redis connection security
 
 ## Monitoring
 
@@ -80,6 +124,10 @@ The server includes:
 - Structured JSON logging
 - Health check endpoint
 - Server statistics endpoint
+- System resource monitoring
+- Database performance metrics
+- Cache statistics
+- Alert management
 
 ## Contributing
 
@@ -89,10 +137,11 @@ The server includes:
 4. Push to the branch
 5. Create a Pull Request
 
-## Additional Dependencies for Notebook and LLM Integration
+## Additional Dependencies
 
-This project now requires the following additional Python packages:
+This project requires the following additional Python packages:
 
+### Core Dependencies
 - pandas
 - numpy
 - matplotlib
@@ -100,6 +149,18 @@ This project now requires the following additional Python packages:
 - nbformat
 - jupyter
 - anthropic
+
+### Database Dependencies
+- sqlalchemy
+- psycopg2-binary
+- redis
+- alembic
+
+### Monitoring Dependencies
+- prometheus-client
+- psutil
+- networkx
+- graphviz
 
 Install all dependencies with:
 

@@ -3,6 +3,8 @@ pydantic>=2.0.0
 streamlit>=1.30.0
 python-dotenv>=1.0.0
 pyyaml>=6.0.0
+fastapi>=0.68.0
+uvicorn>=0.15.0
 
 # API and networking
 aiohttp>=3.9.0
@@ -12,15 +14,44 @@ requests>=2.31.0
 jupyter>=1.0.0
 nbformat>=5.9.0
 nbconvert>=7.0.0
+papermill>=2.4.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+matplotlib>=3.4.0
+
+# Database
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.0
+alembic>=1.13.0
+asyncpg>=0.29.0
+pgvector>=0.2.0
+
+# Caching
+redis>=5.0.1
+
+# Monitoring and metrics
+prometheus-client>=0.17.0
+psutil>=5.8.0
+grafana-api-client>=1.0.0
+
+# Visualization
+networkx>=3.1.0
+pygraphviz>=1.7.0
+graphviz>=0.20.0
+
+# LLM and AI
+anthropic>=0.8.0
+sentence-transformers>=2.2.0
 
 # Utilities
 python-dateutil>=2.8.2
 typing-extensions>=4.8.0
 pathlib>=1.0.1
 
-# Logging and monitoring
+# Logging
 structlog>=23.1.0
-prometheus-client>=0.17.0
 
 # Security
 cryptography>=41.0.0
@@ -31,65 +62,8 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 
-# Database
-psycopg2-binary>=2.9.9
-sqlalchemy>=2.0.0
-alembic>=1.13.0
-asyncpg>=0.29.0
-
-# Redis for caching
-redis>=5.0.1
-
-# React Flow integration
-# streamlit-component-lib>=1.0.0
-
-# Added pgvector
-pgvector
-
-# Added sentence-transformers
-sentence-transformers
-
-# Added networkx
-networkx>=3.1
-
-# Added sqlalchemy
-sqlalchemy>=1.4.0
-
-# Added psycopg2-binary
-psycopg2-binary>=2.9.0
-
-# Added python-dotenv
-python-dotenv>=0.19.0
-
-# Added fastapi
-fastapi>=0.68.0
-
-# Added uvicorn
-uvicorn>=0.15.0
-
-# Added psutil
-psutil>=5.8.0
-
-# Added prometheus-client
-prometheus-client>=0.11.0
-
-# Added grafana-api-client
-grafana-api-client>=1.0.0
-
-# Added matplotlib
-matplotlib>=3.4.0
-
-# Added pygraphviz
-pygraphviz>=1.7.0
-
-# Added black
+# Code quality
 black>=21.7b0
-
-# Added isort
 isort>=5.9.0
-
-# Added flake8
 flake8>=3.9.0
-
-# Added mypy
 mypy>=0.910 
