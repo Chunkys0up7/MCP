@@ -1,108 +1,204 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Box,
+  Paper,
   Typography,
   List,
   ListItem,
-  ListItemText,
   ListItemIcon,
-  IconButton,
+  ListItemText,
   Collapse,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import {
   Error as ErrorIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { useWorkflowValidator } from './WorkflowValidator';
-import { ValidationError } from './types';
+import { useWorkflowValidation } from '../../../application/hooks/useWorkflowValidation';
+import { useWorkflowStore } from '../../../infrastructure/state/workflowStore';
+import { ValidationError } from '../../../domain/models/workflow';
 
 export const ValidationPanel: React.FC = () => {
-  const [expanded, setExpanded] = useState(true);
-  const { validateWorkflow } = useWorkflowValidator();
-  const errors = validateWorkflow();
+  const { nodes, edges } = useWorkflowStore();
+  const {
+    validationResult,
+    validateWorkflow,
+    isValid
+  } = useWorkflowValidation(nodes, edges);
 
-  const handleToggle = () => {
+  const [expanded, setExpanded] = React.useState(true);
+
+  const handleExpandClick = () => {
     setExpanded(!expanded);
   };
 
-  const getErrorIcon = (type: ValidationError['type']) => {
-    switch (type) {
-      case 'node':
+  const getSeverityIcon = (severity: ValidationError['severity']) => {
+    switch (severity) {
+      case 'error':
         return <ErrorIcon color="error" />;
-      case 'edge':
-        return <ErrorIcon color="warning" />;
-      case 'workflow':
-        return <ErrorIcon color="error" />;
+      case 'warning':
+        return <WarningIcon color="warning" />;
+      case 'info':
+        return <InfoIcon color="info" />;
       default:
-        return <ErrorIcon />;
+        return null;
     }
   };
 
-  const groupedErrors = errors.reduce((acc, error) => {
-    if (!acc[error.type]) {
-      acc[error.type] = [];
+  const getSeverityColor = (severity: ValidationError['severity']) => {
+    switch (severity) {
+      case 'error':
+        return 'error.main';
+      case 'warning':
+        return 'warning.main';
+      case 'info':
+        return 'info.main';
+      default:
+        return 'text.secondary';
     }
-    acc[error.type].push(error);
-    return acc;
-  }, {} as Record<ValidationError['type'], ValidationError[]>);
+  };
 
   return (
-    <Box
+    <Paper
+      elevation={2}
       sx={{
         position: 'absolute',
         bottom: 16,
         right: 16,
-        width: 300,
-        bgcolor: 'background.paper',
-        borderRadius: 1,
-        boxShadow: 3,
-        zIndex: 1000,
+        width: 400,
+        maxHeight: 400,
+        overflow: 'auto',
+        zIndex: 1000
       }}
     >
       <Box
         sx={{
+          p: 2,
           display: 'flex',
           alignItems: 'center',
-          p: 1,
+          justifyContent: 'space-between',
           borderBottom: 1,
-          borderColor: 'divider',
+          borderColor: 'divider'
         }}
       >
-        <Typography variant="subtitle1" sx={{ flex: 1 }}>
-          Validation Errors ({errors.length})
+        <Typography variant="h6">
+          Validation Results
+          {isValid && (
+            <Typography
+              component="span"
+              variant="body2"
+              color="success.main"
+              sx={{ ml: 1 }}
+            >
+              (Valid)
+            </Typography>
+          )}
         </Typography>
-        <IconButton onClick={handleToggle} size="small">
-          {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </IconButton>
+        <Box>
+          <Tooltip title="Refresh">
+            <IconButton onClick={() => validateWorkflow()} size="small">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <IconButton onClick={handleExpandClick} size="small">
+            {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
       </Box>
 
       <Collapse in={expanded}>
-        <List dense sx={{ maxHeight: 300, overflow: 'auto' }}>
-          {Object.entries(groupedErrors).map(([type, typeErrors]) => (
-            <React.Fragment key={type}>
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography variant="subtitle2" color="text.secondary">
-                      {type.charAt(0).toUpperCase() + type.slice(1)} Errors
+        <List dense>
+          {validationResult.errors.map((error, index) => (
+            <ListItem
+              key={`error-${index}`}
+              sx={{
+                borderLeft: 4,
+                borderColor: getSeverityColor(error.severity)
+              }}
+            >
+              <ListItemIcon>
+                {getSeverityIcon(error.severity)}
+              </ListItemIcon>
+              <ListItemText
+                primary={error.message}
+                secondary={
+                  <>
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Node: {error.nodeId}
                     </Typography>
-                  }
-                />
-              </ListItem>
-              {typeErrors.map((error) => (
-                <ListItem key={error.id || error.message}>
-                  <ListItemIcon>{getErrorIcon(error.type)}</ListItemIcon>
-                  <ListItemText
-                    primary={error.message}
-                    secondary={error.id ? `ID: ${error.id}` : undefined}
-                  />
-                </ListItem>
-              ))}
-            </React.Fragment>
+                    {error.details && (
+                      <Typography
+                        component="div"
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5 }}
+                      >
+                        {error.details}
+                      </Typography>
+                    )}
+                  </>
+                }
+              />
+            </ListItem>
           ))}
+
+          {validationResult.warnings.map((warning, index) => (
+            <ListItem
+              key={`warning-${index}`}
+              sx={{
+                borderLeft: 4,
+                borderColor: getSeverityColor(warning.severity)
+              }}
+            >
+              <ListItemIcon>
+                {getSeverityIcon(warning.severity)}
+              </ListItemIcon>
+              <ListItemText
+                primary={warning.message}
+                secondary={
+                  <>
+                    <Typography
+                      component="span"
+                      variant="body2"
+                      color="text.secondary"
+                    >
+                      Node: {warning.nodeId}
+                    </Typography>
+                    {warning.details && (
+                      <Typography
+                        component="div"
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5 }}
+                      >
+                        {warning.details}
+                      </Typography>
+                    )}
+                  </>
+                }
+              />
+            </ListItem>
+          ))}
+
+          {validationResult.errors.length === 0 && validationResult.warnings.length === 0 && (
+            <ListItem>
+              <ListItemText
+                primary="No validation issues found"
+                sx={{ color: 'success.main' }}
+              />
+            </ListItem>
+          )}
         </List>
       </Collapse>
-    </Box>
+    </Paper>
   );
 }; 

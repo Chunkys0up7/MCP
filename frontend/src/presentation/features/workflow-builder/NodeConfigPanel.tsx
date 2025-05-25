@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Box,
   Typography,
+  IconButton,
   TextField,
   Button,
   FormControl,
@@ -10,17 +11,34 @@ import {
   MenuItem,
   Slider,
   SelectChangeEvent,
+  Alert,
+  AlertTitle,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
+import { Close as CloseIcon, Error as ErrorIcon, Warning as WarningIcon } from '@mui/icons-material';
 import { Node } from 'reactflow';
 import { useWorkflowStore } from '../../../infrastructure/state/workflowStore';
+import { useWorkflowValidation } from '../../../application/hooks/useWorkflowValidation';
 
 interface NodeConfigPanelProps {
   node: Node;
   onClose: () => void;
+  onError: (error: Error) => void;
 }
 
-export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ node, onClose }) => {
-  const { updateNodeData } = useWorkflowStore();
+export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
+  node,
+  onClose,
+  onError
+}) => {
+  const { updateNodeData, nodes, edges } = useWorkflowStore();
+  const { getErrorsForNode, getWarningsForNode } = useWorkflowValidation(nodes, edges);
+
+  const errors = getErrorsForNode(node.id);
+  const warnings = getWarningsForNode(node.id);
 
   const handleLabelChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     updateNodeData(node.id, { label: event.target.value });
@@ -158,32 +176,67 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ node, onClose 
   );
 
   return (
-    <Box sx={{ p: 2, width: 300 }}>
-      <Typography variant="h6" gutterBottom>
-        Node Configuration
-      </Typography>
-      <TextField
-        fullWidth
-        label="Label"
-        value={node.data.label || ''}
-        onChange={handleLabelChange}
-        margin="normal"
-      />
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Type</InputLabel>
-        <Select<string>
-          value={node.data.type || 'mcp'}
-          onChange={handleTypeChange}
-          label="Type"
-        >
-          <MenuItem value="llm">LLM</MenuItem>
-          <MenuItem value="notebook">Notebook</MenuItem>
-          <MenuItem value="data">Data</MenuItem>
-        </Select>
-      </FormControl>
-      {node.data.type === 'llm' && renderLLMConfig()}
-      {node.data.type === 'notebook' && renderNotebookConfig()}
-      {node.data.type === 'data' && renderDataConfig()}
+    <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h6">Node Configuration</Typography>
+        <IconButton onClick={onClose} size="small">
+          <CloseIcon />
+        </IconButton>
+      </Box>
+
+      {(errors.length > 0 || warnings.length > 0) && (
+        <Box sx={{ mb: 2 }}>
+          {errors.map((error, index) => (
+            <Alert severity="error" key={`error-${index}`} sx={{ mb: 1 }}>
+              <AlertTitle>Error</AlertTitle>
+              {error.message}
+              {error.details && (
+                <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+                  {error.details}
+                </Typography>
+              )}
+            </Alert>
+          ))}
+
+          {warnings.map((warning, index) => (
+            <Alert severity="warning" key={`warning-${index}`} sx={{ mb: 1 }}>
+              <AlertTitle>Warning</AlertTitle>
+              {warning.message}
+              {warning.details && (
+                <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+                  {warning.details}
+                </Typography>
+              )}
+            </Alert>
+          ))}
+        </Box>
+      )}
+
+      <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <TextField
+          fullWidth
+          label="Label"
+          value={node.data.label || ''}
+          onChange={handleLabelChange}
+          margin="normal"
+        />
+        <FormControl fullWidth margin="normal">
+          <InputLabel>Type</InputLabel>
+          <Select<string>
+            value={node.data.type || 'mcp'}
+            onChange={handleTypeChange}
+            label="Type"
+          >
+            <MenuItem value="llm">LLM</MenuItem>
+            <MenuItem value="notebook">Notebook</MenuItem>
+            <MenuItem value="data">Data</MenuItem>
+          </Select>
+        </FormControl>
+        {node.data.type === 'llm' && renderLLMConfig()}
+        {node.data.type === 'notebook' && renderNotebookConfig()}
+        {node.data.type === 'data' && renderDataConfig()}
+      </Box>
+
       <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
         <Button onClick={onClose}>Close</Button>
       </Box>

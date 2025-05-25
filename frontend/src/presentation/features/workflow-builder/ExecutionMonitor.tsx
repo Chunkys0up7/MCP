@@ -4,14 +4,16 @@ import { PlayArrow, Stop, Refresh, Error as ErrorIcon, CheckCircle } from '@mui/
 import { useWorkflowExecution } from '../../../application/hooks/useWorkflowExecution';
 import { WorkflowExecutionStatus } from '../../../domain/models/workflow';
 
-interface ExecutionMonitorProps {
+export interface ExecutionMonitorProps {
   workflowId: string;
-  onExecutionComplete?: (status: WorkflowExecutionStatus) => void;
+  onExecutionComplete: (status: WorkflowExecutionStatus) => void;
+  onStepError: (stepId: string, error: Error) => void;
 }
 
 export const ExecutionMonitor: React.FC<ExecutionMonitorProps> = ({
   workflowId,
-  onExecutionComplete
+  onExecutionComplete,
+  onStepError
 }) => {
   const {
     status,

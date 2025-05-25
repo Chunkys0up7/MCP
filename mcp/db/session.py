@@ -1,17 +1,13 @@
 """
 Database Session Management
 
-This module provides database session management functionality for the MCP system.
-It handles:
+This module provides database session management using connection pooling.
+It includes:
 
 1. Session factory configuration
-2. Connection pooling
-3. Transaction management
-4. Context managers for session handling
-5. Error handling and recovery
-
-The module uses SQLAlchemy for database operations and provides utilities
-for managing database sessions in a thread-safe manner.
+2. Connection pool management
+3. Session lifecycle handling
+4. Error handling and retries
 """
 
 import os
@@ -27,6 +23,7 @@ import logging
 
 from .models import Base
 from .base_models import get_database_url
+from .pool import DatabasePool
 
 # Load environment variables from .env file
 load_dotenv()
@@ -62,55 +59,107 @@ SessionLocal = sessionmaker(
     bind=engine,
 )
 
-@contextmanager
-def get_db() -> Generator[Session, None, None]:
-    """
-    Context manager for database sessions.
-    
-    This function:
-    1. Creates a new database session
-    2. Handles transaction management
-    3. Ensures proper cleanup
-    4. Provides error handling
-    
-    Usage:
-        ```python
-        with get_db() as db:
-            # Use the database session
-            result = db.query(Model).all()
-        ```
-    
-    Yields:
-        Session: A SQLAlchemy database session
-    
-    Raises:
-        Exception: If there's an error with the database session
-    """
-    db = SessionLocal()
-    try:
-        yield db
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
+# Global connection pool instance
+_pool: Optional[DatabasePool] = None
 
-def get_db_session() -> Session:
+def init_pool(
+    url: Optional[str] = None,
+    pool_size: int = 5,
+    max_overflow: int = 10,
+    pool_timeout: int = 30,
+    pool_recycle: int = 3600,
+    pool_pre_ping: bool = True
+) -> None:
     """
-    Get a new database session.
+    Initialize the database connection pool.
     
-    This function:
-    1. Creates a new session
-    2. Configures session settings
-    3. Returns the session
-    
-    Note: The caller is responsible for closing the session.
+    Args:
+        url: Database URL (uses DATABASE_URL env var if None)
+        pool_size: Number of connections to keep open
+        max_overflow: Maximum number of connections that can be created beyond pool_size
+        pool_timeout: Seconds to wait before giving up on getting a connection
+        pool_recycle: Seconds after which a connection is automatically recycled
+        pool_pre_ping: Whether to check connection health before using it
+    """
+    global _pool
+    if _pool is None:
+        _pool = DatabasePool(
+            url=url,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+            pool_recycle=pool_recycle,
+            pool_pre_ping=pool_pre_ping
+        )
+        logger.info("Initialized database connection pool")
+
+def get_pool() -> DatabasePool:
+    """
+    Get the database connection pool.
     
     Returns:
-        Session: A SQLAlchemy database session
+        DatabasePool: The connection pool instance
+    
+    Raises:
+        RuntimeError: If pool is not initialized
     """
-    return SessionLocal()
+    if _pool is None:
+        raise RuntimeError("Database pool not initialized. Call init_pool() first.")
+    return _pool
+
+@contextmanager
+def get_db_session() -> Session:
+    """
+    Get a database session from the pool.
+    
+    Yields:
+        Session: Database session
+    
+    Raises:
+        RuntimeError: If pool is not initialized
+    """
+    pool = get_pool()
+    with pool.get_session() as session:
+        yield session
+
+def get_pool_stats() -> dict:
+    """
+    Get connection pool statistics.
+    
+    Returns:
+        dict: Pool statistics
+    
+    Raises:
+        RuntimeError: If pool is not initialized
+    """
+    pool = get_pool()
+    return pool.get_pool_stats()
+
+def optimize_pool_size(target_utilization: float = 0.8) -> None:
+    """
+    Optimize pool size based on current usage.
+    
+    Args:
+        target_utilization: Target pool utilization (0.0 to 1.0)
+    
+    Raises:
+        RuntimeError: If pool is not initialized
+    """
+    pool = get_pool()
+    pool.optimize_pool_size(target_utilization)
+
+def check_connection_health() -> bool:
+    """
+    Check the health of a test connection.
+    
+    Returns:
+        bool: True if connection is healthy
+    
+    Raises:
+        RuntimeError: If pool is not initialized
+    """
+    pool = get_pool()
+    return pool.check_connection_health()
 
 def init_db() -> None:
     """
