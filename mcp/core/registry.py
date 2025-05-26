@@ -20,6 +20,8 @@ from .types import (AIAssistantConfig, JupyterNotebookConfig, LLMPromptConfig,
 
 # Export MCP_REGISTRY_FILE for test compatibility
 MCP_REGISTRY_FILE = Path(".mcp_data/mcp_storage.json")
+# Export WORKFLOW_STORAGE_FILE for test compatibility
+WORKFLOW_STORAGE_FILE = Path(".mcp_data/workflow_storage.json")
 
 # MCP server registry and persistence
 # STORAGE_DIR = Path(__file__).resolve().parent.parent.parent / ".mcp_data" # Adjusted path relative to this file

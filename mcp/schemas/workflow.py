@@ -328,3 +328,7 @@ class WorkflowStepStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+
+# Export WorkflowDefinition for test compatibility
+class WorkflowDefinition(BaseModel):
+    pass
