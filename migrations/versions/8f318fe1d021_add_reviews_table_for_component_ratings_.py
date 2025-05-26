@@ -61,6 +61,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['component_id'], ['mcps.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.add_column('workflow_runs', sa.Column('id', sa.UUID(), nullable=False))
+    op.create_unique_constraint('uq_workflow_runs_id', 'workflow_runs', ['id'])
     op.create_table('workflow_step_runs',
     sa.Column('workflow_run_id', sa.UUID(), nullable=False),
     sa.Column('step_id', sa.String(), nullable=False),
@@ -147,7 +149,9 @@ def upgrade() -> None:
     #            type_=sa.Integer(),
     #            existing_nullable=False)
     op.add_column('mcp_versions', sa.Column('definition', sa.JSON(), nullable=False))
-    op.add_column('mcp_versions', sa.Column('status', sa.Enum('ACTIVE', 'INACTIVE', 'PENDING', 'FAILED', 'COMPLETED', 'DRAFT', name='mcpstatus'), nullable=True))
+    mcpstatus_enum = sa.Enum('ACTIVE', 'INACTIVE', 'PENDING', 'FAILED', 'COMPLETED', 'DRAFT', name='mcpstatus')
+    mcpstatus_enum.create(op.get_bind(), checkfirst=True)
+    op.add_column('mcp_versions', sa.Column('status', mcpstatus_enum, nullable=True))
     op.add_column('mcp_versions', sa.Column('updated_at', sa.DateTime(), nullable=True))
     # op.alter_column('mcp_versions', 'id',
     #            existing_type=sa.NUMERIC(),
@@ -194,8 +198,12 @@ def upgrade() -> None:
     op.drop_column('mcps', 'embedding')
     op.add_column('workflow_definitions', sa.Column('input_schema', sa.JSON(), nullable=False))
     op.add_column('workflow_definitions', sa.Column('output_schema', sa.JSON(), nullable=False))
-    op.add_column('workflow_definitions', sa.Column('error_strategy', sa.Enum('stop', 'continue', 'retry', name='error_strategy'), nullable=False))
-    op.add_column('workflow_definitions', sa.Column('execution_mode', sa.Enum('sequential', 'parallel', name='execution_mode'), nullable=False))
+    error_strategy_enum = sa.Enum('stop', 'continue', 'retry', name='error_strategy')
+    error_strategy_enum.create(op.get_bind(), checkfirst=True)
+    op.add_column('workflow_definitions', sa.Column('error_strategy', error_strategy_enum, nullable=False))
+    execution_mode_enum = sa.Enum('sequential', 'parallel', name='execution_mode')
+    execution_mode_enum.create(op.get_bind(), checkfirst=True)
+    op.add_column('workflow_definitions', sa.Column('execution_mode', execution_mode_enum, nullable=False))
     op.add_column('workflow_definitions', sa.Column('id', sa.UUID(), nullable=False))
     # op.alter_column('workflow_definitions', 'description',
     #            existing_type=sa.TEXT(),
@@ -211,9 +219,17 @@ def upgrade() -> None:
     #            existing_nullable=False)
     # op.drop_index(op.f('ix_workflow_definitions_name'), table_name='workflow_definitions')
     op.create_unique_constraint(None, 'workflow_definitions', ['name'])
+    op.drop_constraint('workflow_runs_workflow_id_fkey', 'workflow_runs', type_='foreignkey')
     op.drop_column('workflow_definitions', 'workflow_id')
+    op.create_primary_key('pk_workflow_definitions', 'workflow_definitions', ['id'])
+    op.create_foreign_key(
+        'workflow_runs_workflow_id_fkey',
+        'workflow_runs',
+        'workflow_definitions',
+        ['workflow_id'],
+        ['id']
+    )
     op.add_column('workflow_runs', sa.Column('error', sa.String(), nullable=True))
-    op.add_column('workflow_runs', sa.Column('id', sa.UUID(), nullable=False))
     op.add_column('workflow_runs', sa.Column('created_at', sa.DateTime(), nullable=False))
     op.add_column('workflow_runs', sa.Column('updated_at', sa.DateTime(), nullable=False))
     # op.alter_column('workflow_runs', 'workflow_id',

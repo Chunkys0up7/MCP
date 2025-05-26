@@ -1,28 +1,14 @@
-from datetime import datetime
-from uuid import uuid4
-
-from sqlalchemy import (CheckConstraint, Column, DateTime, ForeignKey, Integer,
-                        String)
+from sqlalchemy import Column, String, DateTime, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from ..base_models import Base
+import uuid
 
-from .base import BaseModel, TimestampMixin, UUIDMixin
-
-
-class Review(BaseModel, UUIDMixin, TimestampMixin):
-    __tablename__ = "reviews"
-
-    component_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False
-    )
-    user_id: Mapped[str] = mapped_column(UUID(as_uuid=True), nullable=False)
-    rating: Mapped[int] = mapped_column(Integer, nullable=False)
-    review_text: Mapped[str] = mapped_column(String, nullable=True)
-
-    __table_args__ = (CheckConstraint("rating >= 1 AND rating <= 5", name="valid_rating_range"),)
-
-    # Relationships
-    component = relationship("MCP", backref="reviews")
-
-    def __repr__(self):
-        return f"<Review(component_id={self.component_id}, user_id={self.user_id}, rating={self.rating})>"
+class Review(Base):
+    __tablename__ = 'reviews'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    component_id = Column(UUID(as_uuid=True), ForeignKey('mcps.id'), nullable=False)
+    user_id = Column(UUID(as_uuid=True), nullable=False)
+    rating = Column(Integer, nullable=False)
+    review_text = Column(String)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)

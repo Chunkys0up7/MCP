@@ -34,7 +34,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Add the database URL to the Alembic configuration
-config.set_main_option("sqlalchemy.url", get_database_url())
+config.set_main_option("sqlalchemy.url", "postgresql+psycopg2://postgres:postgres@localhost:5432/mcp")
 
 # Add MetaData object to the target_metadata
 target_metadata = Base.metadata
@@ -51,7 +51,7 @@ def get_url() -> str:
     Returns:
         str: The database URL
     """
-    return get_database_url()
+    return "postgresql+psycopg2://postgres:postgres@localhost:5432/mcp"
 
 def run_migrations_offline() -> None:
     """
