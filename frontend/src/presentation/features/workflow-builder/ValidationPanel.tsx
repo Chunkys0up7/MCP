@@ -75,7 +75,16 @@ export const ValidationPanel: React.FC = () => {
         overflow: 'auto',
         zIndex: 1000
       }}
+      tabIndex={0}
+      role="region"
+      aria-label="Validation Results Panel"
+      aria-describedby="validationpanel-instructions"
+      onFocus={e => e.currentTarget.style.outline = '2px solid #388e3c'}
+      onBlur={e => e.currentTarget.style.outline = 'none'}
     >
+      <div id="validationpanel-instructions" style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+        Use Tab to navigate validation results and actions. Validation list is live-updated for screen readers.
+      </div>
       <Box
         sx={{
           p: 2,
@@ -101,18 +110,18 @@ export const ValidationPanel: React.FC = () => {
         </Typography>
         <Box>
           <Tooltip title="Refresh">
-            <IconButton onClick={() => validateWorkflow()} size="small">
+            <IconButton onClick={() => validateWorkflow()} size="small" aria-label="Refresh Validation Results">
               <RefreshIcon />
             </IconButton>
           </Tooltip>
-          <IconButton onClick={handleExpandClick} size="small">
+          <IconButton onClick={handleExpandClick} size="small" aria-label={expanded ? "Collapse Validation Panel" : "Expand Validation Panel"}>
             {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </IconButton>
         </Box>
       </Box>
 
       <Collapse in={expanded}>
-        <List dense>
+        <List dense aria-live="polite" aria-label="Validation Results List">
           {validationResult.errors.map((error, index) => (
             <ListItem
               key={`error-${index}`}
@@ -142,7 +151,7 @@ export const ValidationPanel: React.FC = () => {
                         color="text.secondary"
                         sx={{ mt: 0.5 }}
                       >
-                        {error.details}
+                        {typeof error.details === 'string' ? error.details : JSON.stringify(error.details)}
                       </Typography>
                     )}
                   </>
@@ -180,7 +189,7 @@ export const ValidationPanel: React.FC = () => {
                         color="text.secondary"
                         sx={{ mt: 0.5 }}
                       >
-                        {warning.details}
+                        {typeof warning.details === 'string' ? warning.details : JSON.stringify(warning.details)}
                       </Typography>
                     )}
                   </>

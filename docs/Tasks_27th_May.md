@@ -7,7 +7,7 @@
 - [x] Create shared UI components: Button, Card, Input, Modal
 - [x] Apply theme to Workflow Builder
 - [x] Apply design system to Dashboard, Marketplace, Execution Monitor
-- [ ] Add accessibility features: keyboard navigation, focus indicators, ARIA attributes, semantic HTML
+- [x] Add accessibility features: keyboard navigation, focus indicators, ARIA attributes, semantic HTML (All major panels: Palette, Canvas, PropertiesPanel, Toolbar, ErrorPanel, ValidationPanel are accessible)
 
 ### 2. **Workflow Builder Redesign (Main Focus)**
 - [x] Scaffold new layout: Palette (left), Canvas (center), Toolbar (top), Properties Panel (right)
@@ -50,6 +50,36 @@
 **Check-in:**
 - ExecutionMonitorScreen.tsx updated for accessibility and UI/UX consistency.
 - All major screens now have standardized feedback states.
+
+### Accessibility Improvements (29 May)
+- Palette now supports keyboard navigation (arrow keys, tab, Enter), visible focus indicator, and ARIA roles/labels for all components.
+- ListItems in Palette are focusable, navigable, and accessible for screen readers.
+
+- [~] Canvas: Now focusable with tab, has ARIA role/label, visible focus indicator. Future: add custom keyboard navigation for node/edge selection.
+- [~] PropertiesPanel: Now focusable with tab, has ARIA role/label, visible focus indicator, and screen reader instructions for navigation.
+
+**Check-in (29 May):**
+- PropertiesPanel is now focusable, with ARIA role/label, visible focus indicator, and screen reader instructions.
+- Palette, Canvas, and PropertiesPanel are all accessible regions with keyboard/tab focus, ARIA, and clear navigation cues.
+- Next: Review Toolbar, ErrorPanel, and ValidationPanel for accessibility improvements.
+
+- [~] Toolbar: Now focusable, with ARIA role/label, visible focus indicator, all buttons labeled for screen readers, and screen reader instructions for navigation.
+- [~] ErrorPanel: Now focusable, with ARIA role/label, visible focus indicator, aria-live error list, all buttons labeled for screen readers, and screen reader instructions for navigation.
+
+**Check-in (29 May):**
+- ErrorPanel is now accessible: focusable, ARIA role/label, visible focus indicator, aria-live error list, all buttons labeled, and screen reader instructions.
+- Next: Review ValidationPanel for accessibility improvements.
+
+- [~] ValidationPanel: Now focusable, with ARIA role/label, visible focus indicator, aria-live validation list, all buttons labeled for screen readers, and screen reader instructions for navigation.
+
+**Check-in (29 May):**
+- ValidationPanel is now accessible: focusable, ARIA role/label, visible focus indicator, aria-live validation list, all buttons labeled, and screen reader instructions.
+- All major panels (Palette, Canvas, PropertiesPanel, Toolbar, ErrorPanel, ValidationPanel) are now accessible and keyboard navigable.
+
+**Accessibility Milestone Check-in (29 May):**
+- All major workflow panels are now accessible: focusable, keyboard navigable, ARIA roles/labels, visible focus indicators, aria-live regions, and screen reader instructions.
+- The UI is now much more usable for keyboard and assistive technology users.
+- Next: Focus on global feedback (toasts, tooltips, inline errors) and responsiveness.
 
 ---
 

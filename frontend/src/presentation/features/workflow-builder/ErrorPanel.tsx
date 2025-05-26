@@ -110,6 +110,12 @@ export const ErrorPanel: React.FC = () => {
     }
   };
 
+  const canRetry = (err: WorkflowError | null) => {
+    if (!err) return false;
+    if (typeof err.retryCount !== 'number' || typeof err.maxRetries !== 'number') return false;
+    return err.retryCount < err.maxRetries;
+  };
+
   return (
     <>
       <Paper
@@ -123,7 +129,16 @@ export const ErrorPanel: React.FC = () => {
           overflow: 'auto',
           zIndex: 1000
         }}
+        tabIndex={0}
+        role="region"
+        aria-label="Error Monitor Panel"
+        aria-describedby="errorpanel-instructions"
+        onFocus={e => e.currentTarget.style.outline = '2px solid #d32f2f'}
+        onBlur={e => e.currentTarget.style.outline = 'none'}
       >
+        <div id="errorpanel-instructions" style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+          Use Tab to navigate error list and actions. Error list is live-updated for screen readers.
+        </div>
         <Box
           sx={{
             p: 2,
@@ -140,11 +155,11 @@ export const ErrorPanel: React.FC = () => {
           </Typography>
           <Box>
             <Tooltip title="Refresh">
-              <IconButton size="small">
+              <IconButton size="small" aria-label="Refresh Error List">
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
-            <IconButton onClick={handleExpandClick} size="small">
+            <IconButton onClick={handleExpandClick} size="small" aria-label={expanded ? "Collapse Error Panel" : "Expand Error Panel"}>
               {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </Box>
@@ -153,7 +168,7 @@ export const ErrorPanel: React.FC = () => {
         <Collapse in={expanded}>
           <Box sx={{ p: 2 }}>
             {errors.length > 0 ? (
-              <List dense>
+              <List dense aria-live="polite" aria-label="Error List">
                 {errors.map((error) => (
                   <ListItem
                     key={error.id}
@@ -207,7 +222,8 @@ export const ErrorPanel: React.FC = () => {
                     size="small"
                     startIcon={<RefreshIcon />}
                     onClick={handleRetry}
-                    disabled={!selectedError || (selectedError.retryCount ?? 0) >= selectedError.maxRetries}
+                    aria-label="Retry Error"
+                    disabled={!canRetry(selectedError)}
                   >
                     Retry
                   </Button>
@@ -215,6 +231,7 @@ export const ErrorPanel: React.FC = () => {
                     size="small"
                     startIcon={<ResolveIcon />}
                     onClick={handleResolve}
+                    aria-label="Resolve Error"
                   >
                     Resolve
                   </Button>
@@ -222,6 +239,7 @@ export const ErrorPanel: React.FC = () => {
                     size="small"
                     startIcon={<IgnoreIcon />}
                     onClick={handleIgnore}
+                    aria-label="Ignore Error"
                   >
                     Ignore
                   </Button>
