@@ -1,9 +1,9 @@
-from mcp.db.operations import DatabaseOperations
+# from mcp.db.operations import DatabaseOperations
 
 
 def test_postgres_crud(db_session):
     """Test PostgreSQL CRUD operations."""
-    ops = DatabaseOperations(db_session)
+    # ops = DatabaseOperations(db_session)
     # Create a test configuration
     test_config = {"type": "prompt", "template": "Test template", "model": "test-model"}
     config = ops.create_configuration(

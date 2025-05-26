@@ -93,19 +93,20 @@ def verify_token(token: str) -> Optional[TokenData]:
 
 def check_permission(user_id: str, chain_id: int, required_level: str) -> bool:
     """Check if a user has the required permission level for a chain."""
-    from ..db.operations import DatabaseOperations
     from ..db.session import SessionLocal
 
     db = SessionLocal()
     try:
-        db_ops = DatabaseOperations(db)
-        permission = db_ops.get_permission(user_id, chain_id)
+        # Define permission hierarchy
+        permission_levels = {"read": 1, "write": 2, "admin": 3}
+
+        permission = db.query(Permission).filter(
+            Permission.user_id == user_id,
+            Permission.chain_id == chain_id
+        ).first()
 
         if not permission:
             return False
-
-        # Define permission hierarchy
-        permission_levels = {"read": 1, "write": 2, "admin": 3}
 
         required_level_value = permission_levels.get(required_level, 0)
         user_level_value = permission_levels.get(permission.access_level, 0)

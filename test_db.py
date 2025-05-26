@@ -1,12 +1,10 @@
 from mcp.cache.redis_manager import RedisCacheManager
-from mcp.db.operations import DatabaseOperations
 from mcp.db.session import SessionLocal
 
 
 def test_postgres():
     print("\nTesting PostgreSQL...")
     db = SessionLocal()
-    ops = DatabaseOperations(db)
 
     # Create a test configuration
     test_config = {"type": "prompt", "template": "Test template", "model": "test-model"}
