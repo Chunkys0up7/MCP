@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import QuickAccessToolbar from './components/QuickAccessToolbar';
 import { dashboardService, MLRecommendation, TrendingComponent, TeamCollaboration } from '../../services/dashboardService';
+import { Box, Typography, Grid, Button, CircularProgress, Alert, Chip, Stack } from '@mui/material';
+import Card from '../../components/common/Card';
 
 const PersonalizedFeedScreen: React.FC = () => {
   const [mlRecommendations, setMLRecommendations] = useState<MLRecommendation[]>([]);
@@ -46,97 +48,103 @@ const PersonalizedFeedScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
+      <Box sx={{ p: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }} role="status" aria-busy="true">
+        <CircularProgress size={48} />
+        <Box sx={{ ml: 2 }}>Loading dashboard...</Box>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4">
+      <Box sx={{ p: 4 }}>
         <QuickAccessToolbar onCreateNew={handleCreateNew} onSearch={handleSearch} />
-        <div className="text-red-500 mt-4">{error}</div>
-      </div>
+        <Alert severity="error" sx={{ mt: 4 }} role="alert">{error}</Alert>
+      </Box>
     );
   }
 
   return (
-    <div className="p-4">
+    <Box sx={{ p: 4 }}>
       <QuickAccessToolbar onCreateNew={handleCreateNew} onSearch={handleSearch} />
 
-      <h1 className="text-2xl font-bold mb-4 pt-4">Dashboard Content Sections</h1>
+      <Typography variant="h4" fontWeight={700} mb={4} pt={2}>
+        Dashboard Content Sections
+      </Typography>
 
       {/* ML Recommendations Section */}
-      <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">ML Recommendations</h2>
+      <Box mb={6} role="region" aria-label="ML Recommendations">
+        <Typography variant="h5" fontWeight={600} mb={2}>ML Recommendations</Typography>
         {mlRecommendations.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Grid container spacing={3}>
             {mlRecommendations.map((rec) => (
-              <div key={rec.id} className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="font-medium">{rec.title}</h3>
-                <p className="text-sm text-gray-600 mt-1">{rec.description}</p>
-                <div className="mt-2 flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Confidence: {rec.confidence}%</span>
-                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">{rec.type}</span>
-                </div>
-              </div>
+              <Grid item xs={12} md={6} lg={4} key={rec.id}>
+                <Card sx={{ p: 3, borderRadius: 2, boxShadow: 1, height: '100%', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }} title={rec.title}>
+                  <Typography variant="body2" color="text.secondary" mt={1}>{rec.description}</Typography>
+                  <Stack direction="row" spacing={1} mt={2} alignItems="center" justifyContent="space-between">
+                    <Chip label={`Confidence: ${rec.confidence}%`} size="small" color="info" />
+                    <Chip label={rec.type} size="small" color="primary" />
+                  </Stack>
+                </Card>
+              </Grid>
             ))}
-          </div>
+          </Grid>
         ) : (
-          <p>No recommendations at this time.</p>
+          <Typography color="text.secondary" role="region" aria-label="No ML Recommendations">No recommendations at this time.</Typography>
         )}
-      </section>
+      </Box>
 
       {/* Trending Components Section */}
-      <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Trending Components</h2>
+      <Box mb={6} role="region" aria-label="Trending Components">
+        <Typography variant="h5" fontWeight={600} mb={2}>Trending Components</Typography>
         {trendingComponents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Grid container spacing={3}>
             {trendingComponents.map((comp) => (
-              <div key={comp.id} className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="font-medium">{comp.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">{comp.description}</p>
-                <div className="mt-2 flex justify-between items-center">
-                  <span className="text-xs text-gray-500">Usage: {comp.usageCount}</span>
-                  <div className="flex items-center">
-                    <span className="text-yellow-500">★</span>
-                    <span className="text-xs ml-1">{comp.rating.toFixed(1)}</span>
-                  </div>
-                </div>
-              </div>
+              <Grid item xs={12} md={6} lg={4} key={comp.id}>
+                <Card sx={{ p: 3, borderRadius: 2, boxShadow: 1, height: '100%', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }} title={comp.name}>
+                  <Typography variant="body2" color="text.secondary" mt={1}>{comp.description}</Typography>
+                  <Stack direction="row" spacing={1} mt={2} alignItems="center" justifyContent="space-between">
+                    <Chip label={`Usage: ${comp.usageCount}`} size="small" color="default" />
+                    <Stack direction="row" spacing={0.5} alignItems="center">
+                      <Typography color="warning.main" fontSize={18}>★</Typography>
+                      <Typography variant="body2" ml={0.5}>{comp.rating.toFixed(1)}</Typography>
+                    </Stack>
+                  </Stack>
+                </Card>
+              </Grid>
             ))}
-          </div>
+          </Grid>
         ) : (
-          <p>No trending components available.</p>
+          <Typography color="text.secondary" role="region" aria-label="No Trending Components">No trending components available.</Typography>
         )}
-      </section>
+      </Box>
 
       {/* Team Collaborations Section */}
-      <section>
-        <h2 className="text-xl font-semibold mb-2">Team Collaborations</h2>
+      <Box role="region" aria-label="Team Collaborations">
+        <Typography variant="h5" fontWeight={600} mb={2}>Team Collaborations</Typography>
         {teamCollaborations.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Grid container spacing={3}>
             {teamCollaborations.map((collab) => (
-              <div key={collab.id} className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
-                <h3 className="font-medium">{collab.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">Last modified: {new Date(collab.lastModified).toLocaleDateString()}</p>
-                <div className="mt-2">
-                  <div className="flex flex-wrap gap-1">
+              <Grid item xs={12} md={6} lg={4} key={collab.id}>
+                <Card sx={{ p: 3, borderRadius: 2, boxShadow: 1, height: '100%', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }} title={collab.name}>
+                  <Typography variant="caption" color="text.secondary" mt={1}>
+                    Last modified: {new Date(collab.lastModified).toLocaleDateString()}
+                  </Typography>
+                  <Stack direction="row" spacing={1} mt={2} flexWrap="wrap">
                     {collab.collaborators.map((user, index) => (
-                      <span key={index} className="text-xs px-2 py-1 bg-gray-100 rounded-full">{user}</span>
+                      <Chip key={index} label={user} size="small" sx={{ mb: 0.5 }} />
                     ))}
-                  </div>
-                  <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded mt-2 inline-block">{collab.type}</span>
-                </div>
-              </div>
+                  </Stack>
+                  <Chip label={collab.type} size="small" color="success" sx={{ mt: 2 }} />
+                </Card>
+              </Grid>
             ))}
-          </div>
+          </Grid>
         ) : (
-          <p>No team collaborations to show.</p>
+          <Typography color="text.secondary" role="region" aria-label="No Team Collaborations">No team collaborations to show.</Typography>
         )}
-      </section>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

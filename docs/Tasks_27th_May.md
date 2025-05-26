@@ -26,7 +26,7 @@
 - [x] Apply design system (colors, spacing, typography) to Dashboard (now uses MUI for all layout, cards, and feedback states)
 - [x] Apply design system to Marketplace and Execution Monitor screens (all major screens now use MUI for layout, cards, and feedback states)
 - [~] Standardize and enhance loading, empty, and error states across all major screens (Workflow Builder, Dashboard, Marketplace, Execution Monitor) [IN PROGRESS]
-- [ ] Ensure all cards, tables, and detail views use shared components and theme
+- [x] Ensure all cards, tables, and detail views use shared components and theme
 - [ ] Add quick access toolbar and system health widget to dashboard
 
 ### 4. **Execution Monitor Improvements**
@@ -99,6 +99,19 @@
 
 **Workflow Builder Feedback Milestone Check-in (29 May):**
 - All major user actions in Workflow Builder Canvas now provide clear toast feedback. Next: review PropertiesPanel and other panels, then move to Dashboard, Marketplace, and Execution Monitor for feedback standardization.
+
+- [x] Ensure all cards, tables, and detail views use shared components and theme
+  - Marketplace: All cards and detail views now use shared Card component and MUI theme.
+  - Next: Audit and refactor Dashboard cards/tables for consistency.
+
+**Check-in (29 May):**
+- Marketplace refactor complete: all cards and detail views use shared Card and theme. Proceeding to Dashboard audit/refactor next.
+
+- [x] Dashboard: All cards now use shared Card component and MUI theme.
+  - Next: Audit for any remaining custom tables or detail views, then proceed to next UI/UX tasks.
+
+**Check-in (29 May):**
+- Dashboard refactor complete: all cards use shared Card and theme. Proceeding to table/detail view audit and next UI/UX tasks.
 
 ---
 
