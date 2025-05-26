@@ -111,6 +111,15 @@ def require_any_role(required_roles: List[UserRole]):
     return roles_dependency
 
 
+def get_db():
+    """Dependency that provides a SQLAlchemy session for FastAPI routes."""
+    db = get_db_session()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 async def get_current_user_or_apikey(
     request: Request,
     db: Session = Depends(get_db),
@@ -149,12 +158,3 @@ async def get_current_user_or_apikey(
     raise HTTPException(
         status_code=401, detail="Not authenticated: provide Bearer JWT or X-API-KEY"
     )
-
-
-def get_db():
-    """Dependency that provides a SQLAlchemy session for FastAPI routes."""
-    db = get_db_session()
-    try:
-        yield db
-    finally:
-        db.close()
