@@ -111,7 +111,17 @@ const DependencyVisualizer: React.FC<{ nodes: DependencyNode[]; edges: Dependenc
 
 const ComponentDetailView: React.FC<ComponentDetailViewProps> = ({ component, onClose, dependencies }) => {
   const [activeTab, setActiveTab] = useState('Overview');
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const deps = dependencies || mockDependencies;
+
+  const handleAddToWorkflow = () => {
+    setActionMessage('Component added to workflow (mock action).');
+    setTimeout(() => setActionMessage(null), 2000);
+  };
+  const handleTestInSandbox = () => {
+    setActionMessage('Sandbox test started (mock action).');
+    setTimeout(() => setActionMessage(null), 2000);
+  };
 
   return (
     <div style={{
@@ -158,6 +168,41 @@ const ComponentDetailView: React.FC<ComponentDetailViewProps> = ({ component, on
             <div>Type: {component.type}</div>
             <div>Version: {component.version}</div>
             <div>Tags: {component.tags?.join(', ')}</div>
+            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
+              <button
+                style={{
+                  background: '#6366f1',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 15,
+                }}
+                onClick={handleAddToWorkflow}
+              >
+                Add to Workflow
+              </button>
+              <button
+                style={{
+                  background: '#fff',
+                  color: '#6366f1',
+                  border: '2px solid #6366f1',
+                  borderRadius: 4,
+                  padding: '8px 16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontSize: 15,
+                }}
+                onClick={handleTestInSandbox}
+              >
+                Test in Sandbox
+              </button>
+            </div>
+            {actionMessage && (
+              <div style={{ marginTop: 16, color: '#059669', fontWeight: 500 }}>{actionMessage}</div>
+            )}
           </div>
         )}
         {activeTab === 'Dependencies' && (
