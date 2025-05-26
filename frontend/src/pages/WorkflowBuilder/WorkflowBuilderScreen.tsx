@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Box, Grid, Paper, Button, TextField, CircularProgress, Alert } from '@mui/material';
+import { Box, Grid, Paper, Button, TextField, CircularProgress, Alert, Stack } from '@mui/material';
 import { theme } from '../../presentation/design-system/theme';
 import Palette from './Palette';
 import Canvas from './Canvas';

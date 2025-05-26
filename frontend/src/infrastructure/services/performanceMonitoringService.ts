@@ -1,5 +1,3 @@
-import { Node, Edge } from 'reactflow';
-
 export interface PerformanceMetric {
   id: string;
   type: 'node' | 'workflow' | 'network';
