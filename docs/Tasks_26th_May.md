@@ -17,9 +17,10 @@
     - [x] Compare with ORM models
     - [x] Resolve any discrepancies
     - [x] Added users table migration, aligned mcps.type enum, scaffolded ORM models for workflow/reviews
-- [ ] Update environment/config files as needed
-    - [ ] Ensure all DB-related settings are correct
-    - [ ] Update secrets or credentials if changed
+- [x] Update environment/config files as needed
+    - [x] Ensure all DB-related settings are correct
+    - [x] Update secrets or credentials if changed
+    - [x] .env and docs updated for PostgreSQL and secret management
 - [ ] Test application startup and basic flows with new DB
     - [ ] Start backend server
     - [ ] Run basic user/API key/workflow creation flows

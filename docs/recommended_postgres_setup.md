@@ -64,4 +64,25 @@ POSTGRES_PASSWORD=a_strong_password_here # The password for the new user
 
 *   **Security (Principle of Least Privilege):** The application connects with a user that only has permissions for its own database, reducing the potential impact if the application's credentials are compromised.
 *   **Isolation:** Separates your application's data and schema from other databases or system tables.
-*   **Clarity:** Makes it clear which database and user belong to which application. 
+*   **Clarity:** Makes it clear which database and user belong to which application.
+
+## Environment Variable Checklist (Local Development)
+
+Add the following to your `.env` file in the project root:
+
+```
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=mcp
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=mcp
+```
+
+- **Do not hardcode secrets in code.**
+- For production, use Kubernetes secrets or a secure secret manager.
+- Remove any `sqlite` references from your environment/config files. 
