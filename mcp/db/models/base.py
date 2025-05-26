@@ -20,10 +20,9 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, DateTime, String
+from sqlalchemy import DateTime
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import DeclarativeMeta, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 
 from ..base_models import Base
 
@@ -46,7 +45,9 @@ class TimestampMixin:
         ```
     """
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
@@ -70,7 +71,9 @@ class UUIDMixin:
         ```
     """
 
-    id: Mapped[UUID] = mapped_column(PgUUID(as_uuid=True), primary_key=True, default=uuid4)
+    id: Mapped[UUID] = mapped_column(
+        PgUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
 
 
 class BaseModel(Base):
@@ -106,7 +109,9 @@ class BaseModel(Base):
         Returns:
             Dict[str, Any]: Model as dictionary
         """
-        return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+        return {
+            column.name: getattr(self, column.name) for column in self.__table__.columns
+        }
 
     def update(self, **kwargs: Any) -> None:
         """

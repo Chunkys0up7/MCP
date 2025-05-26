@@ -1,33 +1,41 @@
 # from dotenv import load_dotenv
 # load_dotenv()
-import uvicorn
+import logging
 import socket
 import sys
 import time
 from typing import Optional
-import logging
+
+import uvicorn
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def is_port_in_use(port: int) -> bool:
     """Check if a port is in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
+        return s.connect_ex(("localhost", port)) == 0
 
-def find_available_port(start_port: int = 8000, max_attempts: int = 10) -> Optional[int]:
+
+def find_available_port(
+    start_port: int = 8000, max_attempts: int = 10
+) -> Optional[int]:
     """Find an available port starting from start_port."""
     for port in range(start_port, start_port + max_attempts):
         if not is_port_in_use(port):
             return port
     return None
 
+
 def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
     """Start the FastAPI server with retry logic."""
     for attempt in range(max_retries):
         try:
-            logger.info(f"Starting server on port {port} (attempt {attempt + 1}/{max_retries})...")
+            logger.info(
+                f"Starting server on port {port} (attempt {attempt + 1}/{max_retries})..."
+            )
             uvicorn.run(
                 "mcp.api.main:app",
                 host="127.0.0.1",
@@ -38,7 +46,7 @@ def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
                 log_level="info",
                 timeout_keep_alive=30,  # Increase keep-alive timeout
                 limit_concurrency=100,  # Limit concurrent connections
-                backlog=2048  # Increase connection queue size
+                backlog=2048,  # Increase connection queue size
             )
             break
         except Exception as e:
@@ -50,6 +58,7 @@ def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
             else:
                 logger.error("Failed to start server after multiple attempts")
                 sys.exit(1)
+
 
 def main():
     """Main entry point for the server."""
@@ -68,7 +77,9 @@ def main():
     # Try to find an available port
     port = find_available_port()
     if port is None:
-        logger.error("Could not find an available port. Please check if any other services are running.")
+        logger.error(
+            "Could not find an available port. Please check if any other services are running."
+        )
         sys.exit(1)
 
     try:
@@ -80,5 +91,6 @@ def main():
         logger.error(f"Unexpected error: {str(e)}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    main() 
+    main()

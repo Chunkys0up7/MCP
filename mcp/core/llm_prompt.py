@@ -91,11 +91,15 @@ class ClaudeLLM:
             if response.status_code == 401:
                 raise ValueError("Invalid Claude API key.")
             elif response.status_code == 400:
-                error_detail = response.json().get("error", {}).get("message", "Unknown error")
+                error_detail = (
+                    response.json().get("error", {}).get("message", "Unknown error")
+                )
                 raise ValueError(f"Invalid request: {error_detail}")
 
             response.raise_for_status()
-            print(f"Successfully connected to Claude API using model: {self.model_name}")
+            print(
+                f"Successfully connected to Claude API using model: {self.model_name}"
+            )
             return True
         except requests.exceptions.RequestException as e:
             print(f"Error testing API connection: {str(e)}")
@@ -132,22 +136,33 @@ class ClaudeLLM:
 
         try:
             response = requests.post(
-                "https://api.anthropic.com/v1/messages", headers=headers, json=request_data
+                "https://api.anthropic.com/v1/messages",
+                headers=headers,
+                json=request_data,
             )
 
             if response.status_code == 401:
                 raise ValueError("Invalid Claude API key.")
             elif response.status_code == 400:
-                error_detail = response.json().get("error", {}).get("message", "Unknown error")
+                error_detail = (
+                    response.json().get("error", {}).get("message", "Unknown error")
+                )
                 raise ValueError(f"Invalid request: {error_detail}")
 
             response.raise_for_status()
 
             content = response.json().get("content")
-            if content and isinstance(content, list) and len(content) > 0 and "text" in content[0]:
+            if (
+                content
+                and isinstance(content, list)
+                and len(content) > 0
+                and "text" in content[0]
+            ):
                 return content[0]["text"]
             else:
-                print(f"[ClaudeLLM Warning] Unexpected response structure: {response.json()}")
+                print(
+                    f"[ClaudeLLM Warning] Unexpected response structure: {response.json()}"
+                )
                 return "Error: Could not parse LLM response."
 
         except requests.exceptions.RequestException as e:
@@ -246,7 +261,9 @@ class LLMPromptMCP(BaseMCPServer):
             ValueError: If a required input variable is missing.
         """
         if hasattr(self.config, "input_variables") and self.config.input_variables:
-            missing_vars = [var for var in self.config.input_variables if var not in inputs]
+            missing_vars = [
+                var for var in self.config.input_variables if var not in inputs
+            ]
             if missing_vars:
                 raise ValueError(f"Missing input variables: {', '.join(missing_vars)}")
         try:

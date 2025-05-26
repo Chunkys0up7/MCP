@@ -13,15 +13,13 @@ It includes:
 import logging
 import os
 from contextlib import contextmanager
-from typing import Generator, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import QueuePool
 
-from .base_models import get_database_url
 from .models import Base
 from .pool import DatabasePool
 

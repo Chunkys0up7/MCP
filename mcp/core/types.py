@@ -116,7 +116,9 @@ class AIAssistantConfig(BaseMCPConfig):
 
 
 # Union type for all MCP configs
-MCPConfig = Union[LLMPromptConfig, JupyterNotebookConfig, PythonScriptConfig, AIAssistantConfig]
+MCPConfig = Union[
+    LLMPromptConfig, JupyterNotebookConfig, PythonScriptConfig, AIAssistantConfig
+]
 
 
 class MCPResult(BaseModel):

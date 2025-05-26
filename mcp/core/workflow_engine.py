@@ -38,7 +38,7 @@ import logging
 import traceback
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # ADD: Import Session for type hinting
 from sqlalchemy.orm import Session
@@ -57,7 +57,6 @@ from mcp.schemas.workflow import (InputSourceType, Workflow,
 
 # Placeholder for a more detailed StepExecutionResult model
 # from mcp.schemas.workflow import StepExecutionResult
-
 
 
 logger = logging.getLogger(__name__)
@@ -116,7 +115,11 @@ class WorkflowEngine:
         ```
     """
 
-    def __init__(self, db_session: Session, constraints: Optional[ArchitecturalConstraints] = None):
+    def __init__(
+        self,
+        db_session: Session,
+        constraints: Optional[ArchitecturalConstraints] = None,
+    ):
         """
         Initialize the WorkflowEngine.
 
@@ -204,16 +207,24 @@ class WorkflowEngine:
                 error_msg = f"Workflow contains cycles: {cycles}"
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
-                    status="FAILED", error_message=error_msg, step_results=[], final_outputs=None
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None,
                 )
 
             # Validate dependencies
             dependency_errors = self.dag_optimizer.validate_dependencies()
             if dependency_errors:
-                error_msg = "Workflow has invalid dependencies:\n" + "\n".join(dependency_errors)
+                error_msg = "Workflow has invalid dependencies:\n" + "\n".join(
+                    dependency_errors
+                )
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
-                    status="FAILED", error_message=error_msg, step_results=[], final_outputs=None
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None,
                 )
 
             if workflow.execution_mode == "sequential":
@@ -228,14 +239,20 @@ class WorkflowEngine:
                 error_msg = f"Execution mode '{workflow.execution_mode}' not supported."
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
-                    status="FAILED", error_message=error_msg, step_results=[], final_outputs=None
+                    status="FAILED",
+                    error_message=error_msg,
+                    step_results=[],
+                    final_outputs=None,
                 )
 
         except Exception as e:
             error_msg = f"Workflow execution failed: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_msg)
             return WorkflowExecutionResult(
-                status="FAILED", error_message=error_msg, step_results=[], final_outputs=None
+                status="FAILED",
+                error_message=error_msg,
+                step_results=[],
+                final_outputs=None,
             )
 
     async def _execute_sequential_workflow(
@@ -276,7 +293,9 @@ class WorkflowEngine:
             )
             ```
         """
-        workflow_context = {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        workflow_context = (
+            {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        )
         step_results = []
 
         for step in workflow.steps:
@@ -328,7 +347,9 @@ class WorkflowEngine:
                 - final_outputs: The final outputs of the workflow
                 - error_message: Error message if the workflow failed
         """
-        workflow_context = {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        workflow_context = (
+            {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
+        )
         step_results = []
 
         # Get parallel execution groups
@@ -369,7 +390,9 @@ class WorkflowEngine:
                     )
 
                 # Update workflow context with step outputs
-                workflow_context[result["step_id"]] = {"outputs": result["outputs_generated"]}
+                workflow_context[result["step_id"]] = {
+                    "outputs": result["outputs_generated"]
+                }
 
         # If we get here, all steps succeeded
         final_outputs = step_results[-1]["outputs_generated"] if step_results else None
@@ -426,14 +449,18 @@ class WorkflowEngine:
             ```
         """
         step_start_time = datetime.utcnow()
-        logger.info(f"Executing step '{step.name}' (ID: {step.step_id}, MCP: {step.mcp_id})")
+        logger.info(
+            f"Executing step '{step.name}' (ID: {step.step_id}, MCP: {step.mcp_id})"
+        )
 
         try:
             resolved_inputs = self._resolve_step_inputs(step, workflow_context)
             logger.debug(f"Resolved inputs for step '{step.name}': {resolved_inputs}")
 
             mcp_instance = registry.get_mcp_instance_from_db(
-                db=self.db_session, mcp_id_str=step.mcp_id, mcp_version_str=step.mcp_version_id
+                db=self.db_session,
+                mcp_id_str=step.mcp_id,
+                mcp_version_str=step.mcp_version_id,
             )
 
             if not mcp_instance:
@@ -458,7 +485,9 @@ class WorkflowEngine:
                     "error": None,
                 }
             else:
-                error_msg = mcp_result.get("error", "Unknown error during MCP execution.")
+                error_msg = mcp_result.get(
+                    "error", "Unknown error during MCP execution."
+                )
                 logger.error(f"Step '{step.name}' failed: {error_msg}")
                 return {
                     "step_id": step.step_id,
@@ -473,9 +502,7 @@ class WorkflowEngine:
                 }
 
         except Exception as e:
-            error_msg = (
-                f"Error during step '{step.name}' execution: {str(e)}\n{traceback.format_exc()}"
-            )
+            error_msg = f"Error during step '{step.name}' execution: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_msg)
             return {
                 "step_id": step.step_id,
@@ -484,7 +511,9 @@ class WorkflowEngine:
                 "status": "FAILED",
                 "started_at": step_start_time.isoformat(),
                 "finished_at": datetime.utcnow().isoformat(),
-                "inputs_used": resolved_inputs if "resolved_inputs" in locals() else None,
+                "inputs_used": (
+                    resolved_inputs if "resolved_inputs" in locals() else None
+                ),
                 "outputs_generated": None,
                 "error": error_msg,
             }
@@ -516,10 +545,14 @@ class WorkflowEngine:
                 print(f"Validation failed: {e}")
             ```
         """
-        if not self.constraints:  # Should not happen if called correctly, but good practice
+        if (
+            not self.constraints
+        ):  # Should not happen if called correctly, but good practice
             return
 
-        print(f"Validating workflow '{workflow.name}' against architectural constraints.")
+        print(
+            f"Validating workflow '{workflow.name}' against architectural constraints."
+        )
 
         # Check max_workflow_steps
         if self.constraints.max_workflow_steps is not None:
@@ -551,7 +584,8 @@ class WorkflowEngine:
                 # The constraint stores MCPType enum members. Their .value gives the string.
                 # mcp_type_str is already the string value from the DB model.
                 allowed_type_values = [
-                    mcp_enum_member.value for mcp_enum_member in self.constraints.allowed_mcp_types
+                    mcp_enum_member.value
+                    for mcp_enum_member in self.constraints.allowed_mcp_types
                 ]
                 if mcp_type_str not in allowed_type_values:
                     raise ValueError(
@@ -644,7 +678,9 @@ class WorkflowEngine:
                 step_input_config_typed = step_input_config  # Already correct type
             else:
                 # Fallback or error if it's neither (shouldn't happen with Pydantic)
-                raise TypeError(f"Unexpected type for step_input_config: {type(step_input_config)}")
+                raise TypeError(
+                    f"Unexpected type for step_input_config: {type(step_input_config)}"
+                )
 
             if step_input_config_typed.source_type == InputSourceType.STATIC_VALUE:
                 resolved_inputs[mcp_input_name] = step_input_config_typed.value
@@ -655,9 +691,14 @@ class WorkflowEngine:
                         f"Input '{mcp_input_name}' for step '{step.name}' is type WORKFLOW_INPUT but 'workflow_input_key' is not defined."
                     )
 
-                initial_inputs_from_ctx = workflow_context.get("workflow_initial_inputs", {})
+                initial_inputs_from_ctx = workflow_context.get(
+                    "workflow_initial_inputs", {}
+                )
 
-                if step_input_config_typed.workflow_input_key not in initial_inputs_from_ctx:
+                if (
+                    step_input_config_typed.workflow_input_key
+                    not in initial_inputs_from_ctx
+                ):
                     raise ValueError(
                         f"Workflow input key '{step_input_config_typed.workflow_input_key}' not found for step '{step.name}', input '{mcp_input_name}'. Available: {list(initial_inputs_from_ctx.keys())}"
                     )
@@ -677,7 +718,10 @@ class WorkflowEngine:
                 source_step_output_data = workflow_context.get(
                     step_input_config_typed.source_step_id
                 )
-                if not source_step_output_data or "outputs" not in source_step_output_data:
+                if (
+                    not source_step_output_data
+                    or "outputs" not in source_step_output_data
+                ):
                     raise ValueError(
                         f"Output data for source step ID '{step_input_config_typed.source_step_id}' not found in workflow context for step '{step.name}', input '{mcp_input_name}'. Context keys: {list(workflow_context.keys())}"
                     )

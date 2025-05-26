@@ -18,15 +18,13 @@ The models support:
 - Error handling
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+import uuid
 from uuid import UUID
 
-from sqlalchemy import (JSON, Column, DateTime, Enum, ForeignKey, Integer,
-                        String, Text)
+from sqlalchemy import (JSON, Column, DateTime, ForeignKey, Integer, String,
+                        Text)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-import uuid
 
 from mcp.db.models.base import BaseModel, TimestampMixin, UUIDMixin
 
@@ -65,11 +63,17 @@ class WorkflowDefinition(BaseModel, UUIDMixin, TimestampMixin):
     updated_at = Column(DateTime, nullable=False)
     input_schema = Column(JSON, nullable=False)
     output_schema = Column(JSON, nullable=False)
-    error_strategy = Column(String, nullable=False)  # Enum in DB, can be mapped to Enum if needed
-    execution_mode = Column(String, nullable=False)  # Enum in DB, can be mapped to Enum if needed
+    error_strategy = Column(
+        String, nullable=False
+    )  # Enum in DB, can be mapped to Enum if needed
+    execution_mode = Column(
+        String, nullable=False
+    )  # Enum in DB, can be mapped to Enum if needed
 
     # Relationships
-    runs = relationship("WorkflowRun", back_populates="workflow", cascade="all, delete-orphan")
+    runs = relationship(
+        "WorkflowRun", back_populates="workflow", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """
@@ -107,7 +111,9 @@ class WorkflowRun(BaseModel, UUIDMixin, TimestampMixin):
     __tablename__ = "workflow_runs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workflow_id = Column(UUID(as_uuid=True), ForeignKey('workflow_definitions.id'), nullable=False)
+    workflow_id = Column(
+        UUID(as_uuid=True), ForeignKey("workflow_definitions.id"), nullable=False
+    )
     status = Column(String, nullable=False)
     started_at = Column(DateTime, nullable=False)
     finished_at = Column(DateTime)
@@ -118,7 +124,9 @@ class WorkflowRun(BaseModel, UUIDMixin, TimestampMixin):
     updated_at = Column(DateTime, nullable=False)
 
     # Relationships
-    workflow = relationship("WorkflowDefinition", back_populates="runs", foreign_keys=[workflow_id])
+    workflow = relationship(
+        "WorkflowDefinition", back_populates="runs", foreign_keys=[workflow_id]
+    )
     step_runs = relationship(
         "WorkflowStepRun", back_populates="workflow_run", cascade="all, delete-orphan"
     )
@@ -162,10 +170,14 @@ class WorkflowStepRun(BaseModel, UUIDMixin, TimestampMixin):
     __tablename__ = "workflow_step_runs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workflow_run_id = Column(UUID(as_uuid=True), ForeignKey('workflow_runs.id'), nullable=False)
+    workflow_run_id = Column(
+        UUID(as_uuid=True), ForeignKey("workflow_runs.id"), nullable=False
+    )
     step_id = Column(String, nullable=False)
-    mcp_id = Column(UUID(as_uuid=True), ForeignKey('mcps.id'), nullable=False)
-    status = Column(String, nullable=False)  # Enum in DB, can be mapped to Enum if needed
+    mcp_id = Column(UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
+    status = Column(
+        String, nullable=False
+    )  # Enum in DB, can be mapped to Enum if needed
     inputs = Column(JSON, nullable=False)
     outputs = Column(JSON)
     error = Column(String)

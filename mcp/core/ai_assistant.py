@@ -87,7 +87,11 @@ class AIAssistantMCP(BaseMCPServer):
         """
         user_message_content = inputs.get("message")
         if not user_message_content:
-            return {"success": False, "error": "Input 'message' is required.", "result": None}
+            return {
+                "success": False,
+                "error": "Input 'message' is required.",
+                "result": None,
+            }
 
         # Add user message to history before LLM call
         self._add_to_history(role="user", content=user_message_content)
@@ -136,7 +140,11 @@ class AIAssistantMCP(BaseMCPServer):
             # Add assistant's response to history
             self._add_to_history(role="assistant", content=raw_assistant_response_text)
 
-            return {"success": True, "result": raw_assistant_response_text, "error": None}
+            return {
+                "success": True,
+                "result": raw_assistant_response_text,
+                "error": None,
+            }
 
             # --- Conceptual Tool Handling (if ClaudeLLM were more advanced) ---
             # This part is commented out as it depends on a more capable ClaudeLLM/SDK
@@ -181,7 +189,9 @@ class AIAssistantMCP(BaseMCPServer):
         except Exception as e:
             import traceback
 
-            error_message = f"Error executing AI Assistant: {str(e)}\n{traceback.format_exc()}"
+            error_message = (
+                f"Error executing AI Assistant: {str(e)}\n{traceback.format_exc()}"
+            )
             print(error_message)
             # Do not add to history if LLM call fails catastrophically before a response
             return {"success": False, "error": error_message, "result": None}

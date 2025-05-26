@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name="mcp",
@@ -20,4 +20,4 @@ setup(
         "python-multipart>=0.0.9",
     ],
     python_requires=">=3.8",
-) 
+)

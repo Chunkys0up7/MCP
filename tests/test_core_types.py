@@ -1,11 +1,8 @@
 import pytest
-from mcp.core.types import (
-    MCPType,
-    BaseMCPConfig,
-    LLMPromptConfig,
-    JupyterNotebookConfig,
-    PythonScriptConfig
-)
+
+from mcp.core.types import (BaseMCPConfig, JupyterNotebookConfig,
+                            LLMPromptConfig, MCPType, PythonScriptConfig)
+
 
 def test_mcp_type_enum():
     """Test MCPType enum values."""
@@ -14,15 +11,15 @@ def test_mcp_type_enum():
     assert MCPType.PYTHON_SCRIPT.value == "python_script"
     assert MCPType.AI_ASSISTANT.value == "ai_assistant"
 
+
 def test_base_mcp_config():
     """Test BaseMCPConfig creation and validation."""
     config = BaseMCPConfig(
-        name="Test Base",
-        type=MCPType.LLM_PROMPT,
-        input_variables=["var1", "var2"]
+        name="Test Base", type=MCPType.LLM_PROMPT, input_variables=["var1", "var2"]
     )
     assert config.type == MCPType.LLM_PROMPT
     assert config.input_variables == ["var1", "var2"]
+
 
 def test_llm_prompt_config():
     """Test LLMPromptConfig creation and validation."""
@@ -34,7 +31,7 @@ def test_llm_prompt_config():
         system_prompt="You are a helpful assistant",
         model_name="claude-3-sonnet-20240229",
         temperature=0.7,
-        max_tokens=1000
+        max_tokens=1000,
     )
     assert config.type == MCPType.LLM_PROMPT
     assert config.template == "Analyze: {text}"
@@ -42,6 +39,7 @@ def test_llm_prompt_config():
     assert config.model_name == "claude-3-sonnet-20240229"
     assert config.temperature == 0.7
     assert config.max_tokens == 1000
+
 
 def test_jupyter_notebook_config():
     """Test JupyterNotebookConfig creation and validation."""
@@ -51,13 +49,14 @@ def test_jupyter_notebook_config():
         input_variables=["data"],
         notebook_path="test.ipynb",
         execute_all=True,
-        timeout=600
+        timeout=600,
     )
     assert config.type == MCPType.JUPYTER_NOTEBOOK
     assert config.notebook_path == "test.ipynb"
     assert config.execute_all is True
     assert config.cells_to_execute is None
     assert config.timeout == 600
+
 
 def test_python_script_config():
     """Test PythonScriptConfig creation and validation."""
@@ -68,13 +67,14 @@ def test_python_script_config():
         script_path="test.py",
         requirements=["requests>=2.31.0"],
         virtual_env=True,
-        timeout=300
+        timeout=300,
     )
     assert config.type == MCPType.PYTHON_SCRIPT
     assert config.script_path == "test.py"
     assert config.requirements == ["requests>=2.31.0"]
     assert config.virtual_env is True
     assert config.timeout == 300
+
 
 def test_config_validation():
     """Test configuration validation."""
@@ -87,7 +87,7 @@ def test_config_validation():
             template="Test",
             model_name="claude-3-sonnet-20240229",
             temperature=1.5,  # Invalid temperature
-            max_tokens=1000
+            max_tokens=1000,
         )
 
     # Test invalid timeout
@@ -98,7 +98,7 @@ def test_config_validation():
             input_variables=["data"],
             notebook_path="test.ipynb",
             execute_all=True,
-            timeout=-1  # Invalid timeout
+            timeout=-1,  # Invalid timeout
         )
 
     # Test missing required field
@@ -110,5 +110,5 @@ def test_config_validation():
             script_path="test.py",
             # Missing requirements
             virtual_env=True,
-            timeout=300
-        ) 
+            timeout=300,
+        )

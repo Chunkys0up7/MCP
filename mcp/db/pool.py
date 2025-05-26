@@ -128,13 +128,17 @@ class DatabasePool:
         """
         try:
             stats = self.get_pool_stats()
-            current_utilization = stats["checkedout"] / (stats["size"] + stats["overflow"])
+            current_utilization = stats["checkedout"] / (
+                stats["size"] + stats["overflow"]
+            )
 
             if current_utilization > target_utilization:
                 # Increase pool size if utilization is too high
                 new_size = int(stats["size"] * 1.5)
                 self.resize_pool(new_size)
-                logger.info(f"Increased pool size to {new_size} due to high utilization")
+                logger.info(
+                    f"Increased pool size to {new_size} due to high utilization"
+                )
             elif current_utilization < target_utilization * 0.5:
                 # Decrease pool size if utilization is too low
                 new_size = max(1, int(stats["size"] * 0.75))

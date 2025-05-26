@@ -9,11 +9,11 @@ This module provides functionality for working with workflow DAGs, including:
 """
 
 from collections import defaultdict, deque
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import networkx as nx
 
-from mcp.schemas.workflow import Workflow, WorkflowStep
+from mcp.schemas.workflow import Workflow
 
 
 class DAGOptimizer:
@@ -44,7 +44,10 @@ class DAGOptimizer:
         # Add edges based on dependencies
         for step in workflow.steps:
             for input_config in step.inputs.values():
-                if input_config.source_type == "STEP_OUTPUT" and input_config.source_step_id:
+                if (
+                    input_config.source_type == "STEP_OUTPUT"
+                    and input_config.source_step_id
+                ):
                     self.graph.add_edge(input_config.source_step_id, step.step_id)
 
     def detect_cycles(self) -> List[List[str]]:

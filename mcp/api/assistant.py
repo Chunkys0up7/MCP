@@ -53,7 +53,9 @@ class AIAssistant:
         Args:
             message: Message to add to memory
         """
-        self.memory.append({"timestamp": datetime.now().isoformat(), "message": message})
+        self.memory.append(
+            {"timestamp": datetime.now().isoformat(), "message": message}
+        )
 
         # Trim memory if it exceeds size limit
         if len(self.memory) > self.config.memory_size:
@@ -71,7 +73,9 @@ class AIAssistant:
         """Clear conversation memory."""
         self.memory = []
 
-    async def execute_tool(self, tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, tool_name: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute a tool.
 
         Args:
@@ -83,7 +87,9 @@ class AIAssistant:
         """
         try:
             # Find tool configuration
-            tool_config = next((tool for tool in self.tools if tool["name"] == tool_name), None)
+            tool_config = next(
+                (tool for tool in self.tools if tool["name"] == tool_name), None
+            )
 
             if not tool_config:
                 raise ValueError(f"Tool {tool_name} not found")
@@ -99,14 +105,18 @@ class AIAssistant:
 
             # Log execution
             log_execution(
-                {"type": "tool_execution", "tool": tool_name, "parameters": parameters}, result
+                {"type": "tool_execution", "tool": tool_name, "parameters": parameters},
+                result,
             )
 
             return result
 
         except Exception as e:
             # Log error
-            log_error(e, {"type": "tool_execution", "tool": tool_name, "parameters": parameters})
+            log_error(
+                e,
+                {"type": "tool_execution", "tool": tool_name, "parameters": parameters},
+            )
             raise
 
     def _validate_parameters(self, schema: Dict[str, Any], parameters: Dict[str, Any]):

@@ -45,12 +45,18 @@ def build_assistant_config() -> AIAssistantConfig:
 
     # Max tokens
     max_tokens = st.number_input(
-        "Max Tokens", min_value=1, value=1000, help="Maximum number of tokens in response"
+        "Max Tokens",
+        min_value=1,
+        value=1000,
+        help="Maximum number of tokens in response",
     )
 
     # Memory size
     memory_size = st.number_input(
-        "Memory Size", min_value=1, value=10, help="Number of messages to keep in memory"
+        "Memory Size",
+        min_value=1,
+        value=10,
+        help="Number of messages to keep in memory",
     )
 
     # Tools configuration
@@ -58,7 +64,9 @@ def build_assistant_config() -> AIAssistantConfig:
     tools = build_tools_config()
 
     # Tool choice
-    tool_choice = st.radio("Tool Choice", ["auto", "none"], index=0, help="When to use tools")
+    tool_choice = st.radio(
+        "Tool Choice", ["auto", "none"], index=0, help="When to use tools"
+    )
 
     # Response format
     st.subheader("Response Format")
@@ -119,7 +127,9 @@ def build_tools_config() -> List[Dict[str, Any]]:
         parameters = build_parameters_config(i)
 
         if name and description and parameters:
-            tools.append({"name": name, "description": description, "parameters": parameters})
+            tools.append(
+                {"name": name, "description": description, "parameters": parameters}
+            )
 
     return tools
 
@@ -149,7 +159,9 @@ def build_parameters_config(tool_index: int) -> Dict[str, Any]:
         st.subheader(f"Parameter {i + 1}")
 
         # Parameter name
-        name = st.text_input("Name", key=f"param_name_{tool_index}_{i}", help="Parameter name")
+        name = st.text_input(
+            "Name", key=f"param_name_{tool_index}_{i}", help="Parameter name"
+        )
 
         # Parameter type
         param_type = st.selectbox(
@@ -161,7 +173,9 @@ def build_parameters_config(tool_index: int) -> Dict[str, Any]:
 
         # Required flag
         required = st.checkbox(
-            "Required", key=f"param_required_{tool_index}_{i}", help="Whether parameter is required"
+            "Required",
+            key=f"param_required_{tool_index}_{i}",
+            help="Whether parameter is required",
         )
 
         if name and param_type:
@@ -179,7 +193,9 @@ def build_response_format_config() -> Dict[str, Any]:
     response_format = {}
 
     # Type
-    format_type = st.selectbox("Type", ["text", "json", "markdown"], help="Response format type")
+    format_type = st.selectbox(
+        "Type", ["text", "json", "markdown"], help="Response format type"
+    )
 
     if format_type == "json":
         # JSON schema

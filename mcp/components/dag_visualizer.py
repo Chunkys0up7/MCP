@@ -11,8 +11,6 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 from mcp.core.dag_engine import DAGWorkflowEngine, StepStatus
-from mcp.core.workflow_engine import WorkflowStep
-from mcp.db.models import WorkflowDefinition
 
 
 class DAGVisualizer:
@@ -57,7 +55,10 @@ class DAGVisualizer:
         return G
 
     def visualize(
-        self, engine: DAGWorkflowEngine, output_path: Optional[str] = None, show: bool = True
+        self,
+        engine: DAGWorkflowEngine,
+        output_path: Optional[str] = None,
+        show: bool = True,
     ) -> None:
         """
         Visualize the DAG using matplotlib.
@@ -77,7 +78,9 @@ class DAGVisualizer:
 
         # Draw nodes
         node_colors = [self.colors[G.nodes[node]["status"]] for node in G.nodes()]
-        nx.draw_networkx_nodes(G, pos, node_color=node_colors, node_size=2000, alpha=0.8)
+        nx.draw_networkx_nodes(
+            G, pos, node_color=node_colors, node_size=2000, alpha=0.8
+        )
 
         # Draw edges
         nx.draw_networkx_edges(G, pos, edge_color="gray", arrows=True, arrowsize=20)
@@ -158,7 +161,9 @@ class DAGVisualizer:
             if not list(G.successors(node)):
                 latest_start[node] = earliest_start[node]
             else:
-                latest_start[node] = min(latest_start[succ] - 1 for succ in G.successors(node))
+                latest_start[node] = min(
+                    latest_start[succ] - 1 for succ in G.successors(node)
+                )
 
         # Find critical path
         critical_path = []

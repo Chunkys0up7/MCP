@@ -1,6 +1,7 @@
 import os
-from dotenv import load_dotenv
+
 import requests
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -14,28 +15,21 @@ if not api_key:
 headers = {
     "x-api-key": api_key,
     "anthropic-version": "2023-06-01",
-    "content-type": "application/json"
+    "content-type": "application/json",
 }
 
 data = {
     "model": "claude-3-sonnet-20240229",
     "max_tokens": 100,
-    "messages": [
-        {
-            "role": "user",
-            "content": "Hello, this is a test message."
-        }
-    ]
+    "messages": [{"role": "user", "content": "Hello, this is a test message."}],
 }
 
 try:
     response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers=headers,
-        json=data
+        "https://api.anthropic.com/v1/messages", headers=headers, json=data
     )
-    
+
     print("Status code:", response.status_code)
     print("Response:", response.json())
 except Exception as e:
-    print("Error:", str(e)) 
+    print("Error:", str(e))

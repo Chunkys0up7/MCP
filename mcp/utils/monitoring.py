@@ -23,7 +23,9 @@ class Metrics:
         )
 
         self.execution_duration = Histogram(
-            "mcp_execution_duration_seconds", "MCP execution duration in seconds", ["type"]
+            "mcp_execution_duration_seconds",
+            "MCP execution duration in seconds",
+            ["type"],
         )
 
         # Error metrics
@@ -39,7 +41,9 @@ class Metrics:
         # Cache metrics
         self.cache_hits = Counter("mcp_cache_hits_total", "Total number of cache hits")
 
-        self.cache_misses = Counter("mcp_cache_misses_total", "Total number of cache misses")
+        self.cache_misses = Counter(
+            "mcp_cache_misses_total", "Total number of cache misses"
+        )
 
         # API metrics
         self.api_requests = Counter(
@@ -49,7 +53,9 @@ class Metrics:
         )
 
         self.api_duration = Histogram(
-            "mcp_api_duration_seconds", "API request duration in seconds", ["endpoint", "method"]
+            "mcp_api_duration_seconds",
+            "API request duration in seconds",
+            ["endpoint", "method"],
         )
 
 
@@ -145,13 +151,18 @@ class ExecutionTracker:
 
         # Record execution
         if exc_type is None:
-            self.metrics.execution_counter.labels(type=self.mcp_type, status="success").inc()
+            self.metrics.execution_counter.labels(
+                type=self.mcp_type, status="success"
+            ).inc()
         else:
-            self.metrics.execution_counter.labels(type=self.mcp_type, status="error").inc()
+            self.metrics.execution_counter.labels(
+                type=self.mcp_type, status="error"
+            ).inc()
 
             # Log error
             log_error(
-                exc_val, {"type": "execution", "mcp_type": self.mcp_type, "duration": duration}
+                exc_val,
+                {"type": "execution", "mcp_type": self.mcp_type, "duration": duration},
             )
 
 
@@ -180,9 +191,9 @@ class APIRequestTracker:
         duration = time.time() - self.start_time
 
         # Record duration
-        self.metrics.api_duration.labels(endpoint=self.endpoint, method=self.method).observe(
-            duration
-        )
+        self.metrics.api_duration.labels(
+            endpoint=self.endpoint, method=self.method
+        ).observe(duration)
 
         # Record request
         if exc_type is None:

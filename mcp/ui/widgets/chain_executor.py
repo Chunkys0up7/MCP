@@ -21,7 +21,9 @@ class ChainExecutor:
 
         # Chain selection
         selected_chain_id = st.selectbox(
-            "Select Chain", options=list(chains.keys()), format_func=lambda x: chains[x]["name"]
+            "Select Chain",
+            options=list(chains.keys()),
+            format_func=lambda x: chains[x]["name"],
         )
 
         if selected_chain_id:
@@ -112,11 +114,14 @@ class ChainExecutor:
         """Execute chain steps in parallel."""
         with ThreadPoolExecutor() as executor:
             futures = [
-                executor.submit(self._execute_step, step, input_params) for step in chain["steps"]
+                executor.submit(self._execute_step, step, input_params)
+                for step in chain["steps"]
             ]
             return [future.result() for future in futures]
 
-    def _execute_step(self, step: Dict[str, Any], input_params: Dict[str, str]) -> Dict[str, Any]:
+    def _execute_step(
+        self, step: Dict[str, Any], input_params: Dict[str, str]
+    ) -> Dict[str, Any]:
         """Execute a single chain step."""
         mcp_id = step["mcp_id"]
         inputs = step["inputs"]

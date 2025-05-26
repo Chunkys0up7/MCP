@@ -94,8 +94,12 @@ class JupyterNotebookMCP(BaseMCPServer):
                     elif output.output_type == "stream":
                         cell_outputs.append(output.text)
                     elif output.output_type == "error":
-                        cell_outputs.append(f"ErrorInCell: {output.ename}: {output.evalue}")
-                results[f"cell_{i+1}_{cell.execution_count if cell.execution_count else 'nc'}"] = {
+                        cell_outputs.append(
+                            f"ErrorInCell: {output.ename}: {output.evalue}"
+                        )
+                results[
+                    f"cell_{i+1}_{cell.execution_count if cell.execution_count else 'nc'}"
+                ] = {
                     "outputs": cell_outputs,
                     "execution_count": cell.execution_count,
                     "source": cell.source,
@@ -103,7 +107,9 @@ class JupyterNotebookMCP(BaseMCPServer):
         return results
 
     def _get_execution_time(self, nb: nbformat.NotebookNode) -> Optional[float]:
-        if hasattr(nb.metadata, "papermill") and hasattr(nb.metadata.papermill, "duration"):
+        if hasattr(nb.metadata, "papermill") and hasattr(
+            nb.metadata.papermill, "duration"
+        ):
             return nb.metadata.papermill.duration
 
         total_time = 0.0

@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import psutil
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
@@ -58,7 +58,9 @@ class SystemMonitor:
 
         # Application metrics
         self.request_count = Counter("app_request_count", "Total number of requests")
-        self.request_latency = Histogram("app_request_latency", "Request latency in seconds")
+        self.request_latency = Histogram(
+            "app_request_latency", "Request latency in seconds"
+        )
         self.error_count = Counter("app_error_count", "Total number of errors")
 
         # Custom metrics registry
@@ -111,7 +113,9 @@ class SystemMonitor:
             except Exception as e:
                 logger.error(f"Error collecting metrics: {e}")
 
-    def create_custom_metric(self, name: str, description: str, metric_type: MetricType) -> None:
+    def create_custom_metric(
+        self, name: str, description: str, metric_type: MetricType
+    ) -> None:
         """Create a new custom metric."""
         if name in self.custom_metrics:
             raise ValueError(f"Metric {name} already exists")

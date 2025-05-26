@@ -46,7 +46,9 @@ class ChainBuilder:
         col1, col2 = st.columns(2)
         with col1:
             st.session_state.chain_name = st.text_input(
-                "Chain Name", value=st.session_state.chain_name, help="Enter a name for your chain"
+                "Chain Name",
+                value=st.session_state.chain_name,
+                help="Enter a name for your chain",
             )
 
         with col2:
@@ -108,7 +110,9 @@ class ChainBuilder:
                 if mcp["type"] == "python_script":
                     script_path = mcp["config"].get("script_path")
                     if script_path and not Path(script_path).exists():
-                        st.warning(f"Script not found: {script_path} (referenced by {mcp['name']})")
+                        st.warning(
+                            f"Script not found: {script_path} (referenced by {mcp['name']})"
+                        )
                 if mcp["type"] == "jupyter_notebook":
                     notebook_path = mcp["config"].get("notebook_path")
                     if notebook_path and not Path(notebook_path).exists():
@@ -205,14 +209,19 @@ class ChainBuilder:
                 st.session_state.error_handling = st.selectbox(
                     "Error Handling Strategy",
                     ["Retry with Backoff", "Fallback Chain", "Stop on Error"],
-                    index=["Retry with Backoff", "Fallback Chain", "Stop on Error"].index(
-                        st.session_state.error_handling
-                    ),
+                    index=[
+                        "Retry with Backoff",
+                        "Fallback Chain",
+                        "Stop on Error",
+                    ].index(st.session_state.error_handling),
                 )
 
                 if st.session_state.error_handling == "Retry with Backoff":
                     st.session_state.max_retries = st.number_input(
-                        "Max Retries", min_value=1, max_value=5, value=st.session_state.max_retries
+                        "Max Retries",
+                        min_value=1,
+                        max_value=5,
+                        value=st.session_state.max_retries,
                     )
                     st.session_state.backoff_factor = st.number_input(
                         "Backoff Factor (seconds)",
@@ -317,7 +326,9 @@ class ChainBuilder:
             "error_handling": {
                 "strategy": error_handling,
                 "max_retries": (
-                    st.session_state.max_retries if error_handling == "Retry with Backoff" else None
+                    st.session_state.max_retries
+                    if error_handling == "Retry with Backoff"
+                    else None
                 ),
                 "backoff_factor": (
                     st.session_state.backoff_factor

@@ -12,8 +12,7 @@ import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -156,7 +155,9 @@ class DependencyVisualizer:
                 if not self._check_version_compatibility(
                     dep_name,
                     dep_version,
-                    self.components[component_name][version].dependencies.get(dep_name, ""),
+                    self.components[component_name][version].dependencies.get(
+                        dep_name, ""
+                    ),
                 ):
                     self.conflicts.append(
                         DependencyConflict(
@@ -207,7 +208,10 @@ class DependencyVisualizer:
         return version == constraint
 
     def generate_visualization(
-        self, output_path: Optional[str] = None, show_labels: bool = True, layout: str = "dot"
+        self,
+        output_path: Optional[str] = None,
+        show_labels: bool = True,
+        layout: str = "dot",
     ) -> None:
         """
         Generate a visual representation of the dependency graph.
@@ -223,10 +227,14 @@ class DependencyVisualizer:
         pos = graphviz_layout(self.graph, prog=layout)
 
         # Draw nodes
-        nx.draw_networkx_nodes(self.graph, pos, node_color="lightblue", node_size=2000, alpha=0.6)
+        nx.draw_networkx_nodes(
+            self.graph, pos, node_color="lightblue", node_size=2000, alpha=0.6
+        )
 
         # Draw edges
-        nx.draw_networkx_edges(self.graph, pos, edge_color="gray", arrows=True, arrowsize=20)
+        nx.draw_networkx_edges(
+            self.graph, pos, edge_color="gray", arrows=True, arrowsize=20
+        )
 
         # Draw labels
         if show_labels:
@@ -263,7 +271,8 @@ class DependencyVisualizer:
                 for node in self.graph.nodes()
             ],
             "edges": [
-                {"source": source, "target": target} for source, target in self.graph.edges()
+                {"source": source, "target": target}
+                for source, target in self.graph.edges()
             ],
             "conflicts": [
                 {

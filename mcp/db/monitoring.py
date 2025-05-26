@@ -11,7 +11,6 @@ It includes:
 5. Automated reporting
 """
 
-import json
 import logging
 import time
 from dataclasses import dataclass
@@ -112,7 +111,9 @@ class DatabaseMonitor:
 
                 # Keep only last 24 hours of metrics
                 cutoff = datetime.now() - timedelta(hours=24)
-                self._metrics_history = [m for m in self._metrics_history if m.timestamp > cutoff]
+                self._metrics_history = [
+                    m for m in self._metrics_history if m.timestamp > cutoff
+                ]
 
                 # Check for alerts
                 self._check_alerts(metrics)
@@ -301,29 +302,38 @@ class DatabaseMonitor:
 
         # Check connection utilization
         total_connections = (
-            metrics.active_connections + metrics.idle_connections + metrics.waiting_connections
+            metrics.active_connections
+            + metrics.idle_connections
+            + metrics.waiting_connections
         )
         if total_connections > 0:
             utilization = metrics.active_connections / total_connections
             if utilization > self.alert_thresholds["connection_utilization"]:
                 self._generate_alert(
-                    "connection_utilization", f"High connection utilization: {utilization:.2%}"
+                    "connection_utilization",
+                    f"High connection utilization: {utilization:.2%}",
                 )
 
         # Check system metrics
         if metrics.system_metrics["disk_percent"] > self.alert_thresholds["disk_usage"]:
             self._generate_alert(
-                "disk_usage", f"High disk usage: {metrics.system_metrics['disk_percent']:.2%}"
+                "disk_usage",
+                f"High disk usage: {metrics.system_metrics['disk_percent']:.2%}",
             )
 
-        if metrics.system_metrics["memory_percent"] > self.alert_thresholds["memory_usage"]:
+        if (
+            metrics.system_metrics["memory_percent"]
+            > self.alert_thresholds["memory_usage"]
+        ):
             self._generate_alert(
-                "memory_usage", f"High memory usage: {metrics.system_metrics['memory_percent']:.2%}"
+                "memory_usage",
+                f"High memory usage: {metrics.system_metrics['memory_percent']:.2%}",
             )
 
         if metrics.system_metrics["cpu_percent"] > self.alert_thresholds["cpu_usage"]:
             self._generate_alert(
-                "cpu_usage", f"High CPU usage: {metrics.system_metrics['cpu_percent']:.2%}"
+                "cpu_usage",
+                f"High CPU usage: {metrics.system_metrics['cpu_percent']:.2%}",
             )
 
     def _generate_alert(self, alert_type: str, message: str) -> None:
@@ -355,7 +365,9 @@ class DatabaseMonitor:
         if not end_time:
             end_time = datetime.now()
 
-        return [m for m in self._metrics_history if start_time <= m.timestamp <= end_time]
+        return [
+            m for m in self._metrics_history if start_time <= m.timestamp <= end_time
+        ]
 
     def generate_report(
         self, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None
@@ -376,20 +388,25 @@ class DatabaseMonitor:
 
         # Calculate averages
         avg_connections = sum(
-            m.active_connections + m.idle_connections + m.waiting_connections for m in metrics
+            m.active_connections + m.idle_connections + m.waiting_connections
+            for m in metrics
         ) / len(metrics)
 
         avg_cache_hit = sum(m.cache_hit_ratio for m in metrics) / len(metrics)
 
         avg_cpu = sum(m.system_metrics["cpu_percent"] for m in metrics) / len(metrics)
-        avg_memory = sum(m.system_metrics["memory_percent"] for m in metrics) / len(metrics)
+        avg_memory = sum(m.system_metrics["memory_percent"] for m in metrics) / len(
+            metrics
+        )
         avg_disk = sum(m.system_metrics["disk_percent"] for m in metrics) / len(metrics)
 
         # Get slowest queries
         all_slow_queries = []
         for m in metrics:
             all_slow_queries.extend(m.slow_queries)
-        slowest_queries = sorted(all_slow_queries, key=lambda q: q["mean_time"], reverse=True)[:5]
+        slowest_queries = sorted(
+            all_slow_queries, key=lambda q: q["mean_time"], reverse=True
+        )[:5]
 
         return {
             "period": {

@@ -36,7 +36,9 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+) -> str:
     """Create an access token."""
     to_encode = data.copy()
     if expires_delta:
@@ -55,7 +57,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
 def create_refresh_token(data: Dict[str, Any]) -> str:
     """Create a refresh token."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.security.refresh_token_expire_days)
+    expire = datetime.utcnow() + timedelta(
+        days=settings.security.refresh_token_expire_days
+    )
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(
         to_encode, settings.security.secret_key, algorithm=settings.security.algorithm
@@ -74,7 +78,9 @@ def verify_token(token: str) -> Optional[TokenData]:
     """Verify a token and return its data."""
     try:
         payload = jwt.decode(
-            token, settings.security.secret_key, algorithms=[settings.security.algorithm]
+            token,
+            settings.security.secret_key,
+            algorithms=[settings.security.algorithm],
         )
         user_id: str = payload.get("sub")
         exp: int = payload.get("exp")

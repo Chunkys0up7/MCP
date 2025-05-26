@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,9 @@ class AICoPilot:
 
         # Check for parallel execution opportunities
         if "nodes" in workflow_data:
-            parallel_nodes = self._find_parallel_execution_opportunities(workflow_data["nodes"])
+            parallel_nodes = self._find_parallel_execution_opportunities(
+                workflow_data["nodes"]
+            )
             if parallel_nodes:
                 suggestions.append(
                     Suggestion(

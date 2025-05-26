@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Response
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from mcp.core.types import MCPType  # For type checking in MCP if needed
@@ -24,7 +24,6 @@ from mcp.schemas.workflow import WorkflowStepGantt
 from ...core import registry as mcp_registry_service  # For MCP DB functions
 from ...core.auth import UserRole, require_any_role
 from ...core.workflow_engine import WorkflowEngine  # Added import
-from ...schemas.mcd_constraints import ArchitecturalConstraints
 # Assuming API key dependency and mcp_server_registry will be passed or imported
 # from ..main import get_api_key, mcp_server_registry # OLD IMPORT - REMOVE/COMMENT
 from ..dependencies import \
@@ -57,7 +56,9 @@ def load_workflows_from_storage() -> Dict[str, WorkflowSchema]:
                     print(f"Error deserializing workflow {wf_id}: {e}. Skipping.")
             return deserialized_workflows
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from {WORKFLOW_STORAGE_FILE}. Returning empty workflow list.")
+        print(
+            f"Error decoding JSON from {WORKFLOW_STORAGE_FILE}. Returning empty workflow list."
+        )
         return {}
     except Exception as e:
         print(f"Failed to load workflows from storage: {e}")
@@ -65,7 +66,9 @@ def load_workflows_from_storage() -> Dict[str, WorkflowSchema]:
 
 
 def save_workflows_to_storage(workflows: Dict[str, WorkflowSchema]):
-    serializable_workflows = {wf_id: wf.model_dump(mode="json") for wf_id, wf in workflows.items()}
+    serializable_workflows = {
+        wf_id: wf.model_dump(mode="json") for wf_id, wf in workflows.items()
+    }
     try:
         STORAGE_DIR.mkdir(exist_ok=True)
         with open(WORKFLOW_STORAGE_FILE, "w") as f:
@@ -119,7 +122,9 @@ async def create_workflow_definition(
     workflow_data: WorkflowCreateSchema,
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
-    _: List[str] = Depends(require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN])),
+    _: List[str] = Depends(
+        require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN])
+    ),
 ):
     """Creates a new workflow definition."""
     try:
@@ -161,7 +166,9 @@ async def get_workflow_definition(
         raise HTTPException(status_code=400, detail="Invalid workflow ID format.")
 
     db_workflow = (
-        db.query(WorkflowDefinition).filter(WorkflowDefinition.workflow_id == wf_uuid).first()
+        db.query(WorkflowDefinition)
+        .filter(WorkflowDefinition.workflow_id == wf_uuid)
+        .first()
     )
     if db_workflow is None:
         raise HTTPException(status_code=404, detail="Workflow definition not found")
@@ -228,7 +235,9 @@ async def execute_workflow(
     ),
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
-    _: List[str] = Depends(require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN])),
+    _: List[str] = Depends(
+        require_any_role([UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN])
+    ),
 ):
     """Executes a workflow definition."""
     try:
@@ -237,10 +246,14 @@ async def execute_workflow(
         raise HTTPException(status_code=400, detail="Invalid workflow ID format.")
 
     db_workflow_definition = (
-        db.query(WorkflowDefinition).filter(WorkflowDefinition.workflow_id == wf_uuid).first()
+        db.query(WorkflowDefinition)
+        .filter(WorkflowDefinition.workflow_id == wf_uuid)
+        .first()
     )
     if not db_workflow_definition:
-        raise HTTPException(status_code=404, detail="Workflow definition not found for execution.")
+        raise HTTPException(
+            status_code=404, detail="Workflow definition not found for execution."
+        )
 
     # Convert DB model to Pydantic schema for the engine
     workflow_dict = {
@@ -253,7 +266,9 @@ async def execute_workflow(
 
     # Create a WorkflowRun entry to track this execution
     db_workflow_run = WorkflowRun(
-        workflow_id=db_workflow_definition.workflow_id, status="PENDING", inputs=initial_inputs
+        workflow_id=db_workflow_definition.workflow_id,
+        status="PENDING",
+        inputs=initial_inputs,
     )
     db.add(db_workflow_run)
     try:
@@ -292,7 +307,9 @@ async def execute_workflow(
         db.commit()
         db.refresh(db_workflow_run)
 
-        raise HTTPException(status_code=500, detail=f"Workflow execution failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Workflow execution failed: {str(e)}"
+        )
 
 
 # Endpoint to get status of a specific workflow run
@@ -332,7 +349,9 @@ async def get_workflow_run_status(
             db_run.started_at if db_run.started_at else datetime.min
         ),  # Handle None for started_at
         finished_at=db_run.finished_at,
-        step_results=db_run.results_log if db_run.results_log else [],  # Ensure it's a list
+        step_results=(
+            db_run.results_log if db_run.results_log else []
+        ),  # Ensure it's a list
         final_outputs=db_run.outputs,
         error_message=db_run.error_message,
     )
@@ -354,10 +373,15 @@ async def list_all_workflow_runs(
             wf_uuid = uuid.UUID(workflow_id)
             query = query.filter(WorkflowRun.workflow_id == wf_uuid)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid workflow_id filter format.")
+            raise HTTPException(
+                status_code=400, detail="Invalid workflow_id filter format."
+            )
 
     db_runs = (
-        query.order_by(WorkflowRun.started_at.desc().nulls_last()).offset(skip).limit(limit).all()
+        query.order_by(WorkflowRun.started_at.desc().nulls_last())
+        .offset(skip)
+        .limit(limit)
+        .all()
     )
 
     results = []
@@ -387,7 +411,11 @@ async def get_workflow_run_gantt(
         run_uuid = uuid.UUID(run_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid run ID format.")
-    step_runs = db.query(WorkflowStepRun).filter(WorkflowStepRun.workflow_run_id == run_uuid).all()
+    step_runs = (
+        db.query(WorkflowStepRun)
+        .filter(WorkflowStepRun.workflow_run_id == run_uuid)
+        .all()
+    )
     return [WorkflowStepGantt.from_orm(step) for step in step_runs]
 
 

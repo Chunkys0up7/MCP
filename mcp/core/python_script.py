@@ -35,7 +35,9 @@ def _cleanup_temporary_files():
             _temporary_script_files.remove(temp_file_path)
             logger.info(f"Cleaned up temporary script file: {temp_file_path}")
         except OSError as e:
-            logger.error(f"Error cleaning up temporary script file {temp_file_path}: {e}")
+            logger.error(
+                f"Error cleaning up temporary script file {temp_file_path}: {e}"
+            )
         except KeyError:
             pass  # Already removed by another thread/process, perhaps
 
@@ -97,7 +99,9 @@ class PythonScriptMCP(BaseMCPServer):
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Executes the Python script with the given inputs."""
-        if not self._script_path_to_execute or not os.path.exists(self._script_path_to_execute):
+        if not self._script_path_to_execute or not os.path.exists(
+            self._script_path_to_execute
+        ):
             logger.error(
                 f"Cannot execute PythonScriptMCP '{self.config.name}': Effective script path '{self._script_path_to_execute}' is invalid or missing."
             )
@@ -133,7 +137,12 @@ class PythonScriptMCP(BaseMCPServer):
                     tmp_output_file_path
                 )  # Ensure cleanup even if script fails before writing
 
-                command = [python_exe, script_to_run_str, tmp_input_file_path, tmp_output_file_path]
+                command = [
+                    python_exe,
+                    script_to_run_str,
+                    tmp_input_file_path,
+                    tmp_output_file_path,
+                ]
                 logger.debug(f"Executing PythonScriptMCP sync command: {command}")
 
                 process = subprocess.run(
@@ -148,9 +157,13 @@ class PythonScriptMCP(BaseMCPServer):
                 process_return_code = process.returncode
 
                 if stdout_str:
-                    logger.info(f"Script stdout for '{self.config.name}':\n{stdout_str}")
+                    logger.info(
+                        f"Script stdout for '{self.config.name}':\n{stdout_str}"
+                    )
                 if stderr_str:
-                    logger.warning(f"Script stderr for '{self.config.name}':\n{stderr_str}")
+                    logger.warning(
+                        f"Script stderr for '{self.config.name}':\n{stderr_str}"
+                    )
 
                 if process_return_code == 0:
                     if os.path.exists(tmp_output_file_path):

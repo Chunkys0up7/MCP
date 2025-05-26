@@ -159,7 +159,9 @@ class DAGWorkflowEngine:
 
         return result
 
-    async def _execute_workflow_step(self, step: WorkflowStep) -> WorkflowExecutionResult:
+    async def _execute_workflow_step(
+        self, step: WorkflowStep
+    ) -> WorkflowExecutionResult:
         """
         Execute a workflow step using the existing workflow engine.
 
@@ -171,7 +173,9 @@ class DAGWorkflowEngine:
         """
         # TODO: Implement actual step execution using the existing workflow engine
         # This is a placeholder that should be replaced with actual implementation
-        return WorkflowExecutionResult(success=True, output="Step executed successfully")
+        return WorkflowExecutionResult(
+            success=True, output="Step executed successfully"
+        )
 
     async def execute_workflow(
         self, workflow: WorkflowDefinition
@@ -197,7 +201,10 @@ class DAGWorkflowEngine:
                 for step_id in self.execution_order
                 if step_id not in completed_steps
                 and step_id not in running_steps
-                and all(dep_id in completed_steps for dep_id in self.steps[step_id].dependencies)
+                and all(
+                    dep_id in completed_steps
+                    for dep_id in self.steps[step_id].dependencies
+                )
             ]
 
             # Start new steps up to the parallel limit
@@ -205,7 +212,9 @@ class DAGWorkflowEngine:
                 step_id = available_steps.pop(0)
                 running_steps.add(step_id)
                 asyncio.create_task(
-                    self._execute_and_track(step_id, results, running_steps, completed_steps)
+                    self._execute_and_track(
+                        step_id, results, running_steps, completed_steps
+                    )
                 )
 
             # Wait for some steps to complete if we're at the limit

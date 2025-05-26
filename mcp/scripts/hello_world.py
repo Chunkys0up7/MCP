@@ -55,7 +55,8 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print(
             json.dumps(
-                {"error": "Usage: python hello_world.py <name> <language>"}, ensure_ascii=False
+                {"error": "Usage: python hello_world.py <name> <language>"},
+                ensure_ascii=False,
             )
         )
         sys.exit(1)

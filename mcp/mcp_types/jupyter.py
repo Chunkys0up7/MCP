@@ -17,7 +17,9 @@ class JupyterNotebookMCP(BaseMCP):
     def execute(self, inputs: Dict[str, Any]) -> MCPResult:
         """Execute the Jupyter Notebook MCP."""
         if not self.id:
-            return MCPResult(success=False, error="MCP not created or ID not set for execution")
+            return MCPResult(
+                success=False, error="MCP not created or ID not set for execution"
+            )
 
         try:
             return self.client.execute_server(self.id, inputs)

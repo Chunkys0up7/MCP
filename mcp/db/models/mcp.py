@@ -15,7 +15,6 @@ The models support:
 
 import uuid
 from datetime import datetime
-from typing import List, Optional
 
 from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String, Table
 from sqlalchemy.dialects.postgresql import UUID
@@ -67,7 +66,9 @@ class MCP(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    versions = relationship("MCPVersion", back_populates="mcp", foreign_keys="MCPVersion.mcp_id")
+    versions = relationship(
+        "MCPVersion", back_populates="mcp", foreign_keys="MCPVersion.mcp_id"
+    )
     current_version = relationship("MCPVersion", foreign_keys=[current_version_id])
 
 

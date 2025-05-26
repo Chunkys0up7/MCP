@@ -15,7 +15,7 @@ handling common tasks like transaction management and error handling.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -175,7 +175,9 @@ def create_workflow(
         raise SQLAlchemyError(f"Failed to create workflow: {str(e)}")
 
 
-def create_workflow_run(db: Session, workflow_id: UUID, inputs: Dict[str, Any]) -> WorkflowRun:
+def create_workflow_run(
+    db: Session, workflow_id: UUID, inputs: Dict[str, Any]
+) -> WorkflowRun:
     """
     Create a new workflow run.
 
@@ -198,11 +200,17 @@ def create_workflow_run(db: Session, workflow_id: UUID, inputs: Dict[str, Any]) 
         ValueError: If input validation fails
     """
     try:
-        workflow = db.query(WorkflowDefinition).filter(WorkflowDefinition.id == workflow_id).first()
+        workflow = (
+            db.query(WorkflowDefinition)
+            .filter(WorkflowDefinition.id == workflow_id)
+            .first()
+        )
         if not workflow:
             raise ValueError(f"Workflow with ID {workflow_id} not found")
 
-        run = WorkflowRun(workflow_id=workflow_id, status=WorkflowStatus.PENDING, inputs=inputs)
+        run = WorkflowRun(
+            workflow_id=workflow_id, status=WorkflowStatus.PENDING, inputs=inputs
+        )
         db.add(run)
 
         # Create step run records
@@ -255,7 +263,9 @@ def update_workflow_step_run(
         ValueError: If input validation fails
     """
     try:
-        step_run = db.query(WorkflowStepRun).filter(WorkflowStepRun.id == step_run_id).first()
+        step_run = (
+            db.query(WorkflowStepRun).filter(WorkflowStepRun.id == step_run_id).first()
+        )
         if not step_run:
             raise ValueError(f"Step run with ID {step_run_id} not found")
 

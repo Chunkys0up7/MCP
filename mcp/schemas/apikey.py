@@ -16,7 +16,8 @@ class APIKeyBase(BaseModel):
 
 class APIKeyCreate(APIKeyBase):
     user_id: Optional[uuid.UUID] = Field(
-        default=None, description="User to associate with this key (admin only, else self)."
+        default=None,
+        description="User to associate with this key (admin only, else self).",
     )
 
 

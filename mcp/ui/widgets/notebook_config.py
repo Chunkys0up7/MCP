@@ -23,12 +23,16 @@ def build_notebook_config() -> JupyterNotebookConfig:
 
     # File source selection
     file_source = st.radio(
-        "Notebook Source", ["Use Existing File", "Create New Notebook"], key="notebook_source"
+        "Notebook Source",
+        ["Use Existing File", "Create New Notebook"],
+        key="notebook_source",
     )
 
     if file_source == "Use Existing File":
         notebook_path = st.text_input(
-            "Notebook Path", help="Path to the Jupyter notebook file", key="notebook_path"
+            "Notebook Path",
+            help="Path to the Jupyter notebook file",
+            key="notebook_path",
         )
     else:
         # Create new notebook
@@ -44,7 +48,10 @@ def build_notebook_config() -> JupyterNotebookConfig:
         # Initialize cells in session state if not present
         if "notebook_cells" not in st.session_state:
             st.session_state.notebook_cells = [
-                {"type": "markdown", "content": "# New Notebook\n\nAdd your cells below."},
+                {
+                    "type": "markdown",
+                    "content": "# New Notebook\n\nAdd your cells below.",
+                },
                 {"type": "code", "content": "# Your first code cell"},
             ]
 
@@ -55,7 +62,9 @@ def build_notebook_config() -> JupyterNotebookConfig:
                 st.session_state.notebook_cells.append({"type": "code", "content": ""})
         with col2:
             if st.button("Add Markdown Cell"):
-                st.session_state.notebook_cells.append({"type": "markdown", "content": ""})
+                st.session_state.notebook_cells.append(
+                    {"type": "markdown", "content": ""}
+                )
 
         # Display and edit cells
         for i, cell in enumerate(st.session_state.notebook_cells):
@@ -71,11 +80,17 @@ def build_notebook_config() -> JupyterNotebookConfig:
 
             # Cell content editor
             cell_content = st.text_area(
-                "Cell Content", value=cell["content"], height=150, key=f"cell_content_{i}"
+                "Cell Content",
+                value=cell["content"],
+                height=150,
+                key=f"cell_content_{i}",
             )
 
             # Update cell in session state
-            st.session_state.notebook_cells[i] = {"type": cell_type, "content": cell_content}
+            st.session_state.notebook_cells[i] = {
+                "type": cell_type,
+                "content": cell_content,
+            }
 
             # Delete cell button
             if st.button("Delete Cell", key=f"delete_cell_{i}"):
@@ -111,7 +126,9 @@ def build_notebook_config() -> JupyterNotebookConfig:
                         "nbformat_minor": 4,
                     }
 
-                    notebook_path = os.path.join(config.notebooks_dir, f"{notebook_name}.ipynb")
+                    notebook_path = os.path.join(
+                        config.notebooks_dir, f"{notebook_name}.ipynb"
+                    )
                     os.makedirs(os.path.dirname(notebook_path), exist_ok=True)
                     with open(notebook_path, "w") as f:
                         json.dump(notebook_content, f, indent=2)
@@ -129,7 +146,9 @@ def build_notebook_config() -> JupyterNotebookConfig:
             help="Comma-separated list of cell numbers (e.g., 1,2,3)",
             key="cells_to_execute",
         )
-        cells_to_execute = [int(c.strip()) for c in cells_to_execute.split(",") if c.strip()]
+        cells_to_execute = [
+            int(c.strip()) for c in cells_to_execute.split(",") if c.strip()
+        ]
     else:
         cells_to_execute = None
 

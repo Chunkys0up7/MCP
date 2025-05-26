@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -18,8 +18,7 @@ from mcp.core.auth import UserRole, require_any_role
 from mcp.core.types import MCPType  # Union of all config types
 from mcp.db.base_models import log_audit_action
 from mcp.db.session import get_db_session
-from mcp.schemas.mcp import (MCPCreate, MCPDetail, MCPListItem, MCPRead,
-                             MCPUpdate)
+from mcp.schemas.mcp import (MCPCreate, MCPDetail, MCPListItem, MCPUpdate)
 
 from ..core.registry import mcp_server_registry
 from .dependencies import get_current_subject
@@ -44,7 +43,9 @@ app = FastAPI(
 async def rate_limit_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
     current_time = time.time()
-    rate_limit_store[client_ip] = [t for t in rate_limit_store[client_ip] if current_time - t < 60]
+    rate_limit_store[client_ip] = [
+        t for t in rate_limit_store[client_ip] if current_time - t < 60
+    ]
     if len(rate_limit_store[client_ip]) >= RATE_LIMIT:
         return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded."})
     rate_limit_store[client_ip].append(current_time)
@@ -122,7 +123,9 @@ async def create_mcp_definition(
 ):
     """Creates a new MCP definition."""
     try:
-        db_mcp = mcp_registry_service.save_mcp_definition_to_db(db=db, mcp_data=mcp_data)
+        db_mcp = mcp_registry_service.save_mcp_definition_to_db(
+            db=db, mcp_data=mcp_data
+        )
         log_audit_action(
             db,
             user_id=current_user_sub,
@@ -206,7 +209,9 @@ async def delete_mcp_definition(
 ):
     """Deletes an MCP definition."""
     try:
-        success = mcp_registry_service.delete_mcp_definition_from_db(db=db, mcp_id_str=mcp_id)
+        success = mcp_registry_service.delete_mcp_definition_from_db(
+            db=db, mcp_id_str=mcp_id
+        )
         if not success:
             raise HTTPException(status_code=404, detail="MCP definition not found")
         log_audit_action(
@@ -331,7 +336,9 @@ logger.setLevel(os.getenv("MCP_LOG_LEVEL", "INFO").upper())
 # Ensure handlers are not duplicated on reload if uvicorn handles logging setup
 if not logger.hasHandlers():
     stream_handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     stream_handler.setFormatter(formatter)
     logger.addHandler(stream_handler)
 

@@ -1,7 +1,5 @@
-import uuid
 
-from sqlalchemy import Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import BaseModel, TimestampMixin, UUIDMixin
@@ -18,4 +16,6 @@ class User(BaseModel, UUIDMixin, TimestampMixin):
     )  # Comma-separated roles
 
     def __repr__(self):
-        return f"<User(username={self.username}, email={self.email}, roles={self.roles})>"
+        return (
+            f"<User(username={self.username}, email={self.email}, roles={self.roles})>"
+        )

@@ -1,9 +1,7 @@
 import secrets
-from datetime import datetime, timedelta
 from typing import List
-from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from mcp.api.dependencies import get_current_user, get_db, require_admin
@@ -41,7 +39,9 @@ def create_apikey(
 
 
 @router.get("/", response_model=List[APIKeyRead])
-def list_apikeys(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def list_apikeys(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     # Admin sees all, user sees own
     if "admin" in (current_user.roles or ""):
         apikeys = db.query(APIKey).all()

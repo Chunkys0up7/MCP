@@ -25,7 +25,9 @@ class WorkflowStepInput(BaseModel):
     when it's used as a step in a workflow.
     """
 
-    source_type: InputSourceType = Field(..., description="The type of source for this input.")
+    source_type: InputSourceType = Field(
+        ..., description="The type of source for this input."
+    )
 
     value: Optional[Any] = Field(
         default=None,
@@ -53,7 +55,9 @@ class WorkflowStepInput(BaseModel):
         """
         if self.source_type == InputSourceType.STATIC_VALUE:
             if self.value is None:
-                raise ValueError("For STATIC_VALUE source_type, 'value' must be provided.")
+                raise ValueError(
+                    "For STATIC_VALUE source_type, 'value' must be provided."
+                )
             # Optionally, ensure other fields are None if strict
             # if self.source_step_id is not None or self.source_output_name is not None or self.workflow_input_key is not None:
             #     raise ValueError("For STATIC_VALUE, only 'value' should be set.")
@@ -127,13 +131,16 @@ class WorkflowStep(BaseModel):
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique identifier for this workflow step.",
     )
-    mcp_id: str = Field(..., description="Identifier of the MCP to be executed in this step.")
+    mcp_id: str = Field(
+        ..., description="Identifier of the MCP to be executed in this step."
+    )
     mcp_version_id: Optional[str] = Field(
         default=None,
         description="Optional identifier for a specific version of the MCP. If None, the latest version might be used.",
     )
     name: str = Field(
-        ..., description="A user-defined, descriptive name for this step within the workflow."
+        ...,
+        description="A user-defined, descriptive name for this step within the workflow.",
     )
     inputs: Dict[str, WorkflowStepInput] = Field(
         default_factory=dict,
@@ -181,7 +188,8 @@ class WorkflowBase(BaseModel):
 
     name: str = Field(..., description="The user-defined name of the workflow.")
     description: Optional[str] = Field(
-        default=None, description="An optional detailed description of what the workflow does."
+        default=None,
+        description="An optional detailed description of what the workflow does.",
     )
     execution_mode: str = Field(
         default="sequential",
@@ -222,7 +230,8 @@ class Workflow(WorkflowBase):
         ..., description="The list of steps that define the workflow's operations."
     )
     created_at: datetime = Field(
-        default_factory=datetime.utcnow, description="Timestamp of when the workflow was created."
+        default_factory=datetime.utcnow,
+        description="Timestamp of when the workflow was created.",
     )
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
@@ -246,7 +255,9 @@ class WorkflowExecutionResult(BaseModel):
     Model representing the outcome of a workflow execution.
     """
 
-    workflow_id: str = Field(..., description="The ID of the workflow that was executed.")
+    workflow_id: str = Field(
+        ..., description="The ID of the workflow that was executed."
+    )
     execution_id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique ID for this specific execution instance of the workflow.",

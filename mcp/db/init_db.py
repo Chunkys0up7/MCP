@@ -15,12 +15,11 @@ tables, indexes, and initial data for the system to function correctly.
 """
 
 import logging
-from typing import Any, Dict, List
 
 from sqlalchemy.exc import SQLAlchemyError
 
 from mcp.db.base_models import Base
-from mcp.db.models import MCP, MCPVersion, WorkflowDefinition
+from mcp.db.models import MCP, WorkflowDefinition
 from mcp.db.session import get_db
 
 # Configure logging
@@ -115,7 +114,10 @@ def create_default_mcps(db) -> None:
     try:
         # Create system MCPs
         system_mcp = MCP(
-            name="System", type="system", description="System-level MCP", tags=["system", "core"]
+            name="System",
+            type="system",
+            description="System-level MCP",
+            tags=["system", "core"],
         )
         db.add(system_mcp)
 

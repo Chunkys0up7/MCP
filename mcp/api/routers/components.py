@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
@@ -30,7 +30,9 @@ def search_components(
     author: Optional[str] = None,
     cost: Optional[float] = None,
     compliance: Optional[str] = None,
-    sortBy: Optional[str] = Query(None, description="Sort by: rating, usage, newest, name"),
+    sortBy: Optional[str] = Query(
+        None, description="Sort by: rating, usage, newest, name"
+    ),
     sortOrder: Optional[str] = Query("desc", description="asc or desc"),
     page: int = 1,
     pageSize: int = 10,
@@ -55,7 +57,9 @@ def search_components(
     if cost is not None or compliance:
         filtered_ids = []
         for mcp in query.all():
-            latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+            latest_version = mcp.current_version or (
+                mcp.versions[-1] if mcp.versions else None
+            )
             if not latest_version:
                 continue
             definition = latest_version.definition or {}
@@ -83,7 +87,9 @@ def search_components(
             comp_id, comp_version = compatibleWith, None
         filtered_ids = []
         for mcp in query.all():
-            latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+            latest_version = mcp.current_version or (
+                mcp.versions[-1] if mcp.versions else None
+            )
             if not latest_version:
                 continue
             deps = (latest_version.definition or {}).get("dependencies", [])
@@ -97,7 +103,9 @@ def search_components(
     if requires:
         filtered_ids = []
         for mcp in query.all():
-            latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+            latest_version = mcp.current_version or (
+                mcp.versions[-1] if mcp.versions else None
+            )
             if not latest_version:
                 continue
             deps = (latest_version.definition or {}).get("dependencies", [])
@@ -116,7 +124,9 @@ def search_components(
         elif sortBy == "rating":
             # Sort by average rating (requires join)
             subq = (
-                db.query(Review.component_id, func.avg(Review.rating).label("avg_rating"))
+                db.query(
+                    Review.component_id, func.avg(Review.rating).label("avg_rating")
+                )
                 .group_by(Review.component_id)
                 .subquery()
             )
@@ -140,7 +150,9 @@ def search_components(
 
     # Format response: include version and dependency info
     def mcp_to_dict(mcp):
-        latest_version = mcp.current_version or (mcp.versions[-1] if mcp.versions else None)
+        latest_version = mcp.current_version or (
+            mcp.versions[-1] if mcp.versions else None
+        )
         dependencies = []
         version = None
         cost_val = None

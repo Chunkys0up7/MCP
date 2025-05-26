@@ -106,7 +106,12 @@ class Cache:
         Returns:
             Cache statistics
         """
-        stats = {"total_files": 0, "total_size": 0, "oldest_entry": None, "newest_entry": None}
+        stats = {
+            "total_files": 0,
+            "total_size": 0,
+            "oldest_entry": None,
+            "newest_entry": None,
+        }
 
         for cache_file in self.cache_dir.glob("*.json"):
             stats["total_files"] += 1
@@ -117,10 +122,16 @@ class Cache:
                     data = json.load(f)
                     timestamp = datetime.fromisoformat(data["timestamp"])
 
-                    if stats["oldest_entry"] is None or timestamp < stats["oldest_entry"]:
+                    if (
+                        stats["oldest_entry"] is None
+                        or timestamp < stats["oldest_entry"]
+                    ):
                         stats["oldest_entry"] = timestamp
 
-                    if stats["newest_entry"] is None or timestamp > stats["newest_entry"]:
+                    if (
+                        stats["newest_entry"] is None
+                        or timestamp > stats["newest_entry"]
+                    ):
                         stats["newest_entry"] = timestamp
 
             except (json.JSONDecodeError, KeyError):

@@ -12,32 +12,40 @@ Environment Variables or Configuration:
 - MCP_API_KEY: A valid API key for authentication.
 """
 
+import os
+import time
+import uuid
+
 import pytest
 import requests
-import os
-import uuid
-import time
 
-from tests.workflow_mcp_scripts import ECHO_MCP_SCRIPT, CONCAT_MCP_SCRIPT
+from tests.workflow_mcp_scripts import CONCAT_MCP_SCRIPT, ECHO_MCP_SCRIPT
 
 # --- Test Configuration ---
 # Load from environment variables or set defaults
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000") # Default for local dev
-API_KEY = os.getenv("MCP_API_KEY", "test_api_key_placeholder") # NEW: Using MCP_API_KEY from server
+API_BASE_URL = os.getenv(
+    "API_BASE_URL", "http://127.0.0.1:8000"
+)  # Default for local dev
+API_KEY = os.getenv(
+    "MCP_API_KEY", "test_api_key_placeholder"
+)  # NEW: Using MCP_API_KEY from server
 
 if API_KEY == "test_api_key_placeholder":
-    print("WARNING: Using placeholder API key for tests. Please set MCP_API_KEY environment variable.")
+    print(
+        "WARNING: Using placeholder API key for tests. Please set MCP_API_KEY environment variable."
+    )
 
 HEADERS = {
-    "X-API-Key": API_KEY, # Use the new variable
-    "Content-Type": "application/json"
+    "X-API-Key": API_KEY,  # Use the new variable
+    "Content-Type": "application/json",
 }
+
 
 # Helper function to create or get an MCP
 def create_or_get_mcp(name: str, script_content: str, description: str) -> str:
     """
     Creates a PythonScriptMCP if it doesn't exist by name, or returns the ID of the existing one.
-    
+
     Args:
         name (str): The desired name of the MCP.
         script_content (str): The Python script for the MCP.
@@ -45,19 +53,19 @@ def create_or_get_mcp(name: str, script_content: str, description: str) -> str:
 
     Returns:
         str: The ID of the MCP.
-    
+
     Raises:
         Exception: If MCP creation or retrieval fails.
     """
     # Check if MCP exists
     try:
         response = requests.get(f"{API_BASE_URL}/context", headers=HEADERS)
-        response.raise_for_status() # Raise an exception for HTTP errors
+        response.raise_for_status()  # Raise an exception for HTTP errors
         mcps = response.json()
         for mcp in mcps:
             if mcp.get("name") == name and mcp.get("type") == "PYTHON_SCRIPT":
                 print(f"Found existing MCP '{name}' with ID: {mcp['id']}")
-                return mcp['id']
+                return mcp["id"]
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Failed to list existing MCPs: {e}")
 
@@ -68,22 +76,28 @@ def create_or_get_mcp(name: str, script_content: str, description: str) -> str:
         "description": description,
         "config": {
             "script_content": script_content,
-            "script_path": f"./mcp_scripts/generated/{name.replace(' ', '_').lower()}.py" # Dummy path
-        }
+            "script_path": f"./mcp_scripts/generated/{name.replace(' ', '_').lower()}.py",  # Dummy path
+        },
     }
     print(f"Creating MCP '{name}' with payload: {mcp_payload}")
     try:
-        response = requests.post(f"{API_BASE_URL}/context", json=mcp_payload, headers=HEADERS)
+        response = requests.post(
+            f"{API_BASE_URL}/context", json=mcp_payload, headers=HEADERS
+        )
         response.raise_for_status()
         created_mcp = response.json()
         mcp_id = created_mcp.get("id")
         if not mcp_id:
-            pytest.fail(f"MCP '{name}' created but ID is missing in response: {created_mcp}")
+            pytest.fail(
+                f"MCP '{name}' created but ID is missing in response: {created_mcp}"
+            )
         print(f"MCP '{name}' created successfully with ID: {mcp_id}")
         return mcp_id
     except requests.exceptions.RequestException as e:
-        pytest.fail(f"Failed to create MCP '{name}': {e.response.text if e.response else e}")
-    return "" # Should not be reached if pytest.fail works
+        pytest.fail(
+            f"Failed to create MCP '{name}': {e.response.text if e.response else e}"
+        )
+    return ""  # Should not be reached if pytest.fail works
 
 
 @pytest.fixture(scope="module")
@@ -94,17 +108,18 @@ def setup_test_mcps():
         echo_mcp_id = create_or_get_mcp(
             name="Test Echo String MCP",
             script_content=ECHO_MCP_SCRIPT,
-            description="Test MCP that echoes its input string."
+            description="Test MCP that echoes its input string.",
         )
         concat_mcp_id = create_or_get_mcp(
             name="Test Concatenate Strings MCP",
             script_content=CONCAT_MCP_SCRIPT,
-            description="Test MCP that concatenates two input strings."
+            description="Test MCP that concatenates two input strings.",
         )
         return {"echo_mcp_id": echo_mcp_id, "concat_mcp_id": concat_mcp_id}
     except Exception as e:
         pytest.fail(f"Failed during MCP setup: {e}")
-    return {} # Should not reach here
+    return {}  # Should not reach here
+
 
 def test_workflow_creation_and_execution(setup_test_mcps):
     """
@@ -124,11 +139,11 @@ def test_workflow_creation_and_execution(setup_test_mcps):
                 "name": "Step 1: Get Initial String (from Workflow Input)",
                 "mcp_id": echo_mcp_id,
                 "inputs": {
-                    "input_string": { # This key must match the expected input name in ECHO_MCP_SCRIPT
+                    "input_string": {  # This key must match the expected input name in ECHO_MCP_SCRIPT
                         "source_type": "workflow_input",
-                        "workflow_input_key": "initial_message"
+                        "workflow_input_key": "initial_message",
                     }
-                }
+                },
             },
             {
                 "name": "Step 2: Define Suffix (Static Value)",
@@ -136,15 +151,15 @@ def test_workflow_creation_and_execution(setup_test_mcps):
                 "inputs": {
                     "input_string": {
                         "source_type": "static_value",
-                        "value": "-suffix-from-static"
+                        "value": "-suffix-from-static",
                     }
-                }
+                },
             },
             {
                 "name": "Step 3: Combine Initial and Suffix",
                 "mcp_id": concat_mcp_id,
                 "inputs": {
-                    "string1": { # Key must match CONCAT_MCP_SCRIPT's expected input
+                    "string1": {  # Key must match CONCAT_MCP_SCRIPT's expected input
                         "source_type": "step_output",
                         # This step_id needs to be the *actual* ID of Step 1 once created.
                         # For now, we assume the workflow definition implicitly knows step order for sequential.
@@ -174,27 +189,28 @@ def test_workflow_creation_and_execution(setup_test_mcps):
                         # OR, more simply, ensure the Workflow definition itself contains correct source_step_ids.
                         # The Pydantic model for WorkflowStep *auto-generates* step_id. So, the client doesn't send it.
                         # This is good. The server will have them. The client can build the `inputs` part dynamically.
-                        
                         # Let's try defining the step_ids manually in the payload to match the generated ones. This is not ideal for real use.
                         # A better way: workflow creation returns the full workflow object with generated step_ids.
-                        "source_step_id": "placeholder_step1_id", # This will be replaced after workflow creation
-                        "source_output_name": "output_string" # Output name from ECHO_MCP_SCRIPT
+                        "source_step_id": "placeholder_step1_id",  # This will be replaced after workflow creation
+                        "source_output_name": "output_string",  # Output name from ECHO_MCP_SCRIPT
                     },
                     "string2": {
                         "source_type": "step_output",
-                        "source_step_id": "placeholder_step2_id", # This will be replaced
-                        "source_output_name": "output_string"
-                    }
-                }
-            }
-        ]
+                        "source_step_id": "placeholder_step2_id",  # This will be replaced
+                        "source_output_name": "output_string",
+                    },
+                },
+            },
+        ],
     }
 
     # 1. Create Workflow
     print(f"Creating workflow: {workflow_name}")
     workflow_id = None
     try:
-        response = requests.post(f"{API_BASE_URL}/workflows/", json=workflow_payload, headers=HEADERS)
+        response = requests.post(
+            f"{API_BASE_URL}/workflows/", json=workflow_payload, headers=HEADERS
+        )
         response.raise_for_status()
         created_workflow = response.json()
         workflow_id = created_workflow.get("workflow_id")
@@ -204,8 +220,8 @@ def test_workflow_creation_and_execution(setup_test_mcps):
         # Extract generated step_ids to update the payload for Step 3 for correctness
         # This is crucial because WorkflowStepInput.source_step_id must reference an actual step_id
         # generated by the server during workflow creation (as per WorkflowStep Pydantic model).
-        step1_id = created_workflow["steps"][0]["step_id"]
-        step2_id = created_workflow["steps"][1]["step_id"]
+        created_workflow["steps"][0]["step_id"]
+        created_workflow["steps"][1]["step_id"]
 
         # Update Step 3 in the *original* workflow_payload (or the created_workflow object to re-PUT)
         # For simplicity in this test, we'll assume the execution takes the workflow_id and initial_inputs,
@@ -228,7 +244,7 @@ def test_workflow_creation_and_execution(setup_test_mcps):
         # create steps that don't have inter-dependencies first, then add/update.
         # For this test, let's make temporary IDs and hope the server-side uses them if provided, or updates them.
         # This is a common challenge in defining graph-like structures via JSON.
-        
+
         # Re-creating the payload with known temporary IDs for steps, then confirming server uses them or replaces.
         # Pydantic `default_factory` for step_id means if we provide one, it should be used.
         temp_step1_id = f"temp_step_{uuid.uuid4()}"
@@ -243,39 +259,63 @@ def test_workflow_creation_and_execution(setup_test_mcps):
                     "step_id": temp_step1_id,
                     "name": "Step 1: Get Initial String",
                     "mcp_id": echo_mcp_id,
-                    "inputs": {"input_string": {"source_type": "workflow_input", "workflow_input_key": "initial_message"}}
+                    "inputs": {
+                        "input_string": {
+                            "source_type": "workflow_input",
+                            "workflow_input_key": "initial_message",
+                        }
+                    },
                 },
                 {
                     "step_id": temp_step2_id,
                     "name": "Step 2: Define Suffix",
                     "mcp_id": echo_mcp_id,
-                    "inputs": {"input_string": {"source_type": "static_value", "value": "-suffix-from-static"}}
+                    "inputs": {
+                        "input_string": {
+                            "source_type": "static_value",
+                            "value": "-suffix-from-static",
+                        }
+                    },
                 },
                 {
                     "step_id": temp_step3_id,
                     "name": "Step 3: Combine",
                     "mcp_id": concat_mcp_id,
                     "inputs": {
-                        "string1": {"source_type": "step_output", "source_step_id": temp_step1_id, "source_output_name": "output_string"},
-                        "string2": {"source_type": "step_output", "source_step_id": temp_step2_id, "source_output_name": "output_string"}
-                    }
-                }
-            ]
+                        "string1": {
+                            "source_type": "step_output",
+                            "source_step_id": temp_step1_id,
+                            "source_output_name": "output_string",
+                        },
+                        "string2": {
+                            "source_type": "step_output",
+                            "source_step_id": temp_step2_id,
+                            "source_output_name": "output_string",
+                        },
+                    },
+                },
+            ],
         }
-        response = requests.post(f"{API_BASE_URL}/workflows/", json=revised_workflow_payload, headers=HEADERS)
+        response = requests.post(
+            f"{API_BASE_URL}/workflows/", json=revised_workflow_payload, headers=HEADERS
+        )
         response.raise_for_status()
         created_workflow = response.json()
         workflow_id = created_workflow.get("workflow_id")
         assert workflow_id, "Revised Workflow ID missing"
         print(f"Revised workflow created successfully with ID: {workflow_id}")
-        
+
         # Verify if the server used our step_ids or generated new ones (important for `source_step_id` in engine)
         # The `WorkflowEngine` will use the `Workflow` object fetched from `workflow_registry`,
         # which is populated by the `created_workflow` response. So, these step_ids should be consistent.
         server_step1_id = created_workflow["steps"][0]["step_id"]
         server_step2_id = created_workflow["steps"][1]["step_id"]
-        assert server_step1_id == temp_step1_id, f"Server step 1 ID {server_step1_id} != client {temp_step1_id}"
-        assert server_step2_id == temp_step2_id, f"Server step 2 ID {server_step2_id} != client {temp_step2_id}"
+        assert (
+            server_step1_id == temp_step1_id
+        ), f"Server step 1 ID {server_step1_id} != client {temp_step1_id}"
+        assert (
+            server_step2_id == temp_step2_id
+        ), f"Server step 2 ID {server_step2_id} != client {temp_step2_id}"
 
     except requests.exceptions.RequestException as e:
         pytest.fail(f"Workflow creation failed: {e.response.text if e.response else e}")
@@ -283,27 +323,32 @@ def test_workflow_creation_and_execution(setup_test_mcps):
         pytest.fail(f"Assertion failed during workflow creation: {e}")
 
     # 2. Execute Workflow
-    if not workflow_id: # Should have failed earlier if no ID
+    if not workflow_id:  # Should have failed earlier if no ID
         pytest.fail("Cannot execute workflow, ID not obtained.")
 
-    execution_payload = {
-        "initial_inputs": {"initial_message": "HelloFromTest"}
-    }
+    execution_payload = {"initial_inputs": {"initial_message": "HelloFromTest"}}
     print(f"Executing workflow ID: {workflow_id} with payload: {execution_payload}")
     try:
         # Add a small delay if server needs time to fully process/save workflow
-        time.sleep(0.5) 
-        response = requests.post(f"{API_BASE_URL}/workflows/{workflow_id}/execute", json=execution_payload, headers=HEADERS)
+        time.sleep(0.5)
+        response = requests.post(
+            f"{API_BASE_URL}/workflows/{workflow_id}/execute",
+            json=execution_payload,
+            headers=HEADERS,
+        )
         response.raise_for_status()
         execution_result = response.json()
         print(f"Execution result: {execution_result}")
 
-        assert execution_result.get("status") == "SUCCESS", \
-            f"Workflow execution failed. Status: {execution_result.get('status')}. Error: {execution_result.get('error_message')}"
-        
+        assert (
+            execution_result.get("status") == "SUCCESS"
+        ), f"Workflow execution failed. Status: {execution_result.get('status')}. Error: {execution_result.get('error_message')}"
+
         final_outputs = execution_result.get("final_outputs")
-        assert final_outputs is not None, "Final outputs missing from successful execution result."
-        
+        assert (
+            final_outputs is not None
+        ), "Final outputs missing from successful execution result."
+
         # Expected output from Step 3 (Concat MCP)
         # Step 1 output: {"output_string": "HelloFromTest"}
         # Step 2 output: {"output_string": "-suffix-from-static"}
@@ -311,13 +356,18 @@ def test_workflow_creation_and_execution(setup_test_mcps):
         # Step 3 output: {"concatenated_string": "HelloFromTest-suffix-from-static"}
         # This is also the final_output of the workflow (as per current engine logic)
         expected_final_concat = "HelloFromTest-suffix-from-static"
-        assert final_outputs.get("concatenated_string") == expected_final_concat, \
-            f"Final output mismatch. Expected: '{expected_final_concat}', Got: '{final_outputs.get("concatenated_string")}'"
+        assert (
+            final_outputs.get("concatenated_string") == expected_final_concat
+        ), f"Final output mismatch. Expected: '{expected_final_concat}', Got: '{final_outputs.get("concatenated_string")}'"
 
-        print(f"Workflow '{workflow_name}' (actual: {created_workflow.get('name')}) executed successfully with correct output.")
+        print(
+            f"Workflow '{workflow_name}' (actual: {created_workflow.get('name')}) executed successfully with correct output."
+        )
 
     except requests.exceptions.RequestException as e:
-        pytest.fail(f"Workflow execution request failed: {e.response.text if e.response else e}")
+        pytest.fail(
+            f"Workflow execution request failed: {e.response.text if e.response else e}"
+        )
     except AssertionError as e:
         pytest.fail(f"Assertion failed during workflow execution: {e}")
     finally:
@@ -325,13 +375,18 @@ def test_workflow_creation_and_execution(setup_test_mcps):
         if workflow_id:
             print(f"Cleaning up: Deleting workflow ID {workflow_id}")
             try:
-                del_response = requests.delete(f"{API_BASE_URL}/workflows/{workflow_id}", headers=HEADERS)
+                del_response = requests.delete(
+                    f"{API_BASE_URL}/workflows/{workflow_id}", headers=HEADERS
+                )
                 del_response.raise_for_status()
                 print(f"Workflow {workflow_id} deleted successfully.")
             except requests.exceptions.RequestException as e:
-                print(f"WARN: Failed to delete workflow {workflow_id}: {e.response.text if e.response else e}")
+                print(
+                    f"WARN: Failed to delete workflow {workflow_id}: {e.response.text if e.response else e}"
+                )
 
-# To run this test: 
+
+# To run this test:
 # 1. Ensure your FastAPI server is running.
 # 2. Set API_BASE_URL and MCP_API_KEY environment variables if not using defaults.
-# 3. Run `pytest tests/test_workflow_execution.py` from the project root. 
+# 3. Run `pytest tests/test_workflow_execution.py` from the project root.

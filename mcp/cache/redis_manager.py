@@ -21,7 +21,9 @@ class RedisCacheManager:
         redis_host = host if host is not None else os.getenv("REDIS_HOST", "localhost")
         redis_port = port if port is not None else int(os.getenv("REDIS_PORT", "6379"))
         redis_db = db if db is not None else int(os.getenv("REDIS_DB", "0"))
-        redis_password = password if password is not None else os.getenv("REDIS_PASSWORD")
+        redis_password = (
+            password if password is not None else os.getenv("REDIS_PASSWORD")
+        )
 
         self.redis = redis.Redis(
             host=redis_host,
@@ -77,7 +79,8 @@ class RedisCacheManager:
     def set_hash(self, name: str, mapping: Dict[str, Any]) -> None:
         """Set hash fields to multiple values."""
         processed_mapping = {
-            k: json.dumps(v) if isinstance(v, (dict, list)) else v for k, v in mapping.items()
+            k: json.dumps(v) if isinstance(v, (dict, list)) else v
+            for k, v in mapping.items()
         }
         if hasattr(self.redis, "hmset"):
             self.redis.hmset(name, processed_mapping)
@@ -113,11 +116,15 @@ class RedisCacheManager:
             print(f"Error deleting hash cache: {e}")
             return False
 
-    def set_list(self, name: str, values: List[Any], expire: Optional[int] = None) -> bool:
+    def set_list(
+        self, name: str, values: List[Any], expire: Optional[int] = None
+    ) -> bool:
         """Set a list in the cache."""
         try:
             # Convert values to JSON strings if they are dicts or lists
-            processed_values = [json.dumps(v) if isinstance(v, (dict, list)) else v for v in values]
+            processed_values = [
+                json.dumps(v) if isinstance(v, (dict, list)) else v for v in values
+            ]
             self.redis.delete(name)  # Clear existing list
             if processed_values:
                 self.redis.rpush(name, *processed_values)

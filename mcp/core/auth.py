@@ -19,7 +19,7 @@ The module supports:
 from enum import Enum
 from typing import List
 
-from fastapi import HTTPException, Security
+from fastapi import Security
 from fastapi.security import OAuth2PasswordBearer
 
 

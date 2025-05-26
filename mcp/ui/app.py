@@ -182,7 +182,9 @@ def init_session_state():
         st.session_state.backoff_factor = 1.5
 
     if "error_handling" not in st.session_state:
-        st.session_state.error_handling = "Stop on Error"  # Changed from "stop" to match UI options
+        st.session_state.error_handling = (
+            "Stop on Error"  # Changed from "stop" to match UI options
+        )
 
 
 # Initialize session state at the start of the app
@@ -199,7 +201,8 @@ This dashboard allows you to manage and monitor your MCP servers.
 # Sidebar for navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
-    "Go to", ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"]
+    "Go to",
+    ["Dashboard", "Create MCP", "Manage", "Test", "Chain Builder", "Chain Executor"],
 )
 
 
@@ -218,7 +221,9 @@ def render_dashboard() -> None:
     logger.debug("Attempting to fetch servers in render_dashboard.")
     try:
         servers = client.get_servers()
-        logger.debug(f"Successfully fetched servers. Type: {type(servers)}, Content: {servers}")
+        logger.debug(
+            f"Successfully fetched servers. Type: {type(servers)}, Content: {servers}"
+        )
 
         if not servers:
             st.info("No MCPs found. Create one to get started!")
@@ -226,7 +231,8 @@ def render_dashboard() -> None:
             return
 
         st.markdown(
-            f"<h3 style='color: #e5e7eb;'>Active MCPs ({len(servers)})</h3>", unsafe_allow_html=True
+            f"<h3 style='color: #e5e7eb;'>Active MCPs ({len(servers)})</h3>",
+            unsafe_allow_html=True,
         )
         st.write("")  # Spacer
 
@@ -248,8 +254,12 @@ def render_dashboard() -> None:
                 continue
 
             server_name = server_item.get("name", f"Unnamed Server {i}")
-            server_type = server_item.get("type", "Unknown Type").replace("_", " ").title()
-            server_description = server_item.get("description", "No description available.")
+            server_type = (
+                server_item.get("type", "Unknown Type").replace("_", " ").title()
+            )
+            server_description = server_item.get(
+                "description", "No description available."
+            )
             server_id = server_item.get("id", "N/A")
 
             with cols[i % num_columns]:
@@ -411,7 +421,9 @@ def render_manage_mcps() -> None:
                 except MCPAPIError as e:
                     st.error(f"Failed to delete server {server['name']}: {str(e)}")
                 except Exception as e:
-                    logger.error(f"Unexpected error deleting server {server['name']}: {str(e)}")
+                    logger.error(
+                        f"Unexpected error deleting server {server['name']}: {str(e)}"
+                    )
                     st.error(
                         f"An unexpected error occurred while deleting server {server['name']}."
                     )
@@ -437,7 +449,9 @@ def render_test_mcps() -> None:
             if input_vars:
                 st.subheader("Execute MCP")
                 for var in input_vars:
-                    inputs[var] = st.text_input(f"Input: {var}", key=f"input_{server['id']}_{var}")
+                    inputs[var] = st.text_input(
+                        f"Input: {var}", key=f"input_{server['id']}_{var}"
+                    )
             else:
                 st.info("No input variables required for this MCP.")
 
@@ -487,17 +501,25 @@ def render_chain_executor() -> None:
 
 def build_llm_config() -> Dict[str, Any]:
     """Build configuration for LLM Prompt MCP."""
-    template = st.text_area("Prompt Template", help="Use {variable_name} for input variables")
+    template = st.text_area(
+        "Prompt Template", help="Use {variable_name} for input variables"
+    )
 
     input_vars = st.text_input(
         "Input Variables (comma-separated)",
         help="List of required input variables, e.g., text,tone,style",
     )
-    input_variables = [var.strip() for var in input_vars.split(",")] if input_vars else []
+    input_variables = (
+        [var.strip() for var in input_vars.split(",")] if input_vars else []
+    )
 
     model_name = st.selectbox(
         "Model",
-        ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240229"],
+        [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240229",
+        ],
         index=1,
     )
 
@@ -535,7 +557,8 @@ def build_llm_config() -> Dict[str, Any]:
 def build_notebook_config() -> Dict[str, Any]:
     """Build configuration for Jupyter Notebook MCP."""
     notebook_path = st.text_input(
-        "Notebook File Path", help="Path to the .ipynb file, e.g., notebooks/my_notebook.ipynb"
+        "Notebook File Path",
+        help="Path to the .ipynb file, e.g., notebooks/my_notebook.ipynb",
     )
     execute_all = st.checkbox("Execute All Cells", value=True)
 
@@ -564,7 +587,9 @@ def build_notebook_config() -> Dict[str, Any]:
         key="notebook_input_vars",
         help="e.g., data_path,alpha_value. These will be passed as environment variables or via papermill parameters.",
     )
-    input_variables = [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+    input_variables = (
+        [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+    )
 
     return {
         "notebook_path": notebook_path,
@@ -586,12 +611,17 @@ def build_script_config() -> Dict[str, Any]:
         key="script_requirements",
         help="e.g., requests,numpy==1.23.0. Leave empty if none.",
     )
-    requirements = [req.strip() for req in requirements_str.split(",")] if requirements_str else []
+    requirements = (
+        [req.strip() for req in requirements_str.split(",")] if requirements_str else []
+    )
 
     virtual_env = st.checkbox("Use Virtual Environment", value=True, key="script_venv")
 
     timeout = st.number_input(
-        "Timeout (seconds)", min_value=60, value=600, help="Maximum execution time for the script."
+        "Timeout (seconds)",
+        min_value=60,
+        value=600,
+        help="Maximum execution time for the script.",
     )
 
     input_vars_str = st.text_input(
@@ -599,7 +629,9 @@ def build_script_config() -> Dict[str, Any]:
         key="script_input_vars",
         help="e.g., data_path,alpha_value. These will be passed as environment variables or via command line arguments.",
     )
-    input_variables = [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+    input_variables = (
+        [var.strip() for var in input_vars_str.split(",")] if input_vars_str else []
+    )
 
     return {
         "script_path": script_path,
@@ -616,7 +648,11 @@ def build_ai_assistant_config() -> Dict[str, Any]:
 
     model_name = st.selectbox(
         "Assistant Model Name",  # Differentiate from LLM Prompt model name
-        options=["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
+        options=[
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240307",
+        ],
         index=2,  # Default to Haiku
         key="assistant_model_name",
         help="Select the Claude model for the assistant.",

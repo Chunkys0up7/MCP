@@ -9,13 +9,19 @@ def build_llm_config() -> LLMPromptConfig:
 
     # Name
     name = st.text_input(
-        "Configuration Name", help="Enter a name for this LLM configuration", key="llm_config_name"
+        "Configuration Name",
+        help="Enter a name for this LLM configuration",
+        key="llm_config_name",
     )
 
     # Model selection
     model_name = st.selectbox(
         "Model",
-        ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240229"],
+        [
+            "claude-3-opus-20240229",
+            "claude-3-sonnet-20240229",
+            "claude-3-haiku-20240229",
+        ],
         key="model_name",
     )
 
@@ -44,7 +50,9 @@ def build_llm_config() -> LLMPromptConfig:
 
     # Model parameters
     temperature = st.slider("Temperature", 0.0, 1.0, 0.7, key="temperature")
-    max_tokens = st.number_input("Max Tokens", min_value=1, value=1000, key="max_tokens")
+    max_tokens = st.number_input(
+        "Max Tokens", min_value=1, value=1000, key="max_tokens"
+    )
 
     return LLMPromptConfig(
         name=name,

@@ -30,7 +30,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/issue-dev-token", auto_error
 # Remove API_KEY loading from here since it's now in get_api_key
 
 
-async def get_api_key(api_key_header_value: str = Security(api_key_header_scheme)) -> str:
+async def get_api_key(
+    api_key_header_value: str = Security(api_key_header_scheme),
+) -> str:
     """Validate API key from header."""
     API_KEY = os.getenv("MCP_API_KEY")  # Load API key dynamically
     if api_key_header_value != API_KEY:
@@ -131,7 +133,11 @@ async def get_current_user_or_apikey(
     # Try API key
     api_key = request.headers.get("X-API-KEY")
     if api_key:
-        apikey_obj = db.query(APIKey).filter(APIKey.key == api_key, APIKey.revoked == False).first()
+        apikey_obj = (
+            db.query(APIKey)
+            .filter(APIKey.key == api_key, APIKey.revoked == False)
+            .first()
+        )
         if not apikey_obj:
             raise HTTPException(status_code=401, detail="Invalid or revoked API key")
         if apikey_obj.expires_at and apikey_obj.expires_at < datetime.utcnow():

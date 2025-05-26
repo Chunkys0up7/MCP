@@ -39,7 +39,9 @@ class ArchitecturalConstraints(BaseModel):
 
     class Config:
         extra = "forbid"  # Ensure no unknown constraints are passed
-        use_enum_values = False  # MODIFIED: To store MCPType enum members, not their string values
+        use_enum_values = (
+            False  # MODIFIED: To store MCPType enum members, not their string values
+        )
 
 
 # Example Usage (for documentation or testing):

@@ -17,13 +17,16 @@ class AIAssistantMCP(BaseMCP):
         `inputs` is expected to contain a 'message' field.
         """
         if not self.id:
-            return MCPResult(success=False, error="MCP not created or ID not set for execution")
+            return MCPResult(
+                success=False, error="MCP not created or ID not set for execution"
+            )
 
         # The client.execute_server will send the `inputs` dict as JSON body.
         # The backend AIAssistantMCP.execute expects {"message": "user_query"}
         if "message" not in inputs:
             return MCPResult(
-                success=False, error="Input must contain a 'message' field for AI Assistant."
+                success=False,
+                error="Input must contain a 'message' field for AI Assistant.",
             )
 
         try:

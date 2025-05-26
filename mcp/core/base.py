@@ -42,7 +42,6 @@ class BaseMCPServer(ABC):
         Raises:
             Exception: If execution fails for any reason.
         """
-        pass
 
     def _validate_config(self) -> None:
         """Validate the MCP server configuration.

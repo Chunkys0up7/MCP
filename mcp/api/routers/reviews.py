@@ -23,9 +23,12 @@ def create_review(
     current_roles: List[str] = Depends(get_current_roles),
 ):
     if not any(
-        role in current_roles for role in [UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN]
+        role in current_roles
+        for role in [UserRole.USER, UserRole.DEVELOPER, UserRole.ADMIN]
     ):
-        raise HTTPException(status_code=403, detail="Insufficient role to create review.")
+        raise HTTPException(
+            status_code=403, detail="Insufficient role to create review."
+        )
     db_review = Review(
         component_id=review.component_id,
         user_id=review.user_id,
@@ -59,7 +62,9 @@ def get_review(review_id: uuid.UUID, db: Session = Depends(get_db_session)):
 
 
 @router.get("/component/{component_id}", response_model=List[ReviewRead])
-def get_reviews_for_component(component_id: uuid.UUID, db: Session = Depends(get_db_session)):
+def get_reviews_for_component(
+    component_id: uuid.UUID, db: Session = Depends(get_db_session)
+):
     return db.query(Review).filter(Review.component_id == component_id).all()
 
 
@@ -73,8 +78,12 @@ def delete_review(
     review = db.query(Review).filter(Review.id == review_id).first()
     if not review:
         raise HTTPException(status_code=404, detail="Review not found")
-    if UserRole.ADMIN not in current_roles and str(review.user_id) != str(current_user_sub):
-        raise HTTPException(status_code=403, detail="Not permitted to delete this review.")
+    if UserRole.ADMIN not in current_roles and str(review.user_id) != str(
+        current_user_sub
+    ):
+        raise HTTPException(
+            status_code=403, detail="Not permitted to delete this review."
+        )
     db.delete(review)
     db.commit()
     log_audit_action(

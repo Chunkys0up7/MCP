@@ -28,14 +28,18 @@ from .types import (AIAssistantConfig, JupyterNotebookConfig, LLMPromptConfig,
 # Initialize the global registry
 mcp_server_registry: Dict[str, Dict[str, Any]] = {}  # Initialize as empty dict for now
 # print(f"MCP Server Registry initialized with {len(mcp_server_registry)} servers from {MCP_STORAGE_FILE}") # Removed print
-print("MCP Server Registry initialized as empty. DB loading pending.")  # Placeholder print
+print(
+    "MCP Server Registry initialized as empty. DB loading pending."
+)  # Placeholder print
 
 # Initialize embedding model (ensure this model is downloaded/available)
 # Using a smaller, efficient model for local dev. Consider larger models for production.
 try:
     embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 except Exception as e:
-    print(f"Error loading SentenceTransformer model: {e}. Semantic search features might not work.")
+    print(
+        f"Error loading SentenceTransformer model: {e}. Semantic search features might not work."
+    )
     embedding_model = None
 
 
@@ -74,7 +78,9 @@ def _generate_mcp_embedding(
         if mcp_data.description:
             text_parts.append(mcp_data.description)
         if mcp_data.tags:
-            text_parts.extend(mcp_data.tags)  # Assuming tags are already a list of strings
+            text_parts.extend(
+                mcp_data.tags
+            )  # Assuming tags are already a list of strings
 
     # If it's an update and some fields are not provided, use existing MCP's values if available
     if isinstance(mcp_data, MCPUpdate) and existing_mcp:
@@ -172,7 +178,9 @@ def save_mcp_definition_to_db(db: Session, mcp_data: MCPCreate) -> MCP:
     return db_mcp
 
 
-def update_mcp_definition_in_db(db: Session, mcp_id_str: str, mcp_data: MCPUpdate) -> Optional[MCP]:
+def update_mcp_definition_in_db(
+    db: Session, mcp_id_str: str, mcp_data: MCPUpdate
+) -> Optional[MCP]:
     """Updates an existing MCP definition in the database."""
     try:
         mcp_uuid = uuid.UUID(mcp_id_str)
@@ -290,7 +298,9 @@ def get_mcp_instance_from_db(
         # This part needs to be robust based on how versions are managed (e.g., semantic versioning, 'latest' tag, creation timestamp).
         # For now, we will fetch the first one if no version is specified, or the one matching the version string.
         # A better way for "latest" would be to sort by a version index or creation date.
-        query = query.order_by(MCPVersion.id.desc())  # Placeholder for a proper "latest" logic
+        query = query.order_by(
+            MCPVersion.id.desc()
+        )  # Placeholder for a proper "latest" logic
 
     mcp_version = query.first()
 
@@ -302,7 +312,9 @@ def get_mcp_instance_from_db(
     mcp_type_str = mcp_definition.type  # This is stored as string from enum value
 
     try:
-        mcp_type_enum = MCPType(mcp_type_str)  # Convert string back to MCPType enum member
+        mcp_type_enum = MCPType(
+            mcp_type_str
+        )  # Convert string back to MCPType enum member
     except ValueError:
         # Log error: Invalid MCP type string in DB
         return None
@@ -347,7 +359,9 @@ def get_mcp_instance_from_db(
         return None
 
 
-def search_mcp_definitions_by_text(db: Session, query_text: str, limit: int = 10) -> List[MCP]:
+def search_mcp_definitions_by_text(
+    db: Session, query_text: str, limit: int = 10
+) -> List[MCP]:
     """Searches for MCP definitions using semantic similarity of the query_text to MCP embeddings."""
     if not embedding_model:
         # Log or raise error: embedding model not available
@@ -363,6 +377,9 @@ def search_mcp_definitions_by_text(db: Session, query_text: str, limit: int = 10
     # For other distances like L2, smaller is better.
     # results = db.query(MCP).order_by(MCP.embedding.l2_distance(query_embedding)).limit(limit).all()
     results = (
-        db.query(MCP).order_by(MCP.embedding.cosine_distance(query_embedding)).limit(limit).all()
+        db.query(MCP)
+        .order_by(MCP.embedding.cosine_distance(query_embedding))
+        .limit(limit)
+        .all()
     )
     return results

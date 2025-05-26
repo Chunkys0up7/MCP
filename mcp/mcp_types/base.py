@@ -30,13 +30,14 @@ class BaseMCP(ABC):
     @abstractmethod
     def execute(self, inputs: Dict[str, Any]) -> MCPResult:
         """Execute the MCP with given inputs."""
-        pass
 
     def create(self) -> bool:
         """Create the MCP server."""
         try:
             mcp_type_value = (
-                self.config.type.value if hasattr(self.config.type, "value") else self.config.type
+                self.config.type.value
+                if hasattr(self.config.type, "value")
+                else self.config.type
             )
 
             result = self.client.create_server(
@@ -49,7 +50,9 @@ class BaseMCP(ABC):
             if result and result.get("id"):
                 self.id = result.get("id")
                 return True
-            logger.error(f"MCP creation via API did not return an ID or success. Result: {result}")
+            logger.error(
+                f"MCP creation via API did not return an ID or success. Result: {result}"
+            )
             return False
         except (MCPAPIError, MCPNotFoundError, MCPValidationError) as api_e:
             logger.error(f"API Error during MCP creation: {str(api_e)}")

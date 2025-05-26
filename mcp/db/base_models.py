@@ -15,8 +15,8 @@ from datetime import datetime
 from typing import Any, Dict
 from uuid import uuid4
 
-from sqlalchemy import (JSON, CheckConstraint, Column, DateTime, ForeignKey,
-                        Integer, String, create_engine)
+from sqlalchemy import (JSON, CheckConstraint, DateTime, ForeignKey, Integer,
+                        String, create_engine)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import (Mapped, mapped_column, registry, relationship,
                             sessionmaker)
@@ -42,7 +42,9 @@ class TimestampMixin:
         ```
     """
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
@@ -192,7 +194,9 @@ class MCPConfiguration(BaseModel):
     dependencies: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     __table_args__ = (
-        CheckConstraint("type IN ('prompt', 'notebook', 'data')", name="valid_mcp_type"),
+        CheckConstraint(
+            "type IN ('prompt', 'notebook', 'data')", name="valid_mcp_type"
+        ),
     )
 
 
@@ -209,8 +213,12 @@ class MCPChain(BaseModel):
     )
 
     # Relationships
-    parent = relationship("MCPChain", remote_side="MCPChain.id", back_populates="child_chains")
-    child_chains = relationship("MCPChain", back_populates="parent", cascade="all, delete-orphan")
+    parent = relationship(
+        "MCPChain", remote_side="MCPChain.id", back_populates="child_chains"
+    )
+    child_chains = relationship(
+        "MCPChain", back_populates="parent", cascade="all, delete-orphan"
+    )
 
 
 class ChainSession(BaseModel):
@@ -233,7 +241,9 @@ class MCPPermission(BaseModel):
     )
     access_level: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    __table_args__ = (CheckConstraint("access_level IN (1, 2, 3)", name="valid_access_level"),)
+    __table_args__ = (
+        CheckConstraint("access_level IN (1, 2, 3)", name="valid_access_level"),
+    )
 
 
 class AuditLog(BaseModel):
@@ -252,7 +262,10 @@ def log_audit_action(db, user_id, action_type, target_id, details=None):
     from mcp.db.models import AuditLog
 
     log = AuditLog(
-        user_id=user_id, action_type=action_type, target_id=target_id, details=details or {}
+        user_id=user_id,
+        action_type=action_type,
+        target_id=target_id,
+        details=details or {},
     )
     db.add(log)
     db.commit()

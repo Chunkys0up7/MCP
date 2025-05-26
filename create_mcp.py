@@ -11,14 +11,11 @@ mcp_data = {
         "requirements": ["requests==2.31.0"],
         "input_variables": ["name", "language"],
         "virtual_env": True,
-        "timeout": 600
-    }
+        "timeout": 600,
+    },
 }
 
-response = requests.post(
-    "http://localhost:8000/mcps",
-    json=mcp_data
-)
+response = requests.post("http://localhost:8000/mcps", json=mcp_data)
 
 print(f"Status Code: {response.status_code}")
-print(f"Response: {response.json()}") 
+print(f"Response: {response.json()}")
