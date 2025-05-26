@@ -36,7 +36,7 @@
 - [ ] Add error/empty/loading states
 
 ### 5. **General UI/UX Enhancements**
-- [ ] Add global feedback: toast notifications, inline errors, tooltips
+- [x] Global feedback: Toast notifications system is scaffolded using notistack and NotificationContext. Next: standardize usage and add inline errors/tooltips where missing.
 - [ ] Ensure responsiveness (breakpoints, mobile/desktop layouts)
 - [ ] Add onboarding/empty state content to all major screens
 - [ ] Review and improve accessibility across the app
@@ -80,6 +80,25 @@
 - All major workflow panels are now accessible: focusable, keyboard navigable, ARIA roles/labels, visible focus indicators, aria-live regions, and screen reader instructions.
 - The UI is now much more usable for keyboard and assistive technology users.
 - Next: Focus on global feedback (toasts, tooltips, inline errors) and responsiveness.
+
+**Check-in (29 May):**
+- Global notification/toast system is available via notistack and NotificationContext. Will standardize usage and add inline feedback next.
+
+- [~] Global feedback: Toast notifications are scaffolded and used in several places, but usage is not yet fully standardized across all screens and actions. Tooltips are present on most actionable icons/buttons in panels and toolbars, but should be reviewed for completeness and consistency. Inline errors and alerts are present in most major screens and panels, but some custom panels (e.g., ExecutionMonitor, NodeConfigPanel) use custom error boxes instead of standardized Alert components. Responsiveness: Some layouts use useMediaQuery and breakpoints, but not all screens are fully responsive yet.
+
+**Check-in (29 May):**
+- Reviewed global feedback mechanisms: toasts, tooltips, and inline errors/alerts. Toasts and tooltips are present but need standardization. Inline errors are mostly present but not always using the shared Alert component. Responsiveness is partial; some screens use breakpoints, others need improvement.
+- Next: Standardize toast usage for all major actions, ensure all actionable icons/buttons have tooltips, refactor all inline error/warning/info states to use the shared Alert component, and audit/improve responsiveness for all major screens and panels.
+
+- [~] Workflow Builder: Save, Validate, and Run actions now use standardized toast notifications (success/info/error) via NotificationContext.
+
+**Check-in (29 May):**
+- Workflow Builder now provides user feedback for Save, Validate, and Run actions using toasts. Next: cover node/edge add/delete/update and error cases, then move to other screens.
+
+- [x] Workflow Builder: Canvas feedback (toasts for node/edge add, delete, update, undo/redo) is complete.
+
+**Workflow Builder Feedback Milestone Check-in (29 May):**
+- All major user actions in Workflow Builder Canvas now provide clear toast feedback. Next: review PropertiesPanel and other panels, then move to Dashboard, Marketplace, and Execution Monitor for feedback standardization.
 
 ---
 
