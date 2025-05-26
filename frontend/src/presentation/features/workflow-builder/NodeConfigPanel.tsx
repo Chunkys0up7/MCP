@@ -12,13 +12,9 @@ import {
   Slider,
   SelectChangeEvent,
   Alert,
-  AlertTitle,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText
+  AlertTitle
 } from '@mui/material';
-import { Close as CloseIcon, Error as ErrorIcon, Warning as WarningIcon } from '@mui/icons-material';
+import { Close as CloseIcon } from '@mui/icons-material';
 import { Node } from 'reactflow';
 import { useWorkflowStore } from '../../../infrastructure/state/workflowStore';
 import { useWorkflowValidation } from '../../../application/hooks/useWorkflowValidation';
@@ -26,13 +22,11 @@ import { useWorkflowValidation } from '../../../application/hooks/useWorkflowVal
 interface NodeConfigPanelProps {
   node: Node;
   onClose: () => void;
-  onError: (error: Error) => void;
 }
 
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   node,
-  onClose,
-  onError
+  onClose
 }) => {
   const { updateNodeData, nodes, edges } = useWorkflowStore();
   const { getErrorsForNode, getWarningsForNode } = useWorkflowValidation(nodes, edges);
@@ -192,7 +186,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
               {error.message}
               {error.details && (
                 <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
-                  {error.details}
+                  {typeof error.details === 'object' ? JSON.stringify(error.details) : error.details}
                 </Typography>
               )}
             </Alert>
@@ -204,7 +198,7 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
               {warning.message}
               {warning.details && (
                 <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
-                  {warning.details}
+                  {typeof warning.details === 'object' ? JSON.stringify(warning.details) : warning.details}
                 </Typography>
               )}
             </Alert>
