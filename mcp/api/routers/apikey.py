@@ -4,7 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from mcp.api.dependencies import get_current_user, get_db, require_admin
+from mcp.api.dependencies import get_current_user_or_apikey, get_db, require_admin
 from mcp.db.models.apikey import APIKey
 from mcp.db.models.user import User
 from mcp.schemas import APIKeyCreate, APIKeyRead, APIKeyRevoke
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/apikeys", tags=["API Keys"])
 def create_apikey(
     apikey_in: APIKeyCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_apikey),
 ):
     # Only admin can create for others
     if apikey_in.user_id and apikey_in.user_id != current_user.id:
@@ -40,7 +40,7 @@ def create_apikey(
 
 @router.get("/", response_model=List[APIKeyRead])
 def list_apikeys(
-    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user_or_apikey)
 ):
     # Admin sees all, user sees own
     if "admin" in (current_user.roles or ""):
@@ -54,7 +54,7 @@ def list_apikeys(
 def revoke_apikey(
     revoke_in: APIKeyRevoke,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_or_apikey),
 ):
     apikey = db.query(APIKey).filter(APIKey.id == revoke_in.id).first()
     if not apikey:
