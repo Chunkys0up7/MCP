@@ -3,6 +3,7 @@ import QuickAccessToolbar from './components/QuickAccessToolbar';
 import { dashboardService, MLRecommendation, TrendingComponent, TeamCollaboration } from '../../services/dashboardService';
 import { Box, Typography, Grid, Button, CircularProgress, Alert, Chip, Stack } from '@mui/material';
 import Card from '../../components/common/Card';
+import SystemHealthWidget from '../../components/common/SystemHealthWidget';
 
 const PersonalizedFeedScreen: React.FC = () => {
   const [mlRecommendations, setMLRecommendations] = useState<MLRecommendation[]>([]);
@@ -67,6 +68,9 @@ const PersonalizedFeedScreen: React.FC = () => {
   return (
     <Box sx={{ p: 4 }}>
       <QuickAccessToolbar onCreateNew={handleCreateNew} onSearch={handleSearch} />
+      <Box sx={{ mb: 3 }}>
+        <SystemHealthWidget status="operational" details="All systems are running smoothly." />
+      </Box>
 
       <Typography variant="h4" fontWeight={700} mb={4} pt={2}>
         Dashboard Content Sections

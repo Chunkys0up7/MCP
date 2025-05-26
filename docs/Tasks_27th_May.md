@@ -25,9 +25,13 @@
 ### 3. **Dashboard & Marketplace Polish**
 - [x] Apply design system (colors, spacing, typography) to Dashboard (now uses MUI for all layout, cards, and feedback states)
 - [x] Apply design system to Marketplace and Execution Monitor screens (all major screens now use MUI for layout, cards, and feedback states)
-- [~] Standardize and enhance loading, empty, and error states across all major screens (Workflow Builder, Dashboard, Marketplace, Execution Monitor) [IN PROGRESS]
+- [x] Standardize and enhance loading, empty, and error states across all major screens (Workflow Builder, Dashboard, Marketplace, Execution Monitor)
+  - All major screens now use MUI CircularProgress, Alert, and consistent empty state messaging.
+  - Next: Add quick access toolbar and system health widget to dashboard.
 - [x] Ensure all cards, tables, and detail views use shared components and theme
-- [ ] Add quick access toolbar and system health widget to dashboard
+- [x] Add quick access toolbar and system health widget to dashboard
+  - Toolbar and widget are now present, accessible, and styled with the shared design system.
+  - Next: Proceed to Execution Monitor improvements (real-time UI, WebSocket, feedback states).
 
 ### 4. **Execution Monitor Improvements**
 - [x] Polish table, filters, and run detail views with new design system
@@ -112,6 +116,12 @@
 
 **Check-in (29 May):**
 - Dashboard refactor complete: all cards use shared Card and theme. Proceeding to table/detail view audit and next UI/UX tasks.
+
+**Check-in (29 May):**
+- Loading, empty, and error states are now standardized across Dashboard, Marketplace, and Execution Monitor. Proceeding to dashboard toolbar and system health widget next.
+
+**Check-in (29 May):**
+- Dashboard now includes a quick access toolbar and a system health widget. Proceeding to Execution Monitor improvements next.
 
 ---
 
