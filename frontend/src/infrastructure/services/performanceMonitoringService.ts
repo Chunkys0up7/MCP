@@ -146,7 +146,7 @@ class PerformanceMonitoringService {
     if (!workflow) return suggestions;
 
     // Check cache efficiency
-    Object.entries(this.cacheStats).forEach(([nodeId, stats]) => {
+    Object.entries(this.cacheStats).forEach(([nodeId]) => {
       const efficiency = this.getCacheEfficiency(nodeId);
       if (efficiency < 50) {
         suggestions.push(`Consider increasing cache size for node ${nodeId}`);

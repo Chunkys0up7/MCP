@@ -10,12 +10,11 @@ import {
   IconButton,
   Collapse,
   Tooltip,
-  Divider,
-  Button,
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Button
 } from '@mui/material';
 import {
   Error as ErrorIcon,
@@ -254,7 +253,7 @@ export const ErrorPanel: React.FC = () => {
         <DialogTitle>Confirm Retry</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to retry this operation? This will be attempt {selectedError?.retryCount + 1} of {selectedError?.maxRetries}.
+            Are you sure you want to retry this operation? This will be attempt {(selectedError?.retryCount ?? 0) + 1} of {selectedError?.maxRetries ?? 1}.
           </Typography>
         </DialogContent>
         <DialogActions>

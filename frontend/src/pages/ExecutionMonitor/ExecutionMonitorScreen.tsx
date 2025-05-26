@@ -8,8 +8,8 @@ export const ExecutionMonitorScreen: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const { nodes } = useWorkflowStore();
   const workflowId = 'demo-workflow'; // This should come from props or context in a real app
-  const [isLoading, setIsLoading] = useState(false); // Future: set true when loading
-  const [error, setError] = useState<string | null>(null); // Future: set error message
+  const [isLoading] = useState(false); // Future: set true when loading
+  const [error] = useState<string | null>(null); // Future: set error message
   const [tab, setTab] = useState(0);
   const ws = useWebSocket(workflowId);
 

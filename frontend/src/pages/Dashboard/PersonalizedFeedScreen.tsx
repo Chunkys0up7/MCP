@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import QuickAccessToolbar from './components/QuickAccessToolbar';
 import { dashboardService, MLRecommendation, TrendingComponent, TeamCollaboration } from '../../services/dashboardService';
-import { Box, Typography, Grid, Button, CircularProgress, Alert, Chip, Stack } from '@mui/material';
+import { Box, Typography, Grid, CircularProgress, Alert, Chip, Stack } from '@mui/material';
 import Card from '../../components/common/Card';
 import SystemHealthWidget from '../../components/common/SystemHealthWidget';
 

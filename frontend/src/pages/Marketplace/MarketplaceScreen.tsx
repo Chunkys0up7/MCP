@@ -32,8 +32,8 @@ const MarketplaceScreen: React.FC = () => {
     cost: 'All',
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Future: set true when loading
-  const [error, setError] = useState<string | null>(null); // Future: set error message
+  const [isLoading] = useState(false); // Future: set true when loading
+  const [error] = useState<string | null>(null); // Future: set error message
 
   // Placeholder for filtered components - actual filtering logic will be added later
   const displayedComponents: Component[] = mockComponents.filter(component => {

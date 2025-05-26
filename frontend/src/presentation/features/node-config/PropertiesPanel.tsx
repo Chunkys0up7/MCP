@@ -13,7 +13,6 @@ import {
   Paper,
 } from '@mui/material';
 import type { Node } from 'reactflow';
-import { useChainStore } from '../../../infrastructure/state/chainStore';
 import InputConfig from '../chain-builder/InputConfig';
 import type { NodeData, NodeConfig, NodeConfigData } from '../../../infrastructure/types/node';
 

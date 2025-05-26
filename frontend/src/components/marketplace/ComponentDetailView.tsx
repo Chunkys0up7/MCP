@@ -141,7 +141,7 @@ const ComponentDetailView: React.FC<ComponentDetailViewProps> = ({ component, on
           </IconButton>
         </Box>
         <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth" sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          {tabs.map((tab, idx) => <Tab key={tab} label={tab} />)}
+          {tabs.map((tab) => <Tab key={tab} label={tab} />)}
         </Tabs>
         <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
           {activeTab === 0 && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Paper, Stack } from '@mui/material';
+import { Box, Button, TextField, Paper } from '@mui/material';
 
 interface QuickAccessToolbarProps {
   onCreateNew?: () => void; // Optional callback for Create New button

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Box, Grid, Paper, Button, Stack, TextField, CircularProgress, Alert } from '@mui/material';
+import { Box, Grid, Paper, Button, TextField, CircularProgress, Alert } from '@mui/material';
 import { theme } from '../../presentation/design-system/theme';
 import Palette from './Palette';
 import Canvas from './Canvas';
@@ -20,8 +20,8 @@ const WorkflowBuilderScreen: React.FC = () => {
   const [edgeLabel, setEdgeLabel] = useState('');
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Future: set true when loading workflow
-  const [error, setError] = useState<string | null>(null); // Future: set error message on failure
+  const [isLoading] = useState(false); // Future: set true when loading workflow
+  const [error] = useState<string | null>(null); // Future: set error message on failure
   const canvasRef = useRef<any>(null);
   const { showSuccess, showError, showInfo } = useNotification();
 
@@ -55,7 +55,6 @@ const WorkflowBuilderScreen: React.FC = () => {
   const handleSave = () => {
     try {
       if (canvasRef.current?.getWorkflow) {
-        const wf = canvasRef.current.getWorkflow();
         // Simulate save
         showSuccess('Workflow saved successfully!');
         // console.log('Saving workflow:', wf);

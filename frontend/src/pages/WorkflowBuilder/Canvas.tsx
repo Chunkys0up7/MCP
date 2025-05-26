@@ -41,8 +41,8 @@ const Canvas = forwardRef<any, CanvasProps>(({ onNodeSelect, onEdgeSelect, onNod
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const nodeIdRef = useRef(4);
-  const { zoomIn: rfZoomIn, zoomOut: rfZoomOut, fitView } = useReactFlow();
-  const { showSuccess, showError } = useNotification();
+  const { zoomIn: rfZoomIn, zoomOut: rfZoomOut } = useReactFlow();
+  const { showSuccess } = useNotification();
 
   // Sync nodes/edges to parent
   useEffect(() => {
