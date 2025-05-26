@@ -276,7 +276,18 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ node, onUpdate }) => 
   };
 
   return (
-    <Box sx={{ height: '100%', overflow: 'auto' }}>
+    <Box
+      sx={{ height: '100%', overflow: 'auto' }}
+      tabIndex={0}
+      role="region"
+      aria-label="Node Properties Panel"
+      aria-describedby="properties-instructions"
+      onFocus={e => e.currentTarget.style.outline = '2px solid #1976d2'}
+      onBlur={e => e.currentTarget.style.outline = 'none'}
+    >
+      <div id="properties-instructions" style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+        Use Tab to navigate through node properties and configuration fields.
+      </div>
       <Box sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
           Node Properties

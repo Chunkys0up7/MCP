@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
 import { ComponentSummary } from '../../services/api';
+import Card from '../common/Card';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 interface DependencyNode {
   id: string;
@@ -47,7 +55,7 @@ const DependencyVisualizer: React.FC<{ nodes: DependencyNode[]; edges: Dependenc
     return acc;
   }, {});
   return (
-    <svg width={nodes.length * 140} height={160} style={{ background: '#f9fafb', borderRadius: 8 }}>
+    <svg width={nodes.length * 140} height={160} style={{ background: '#f9fafb', borderRadius: 8 }} role="img" aria-label="Dependency Graph">
       {/* Edges */}
       {edges.map((edge, i) => {
         const from = nodePositions[edge.from];
@@ -110,7 +118,7 @@ const DependencyVisualizer: React.FC<{ nodes: DependencyNode[]; edges: Dependenc
 };
 
 const ComponentDetailView: React.FC<ComponentDetailViewProps> = ({ component, onClose, dependencies }) => {
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState(0);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const deps = dependencies || mockDependencies;
 
@@ -124,113 +132,61 @@ const ComponentDetailView: React.FC<ComponentDetailViewProps> = ({ component, on
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      right: 0,
-      width: 400,
-      height: '100%',
-      background: '#fff',
-      boxShadow: '-2px 0 8px rgba(0,0,0,0.08)',
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      <div style={{ padding: 16, borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0 }}>{component.name}</h3>
-        <button onClick={onClose} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
-      </div>
-      <div style={{ display: 'flex', borderBottom: '1px solid #eee' }}>
-        {tabs.map(tab => (
-          <div
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              flex: 1,
-              padding: '12px 0',
-              textAlign: 'center',
-              cursor: 'pointer',
-              background: activeTab === tab ? '#f3f4f6' : 'transparent',
-              fontWeight: activeTab === tab ? 600 : 400,
-              borderBottom: activeTab === tab ? '2px solid #6366f1' : 'none',
-            }}
-          >
-            {tab}
-          </div>
-        ))}
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
-        {/* Placeholder content for each tab */}
-        {activeTab === 'Overview' && (
-          <div>
-            <h4>Overview</h4>
-            <p>{component.description}</p>
-            <div>Type: {component.type}</div>
-            <div>Version: {component.version}</div>
-            <div>Tags: {component.tags?.join(', ')}</div>
-            <div style={{ marginTop: 24, display: 'flex', gap: 12 }}>
-              <button
-                style={{
-                  background: '#6366f1',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 4,
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontSize: 15,
-                }}
-                onClick={handleAddToWorkflow}
-              >
-                Add to Workflow
-              </button>
-              <button
-                style={{
-                  background: '#fff',
-                  color: '#6366f1',
-                  border: '2px solid #6366f1',
-                  borderRadius: 4,
-                  padding: '8px 16px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontSize: 15,
-                }}
-                onClick={handleTestInSandbox}
-              >
-                Test in Sandbox
-              </button>
-            </div>
-            {actionMessage && (
-              <div style={{ marginTop: 16, color: '#059669', fontWeight: 500 }}>{actionMessage}</div>
-            )}
-          </div>
-        )}
-        {activeTab === 'Dependencies' && (
-          <div>
-            <h4>Dependencies</h4>
-            <DependencyVisualizer nodes={deps.nodes} edges={deps.edges} />
-          </div>
-        )}
-        {activeTab === 'Sandbox' && (
-          <div>
-            <h4>Sandbox</h4>
-            <p>Sandbox UI for testing the component will go here.</p>
-          </div>
-        )}
-        {activeTab === 'Versions' && (
-          <div>
-            <h4>Versions</h4>
-            <p>Version history and changelogs will go here.</p>
-          </div>
-        )}
-        {activeTab === 'Reviews' && (
-          <div>
-            <h4>Reviews</h4>
-            <p>User reviews and usage stats will go here.</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <Box sx={{ position: 'fixed', top: 0, right: 0, width: 400, height: '100%', zIndex: 1000, display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', boxShadow: 4 }}>
+      <Card sx={{ borderRadius: 0, height: '100%', display: 'flex', flexDirection: 'column', p: 0 }} title={component.name}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h5" fontWeight={600}>{component.name}</Typography>
+          <IconButton onClick={onClose} aria-label="Close details panel">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} variant="fullWidth" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          {tabs.map((tab, idx) => <Tab key={tab} label={tab} />)}
+        </Tabs>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+          {activeTab === 0 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>Overview</Typography>
+              <Typography variant="body1" mb={2}>{component.description}</Typography>
+              <Typography variant="body2" color="text.secondary">Type: {component.type}</Typography>
+              <Typography variant="body2" color="text.secondary">Version: {component.version}</Typography>
+              <Typography variant="body2" color="text.secondary">Tags: {component.tags?.join(', ')}</Typography>
+              <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                <Button variant="contained" color="primary" onClick={handleAddToWorkflow}>Add to Workflow</Button>
+                <Button variant="outlined" color="primary" onClick={handleTestInSandbox}>Test in Sandbox</Button>
+              </Box>
+              {actionMessage && (
+                <Typography sx={{ mt: 2 }} color="success.main">{actionMessage}</Typography>
+              )}
+            </Box>
+          )}
+          {activeTab === 1 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>Dependencies</Typography>
+              <DependencyVisualizer nodes={deps.nodes} edges={deps.edges} />
+            </Box>
+          )}
+          {activeTab === 2 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>Sandbox</Typography>
+              <Typography variant="body2">Sandbox UI for testing the component will go here.</Typography>
+            </Box>
+          )}
+          {activeTab === 3 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>Versions</Typography>
+              <Typography variant="body2">Version history and changelogs will go here.</Typography>
+            </Box>
+          )}
+          {activeTab === 4 && (
+            <Box>
+              <Typography variant="h6" gutterBottom>Reviews</Typography>
+              <Typography variant="body2">User reviews and usage stats will go here.</Typography>
+            </Box>
+          )}
+        </Box>
+      </Card>
+    </Box>
   );
 };
 

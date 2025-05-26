@@ -1,42 +1,39 @@
 import { createTheme } from '@mui/material/styles';
-import type { PaletteMode } from '@mui/material';
-import type { TypographyOptions } from '@mui/material/styles/createTypography';
-import type { TextTransform } from '@mui/material/styles/createTypography';
 
 // Color Scheme
 const colors = {
   primary: {
-    main: '#2563EB',
+    main: '#4A90E2', // Modern blue
     light: '#60A5FA',
     dark: '#1D4ED8',
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#8B5CF6',
+    main: '#17A2B8', // Teal accent
     light: '#A78BFA',
     dark: '#7C3AED',
     contrastText: '#FFFFFF',
   },
   success: {
-    main: '#22C55E',
+    main: '#28A745',
     light: '#4ADE80',
     dark: '#16A34A',
     contrastText: '#FFFFFF',
   },
   warning: {
-    main: '#F59E0B',
+    main: '#FFC107',
     light: '#FBBF24',
     dark: '#D97706',
     contrastText: '#FFFFFF',
   },
   error: {
-    main: '#EF4444',
+    main: '#DC3545',
     light: '#F87171',
     dark: '#DC2626',
     contrastText: '#FFFFFF',
   },
   info: {
-    main: '#3B82F6',
+    main: '#17A2B8',
     light: '#60A5FA',
     dark: '#2563EB',
     contrastText: '#FFFFFF',
@@ -59,45 +56,23 @@ const colors = {
     data: '#10B981',
   },
   background: {
-    default: '#F9FAFB',
-    paper: '#FFFFFF',
+    default: '#F8F9FA',
+    paper: '#fff',
   },
   text: {
-    primary: '#111827',
-    secondary: '#4B5563',
+    primary: '#343A40',
+    secondary: '#6C757D',
     disabled: '#9CA3AF',
   },
+  divider: '#E0E0E0',
 };
 
 // Typography
-const typography: TypographyOptions = {
-  fontFamily: [
-    'Inter',
-    '-apple-system',
-    'BlinkMacSystemFont',
-    '"Segoe UI"',
-    'Roboto',
-    '"Helvetica Neue"',
-    'Arial',
-    'sans-serif',
-  ].join(','),
-  h1: {
-    fontWeight: 600,
-    fontSize: '2.5rem',
-    lineHeight: 1.2,
-    letterSpacing: '-0.02em',
-  },
-  h2: {
-    fontWeight: 600,
-    fontSize: '2rem',
-    lineHeight: 1.3,
-    letterSpacing: '-0.01em',
-  },
-  h3: {
-    fontWeight: 600,
-    fontSize: '1.75rem',
-    lineHeight: 1.4,
-  },
+const typography = {
+  fontFamily: 'Inter, Roboto, Open Sans, Arial, sans-serif',
+  h1: { fontSize: 32, fontWeight: 700, lineHeight: 1.2 },
+  h2: { fontSize: 24, fontWeight: 600, lineHeight: 1.3 },
+  h3: { fontSize: 20, fontWeight: 500, lineHeight: 1.4 },
   h4: {
     fontWeight: 600,
     fontSize: '1.5rem',
@@ -123,16 +98,8 @@ const typography: TypographyOptions = {
     lineHeight: 1.57,
     letterSpacing: '0.00714em',
   },
-  body1: {
-    fontSize: '1rem',
-    lineHeight: 1.5,
-    letterSpacing: '0.00938em',
-  },
-  body2: {
-    fontSize: '0.875rem',
-    lineHeight: 1.43,
-    letterSpacing: '0.01071em',
-  },
+  body1: { fontSize: 16, fontWeight: 400, lineHeight: 1.7 },
+  body2: { fontSize: 14, fontWeight: 400, lineHeight: 1.7 },
   button: {
     fontWeight: 500,
     fontSize: '0.875rem',
@@ -140,11 +107,7 @@ const typography: TypographyOptions = {
     letterSpacing: '0.02857em',
     textTransform: 'none',
   },
-  caption: {
-    fontSize: '0.75rem',
-    lineHeight: 1.66,
-    letterSpacing: '0.03333em',
-  },
+  caption: { fontSize: 12, fontWeight: 400, lineHeight: 1.5 },
   overline: {
     fontSize: '0.75rem',
     lineHeight: 2.66,
@@ -200,11 +163,6 @@ const components = {
   },
   MuiButton: {
     styleOverrides: {
-      root: {
-        textTransform: 'none',
-        borderRadius: 8,
-        padding: '8px 16px',
-      },
       contained: {
         boxShadow: 'none',
         '&:hover': {
@@ -251,74 +209,55 @@ const components = {
 };
 
 // Create the theme
-export const theme = createTheme({
+const theme = createTheme({
   palette: {
-    mode: 'light' as PaletteMode,
     primary: {
-      main: '#1976d2',
-      light: '#42a5f5',
-      dark: '#1565c0',
+      main: '#4A90E2', // Modern blue
+      contrastText: '#fff',
     },
     secondary: {
-      main: '#9c27b0',
-      light: '#ba68c8',
-      dark: '#7b1fa2',
+      main: '#17A2B8', // Teal accent
+      contrastText: '#fff',
+    },
+    success: {
+      main: '#28A745',
+    },
+    warning: {
+      main: '#FFC107',
+    },
+    error: {
+      main: '#DC3545',
+    },
+    info: {
+      main: '#17A2B8',
     },
     background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
+      default: '#F8F9FA',
+      paper: '#fff',
     },
+    text: {
+      primary: '#343A40',
+      secondary: '#6C757D',
+    },
+    divider: '#E0E0E0',
   },
+  spacing: 8, // Use multiples of 8px
   typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-    h4: {
-      fontWeight: 600,
-    },
+    fontFamily: 'Inter, Roboto, Open Sans, Arial, sans-serif',
+    h1: { fontSize: 32, fontWeight: 700, lineHeight: 1.2 },
+    h2: { fontSize: 24, fontWeight: 600, lineHeight: 1.3 },
+    h3: { fontSize: 20, fontWeight: 500, lineHeight: 1.4 },
+    h4: { fontWeight: 600, fontSize: 18, lineHeight: 1.4 },
+    h5: { fontWeight: 600, fontSize: 16, lineHeight: 1.4 },
+    h6: { fontWeight: 600, fontSize: 14, lineHeight: 1.4 },
+    body1: { fontSize: 16, fontWeight: 400, lineHeight: 1.7 },
+    body2: { fontSize: 14, fontWeight: 400, lineHeight: 1.7 },
+    caption: { fontSize: 12, fontWeight: 400, lineHeight: 1.5 },
   },
-  spacing: spacing.unit,
-  components,
   shape: {
     borderRadius: 8,
   },
-  shadows: [
-    'none',
-    '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-    '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-    '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-    '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  ],
+  components,
 });
 
 // Export the design tokens for use in styled components
@@ -328,4 +267,6 @@ export const designTokens = {
   typography,
   shadows: theme.shadows,
   shape: theme.shape,
-}; 
+};
+
+export { theme }; 

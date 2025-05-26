@@ -164,49 +164,52 @@ const WorkflowBuilderScreen: React.FC = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', background: theme.palette.background.default }}>
-      {/* Palette */}
-      <Box sx={{ width: 260, borderRight: `1px solid ${theme.palette.divider}` }}>
-        <Palette />
-      </Box>
-      {/* Main Area */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Global loading and error states */}
-        {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }} role="status" aria-busy="true">
-            <CircularProgress size={40} />
-            <Box sx={{ ml: 2 }}>Loading workflow...</Box>
-          </Box>
-        )}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} role="alert">{error}</Alert>
-        )}
-        {/* Toolbar */}
-        <Toolbar />
-        {/* Canvas and Properties */}
-        <Grid container sx={{ flexGrow: 1 }}>
-          <Grid item xs={8} sx={{ height: '100%', position: 'relative' }}>
-            {nodes.length === 0 ? (
-              <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5', borderRadius: 2 }} role="region" aria-label="Empty Workflow State">
-                <Box sx={{ fontSize: 24, mb: 2, color: 'text.secondary' }}>No nodes yet</Box>
-                <Button variant="contained" color="primary" onClick={handleAddSampleNode} aria-label="Add a Node">Add a Node</Button>
-                <Box sx={{ mt: 2, color: 'text.secondary' }}>Drag from the Palette or use the button above to get started.</Box>
-              </Box>
-            ) : (
-              <Canvas
-                ref={canvasRef}
-                onNodeSelect={setSelectedNode}
-                onEdgeSelect={setSelectedEdge}
-                onNodesUpdate={handleNodesUpdate}
-                onEdgesUpdate={handleEdgesUpdate}
-              />
-            )}
-          </Grid>
-          <Grid item xs={4} sx={{ height: '100%', borderLeft: `1px solid ${theme.palette.divider}` }}>
-            <PropertiesPanel node={selectedNode} edge={selectedEdge} />
-          </Grid>
+    <Box sx={{ height: '100vh', background: theme.palette.background.default, p: { xs: 1, md: 0 } }}>
+      <Grid container spacing={2} sx={{ height: '100%' }}>
+        {/* Palette */}
+        <Grid item xs={12} md={2} sx={{ borderRight: { md: `1px solid ${theme.palette.divider}` }, minWidth: { md: 220 } }}>
+          <Palette />
         </Grid>
-      </Box>
+        {/* Main Area */}
+        <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Onboarding tip */}
+          <Alert severity="info" sx={{ mb: 2 }} role="region" aria-label="Onboarding Tip">
+            Welcome to the Workflow Builder! Start by dragging components from the Palette or use the Add Node button. All actions are keyboard accessible.
+          </Alert>
+          {/* Global loading and error states */}
+          {isLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }} role="status" aria-busy="true">
+              <CircularProgress size={40} />
+              <Box sx={{ ml: 2 }}>Loading workflow...</Box>
+            </Box>
+          )}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} role="alert">{error}</Alert>
+          )}
+          {/* Toolbar */}
+          <Toolbar />
+          {/* Canvas and Properties */}
+          {nodes.length === 0 ? (
+            <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', bgcolor: '#f5f5f5', borderRadius: 2 }} role="region" aria-label="Empty Workflow State">
+              <Box sx={{ fontSize: 24, mb: 2, color: 'text.secondary' }}>No nodes yet</Box>
+              <Button variant="contained" color="primary" onClick={handleAddSampleNode} aria-label="Add a Node">Add a Node</Button>
+              <Box sx={{ mt: 2, color: 'text.secondary' }}>Drag from the Palette or use the button above to get started.</Box>
+            </Box>
+          ) : (
+            <Canvas
+              ref={canvasRef}
+              onNodeSelect={setSelectedNode}
+              onEdgeSelect={setSelectedEdge}
+              onNodesUpdate={handleNodesUpdate}
+              onEdgesUpdate={handleEdgesUpdate}
+            />
+          )}
+        </Grid>
+        {/* Properties Panel */}
+        <Grid item xs={12} md={3} sx={{ borderLeft: { md: `1px solid ${theme.palette.divider}` }, height: '100%' }}>
+          <PropertiesPanel node={selectedNode} edge={selectedEdge} />
+        </Grid>
+      </Grid>
     </Box>
   );
 };

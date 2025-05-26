@@ -66,11 +66,15 @@ const PersonalizedFeedScreen: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
       <QuickAccessToolbar onCreateNew={handleCreateNew} onSearch={handleSearch} />
       <Box sx={{ mb: 3 }}>
         <SystemHealthWidget status="operational" details="All systems are running smoothly." />
       </Box>
+      {/* Onboarding tip */}
+      <Alert severity="info" sx={{ mb: 3 }} role="region" aria-label="Onboarding Tip">
+        Welcome to your Dashboard! Here you'll find personalized ML recommendations, trending components, and team collaborations. Use the quick access toolbar to create new workflows or search for components. All sections are fully responsive and accessible.
+      </Alert>
 
       <Typography variant="h4" fontWeight={700} mb={4} pt={2}>
         Dashboard Content Sections

@@ -37,7 +37,7 @@ class WebSocketService {
   }
 
   private connect() {
-    const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:8080'}/ws/execution`;
+    const wsUrl = `${import.meta.env.VITE_WS_URL || 'ws://localhost:8000'}/ws/execution`;
     
     try {
       this.socket = new WebSocket(wsUrl);

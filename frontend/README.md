@@ -65,3 +65,51 @@ See [TESTING.md](./TESTING.md) for a full test strategy and coverage.
 - Run all backend tests: `pytest`
 
 Test coverage and details are in TESTING.md.
+
+# Frontend Quickstart: UI Framework
+
+## Overview
+This project uses [Material UI (MUI)](https://mui.com/) for a modern, accessible, and responsive UI, following the architecture described in `docs/UI_overview`.
+
+## Core Layout
+- **MainNav**: Sidebar navigation (src/components/layout/MainNav.tsx)
+- **TopBar**: Top navigation bar (src/components/layout/TopBar.tsx)
+- **App Shell**: Main layout in src/App.tsx
+
+## Shared Components
+- Place all reusable UI components in `src/components/common/` (e.g., Button, Card, Modal).
+- Use MUI components as a base and extend as needed.
+
+## Creating a New Page
+1. Add a new file in `src/pages/` (e.g., `MyNewPage.tsx`).
+2. Use the shared layout by adding your page to the main content area in `App.tsx`.
+3. Use shared components from `src/components/common/` for consistency.
+
+## Example: Adding a New Page
+```tsx
+// src/pages/MyNewPage.tsx
+import React from 'react';
+import { Box, Typography } from '@mui/material';
+
+const MyNewPage: React.FC = () => (
+  <Box>
+    <Typography variant="h4">My New Page</Typography>
+    {/* Your content here */}
+  </Box>
+);
+
+export default MyNewPage;
+```
+
+Then, add it to the main content area in `App.tsx` and to the navigation in `MainNav.tsx`.
+
+## Theming
+- The theme is defined in `src/presentation/design-system/theme.ts`.
+- Use the `ThemeProvider` in `App.tsx` to access theme variables.
+
+## Resources
+- [Material UI Documentation](https://mui.com/)
+- [React Router Documentation](https://reactrouter.com/)
+
+---
+For more details, see `docs/UI_overview`.

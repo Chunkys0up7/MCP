@@ -46,14 +46,26 @@ const Toolbar: React.FC<ToolbarProps> = ({
 }) => {
   return (
     <AppBar position="static" color="default" elevation={1}>
-      <MuiToolbar variant="dense">
+      <MuiToolbar
+        variant="dense"
+        tabIndex={0}
+        role="toolbar"
+        aria-label="Workflow Actions Toolbar"
+        aria-describedby="toolbar-instructions"
+        sx={{ outline: 'none' }}
+        onFocus={e => e.currentTarget.style.outline = '2px solid #1976d2'}
+        onBlur={e => e.currentTarget.style.outline = 'none'}
+      >
+        <div id="toolbar-instructions" style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+          Use Tab to navigate toolbar actions. Each button is labeled for screen readers.
+        </div>
         <Tooltip title="Toggle MCP Library">
-          <IconButton onClick={onToggleLibrary} size="small">
+          <IconButton onClick={onToggleLibrary} size="small" aria-label="Toggle MCP Library">
             <MenuIcon />
           </IconButton>
         </Tooltip>
         <Tooltip title="Toggle Properties Panel">
-          <IconButton onClick={onToggleProperties} size="small">
+          <IconButton onClick={onToggleProperties} size="small" aria-label="Toggle Properties Panel">
             <ViewSidebarIcon />
           </IconButton>
         </Tooltip>
@@ -69,6 +81,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   onClick={onUndo}
                   disabled={!canUndo || isLoading}
                   size="small"
+                  aria-label="Undo"
                 >
                   <UndoIcon />
                 </IconButton>
@@ -82,6 +95,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   onClick={onRedo}
                   disabled={!canRedo || isLoading}
                   size="small"
+                  aria-label="Redo"
                 >
                   <RedoIcon />
                 </IconButton>
@@ -96,6 +110,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                 onClick={onSave}
                 disabled={isLoading}
                 size="small"
+                aria-label="Save Workflow"
               >
                 Save
               </Button>
@@ -111,6 +126,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   onClick={onStop}
                   disabled={isLoading}
                   size="small"
+                  aria-label="Stop Execution"
                 >
                   Stop
                 </Button>
@@ -126,6 +142,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
                   onClick={onExecute}
                   disabled={isLoading}
                   size="small"
+                  aria-label="Execute Workflow"
                 >
                   Execute
                 </Button>

@@ -5,12 +5,13 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+import json
 
 from mcp.cache.redis_manager import RedisCacheManager
 from mcp.core import registry as mcp_registry_service
@@ -357,3 +358,76 @@ if not logger.hasHandlers():
 # The Instrumentator already provides similar metrics.
 
 logger.info("MCP API Application configured and starting...")
+
+@app.websocket("/ws/execution")
+async def websocket_execution_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                # Echo the message back as JSON
+                await websocket.send_text(json.dumps({"type": "echo", "payload": message, "timestamp": int(__import__('time').time())}))
+            except json.JSONDecodeError:
+                # Send an error message in JSON format
+                await websocket.send_text(json.dumps({"type": "error", "payload": {"error": "Invalid JSON received"}, "timestamp": int(__import__('time').time())}))
+    except WebSocketDisconnect:
+        print("WebSocket disconnected")
+
+@app.get("/api/dashboard/recommendations")
+async def dashboard_recommendations():
+    return [
+        {
+            "id": "1",
+            "title": "Try the new Workflow Builder!",
+            "description": "Build and automate workflows visually.",
+            "confidence": 95,
+            "type": "workflow"
+        },
+        {
+            "id": "2",
+            "title": "Optimize your pipeline",
+            "description": "Check out trending components.",
+            "confidence": 88,
+            "type": "component"
+        }
+    ]
+
+@app.get("/api/dashboard/trending")
+async def dashboard_trending():
+    return [
+        {
+            "id": "1",
+            "name": "Data Cleaner",
+            "description": "Cleans and preprocesses your data.",
+            "usageCount": 120,
+            "rating": 4.7
+        },
+        {
+            "id": "2",
+            "name": "Model Trainer",
+            "description": "Trains ML models efficiently.",
+            "usageCount": 98,
+            "rating": 4.5
+        }
+    ]
+
+@app.get("/api/dashboard/collaborations")
+async def dashboard_collaborations():
+    return [
+        {
+            "id": "1",
+            "name": "Credit Approval Workflow",
+            "lastModified": "2024-05-27T10:00:00Z",
+            "collaborators": ["Alice", "Bob"],
+            "type": "workflow"
+        },
+        {
+            "id": "2",
+            "name": "Data Cleaning Component",
+            "lastModified": "2024-05-26T15:30:00Z",
+            "collaborators": ["Charlie"],
+            "type": "component"
+        }
+    ]

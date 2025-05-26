@@ -34,6 +34,7 @@ class PerformanceMonitoringService {
   private nodePerformance: Record<string, NodePerformance> = {};
   private workflowPerformance: Record<string, WorkflowPerformance> = {};
   private cacheStats: Record<string, { hits: number; misses: number }> = {};
+  private events: Array<{ type: string; name: string; details?: any; timestamp: string }> = [];
 
   // Performance tracking methods
   trackNodeExecution(nodeId: string, executionTime: number, metadata?: Record<string, any>) {
@@ -177,6 +178,29 @@ class PerformanceMonitoringService {
 
   clearCacheStats(): void {
     this.cacheStats = {};
+  }
+
+  // Event tracking methods
+  trackEvent(name: string, details?: any) {
+    this.events.push({
+      type: 'event',
+      name,
+      details,
+      timestamp: new Date().toISOString(),
+    });
+    // Optionally, log to console or send to a backend
+    console.info(`[Performance Event] ${name}`, details);
+  }
+
+  trackError(name: string, error?: any) {
+    this.events.push({
+      type: 'error',
+      name,
+      details: error,
+      timestamp: new Date().toISOString(),
+    });
+    // Optionally, log to console or send to a backend
+    console.error(`[Performance Error] ${name}`, error);
   }
 }
 

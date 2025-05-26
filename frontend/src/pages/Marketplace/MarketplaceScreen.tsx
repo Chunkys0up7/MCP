@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Box, Typography, Paper, Grid, Button, TextField, Select, MenuItem, InputLabel, FormControl, Alert, CircularProgress } from '@mui/material';
 
 // Mock data for components - replace with API data later
 const mockComponents = [
@@ -31,6 +32,8 @@ const MarketplaceScreen: React.FC = () => {
     cost: 'All',
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Future: set true when loading
+  const [error, setError] = useState<string | null>(null); // Future: set error message
 
   // Placeholder for filtered components - actual filtering logic will be added later
   const displayedComponents: Component[] = mockComponents.filter(component => {
@@ -59,103 +62,131 @@ const MarketplaceScreen: React.FC = () => {
     console.log('Search submitted:', searchTerm);
   };
 
-
   return (
-    <div className="p-4">
-      <h1 className="text-3xl font-bold mb-6 text-center">Component Marketplace</h1>
+    <Box sx={{ p: { xs: 2, md: 4 } }}>
+      {/* Onboarding tip */}
+      <Alert severity="info" sx={{ mb: 3 }} role="region" aria-label="Onboarding Tip">
+        Welcome to the Marketplace! Browse, filter, and search for components to add to your workflows. All cards and filters are fully responsive and accessible.
+      </Alert>
+      <Typography variant="h4" fontWeight={700} mb={4} textAlign="center">
+        Component Marketplace
+      </Typography>
+
+      {/* Global loading and error states */}
+      {isLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }} role="status" aria-busy="true">
+          <CircularProgress size={40} />
+          <Box sx={{ ml: 2 }}>Loading components...</Box>
+        </Box>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} role="alert">{error}</Alert>
+      )}
 
       {/* Filters Section */}
-      <div className="mb-8 p-4 bg-gray-50 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <Paper sx={{ mb: 6, p: 3, borderRadius: 2, boxShadow: 1 }}>
+        <Grid container spacing={3} alignItems="flex-end">
           {/* Text Search */}
-          <form onSubmit={handleSearchSubmit} className="md:col-span-1">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search Components</label>
-            <div className="flex">
-              <input
+          <Grid item xs={12} md={3}>
+            <Box component="form" onSubmit={handleSearchSubmit} sx={{ display: 'flex', alignItems: 'center' }}>
+              <TextField
                 type="search"
                 name="search"
                 id="search"
                 value={searchTerm}
                 onChange={handleSearchChange}
                 placeholder="Search by name or description..."
-                className="focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-l-md px-3 py-2"
+                size="small"
+                fullWidth
+                sx={{ mr: 1 }}
+                label="Search Components"
+                inputProps={{ 'aria-label': 'Search Components' }}
               />
-              <button 
-                type="submit" 
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-r-md text-sm"
-              >
+              <Button type="submit" variant="contained" color="primary" sx={{ fontWeight: 'bold', borderRadius: 1 }}>
                 Go
-              </button>
-            </div>
-          </form>
+              </Button>
+            </Box>
+          </Grid>
 
           {/* Type Filter */}
-          <div>
-            <label htmlFor="type-filter" className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-            <select
-              id="type-filter"
-              name="type-filter"
-              value={filters.type}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
-            >
-              {filterOptions.type.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="type-filter-label">Type</InputLabel>
+              <Select
+                labelId="type-filter-label"
+                id="type-filter"
+                value={filters.type}
+                label="Type"
+                onChange={(e) => handleFilterChange('type', e.target.value)}
+              >
+                {filterOptions.type.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
 
           {/* Compliance Filter */}
-          <div>
-            <label htmlFor="compliance-filter" className="block text-sm font-medium text-gray-700 mb-1">Compliance</label>
-            <select
-              id="compliance-filter"
-              name="compliance-filter"
-              value={filters.compliance}
-              onChange={(e) => handleFilterChange('compliance', e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
-            >
-              {filterOptions.compliance.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="compliance-filter-label">Compliance</InputLabel>
+              <Select
+                labelId="compliance-filter-label"
+                id="compliance-filter"
+                value={filters.compliance}
+                label="Compliance"
+                onChange={(e) => handleFilterChange('compliance', e.target.value)}
+              >
+                {filterOptions.compliance.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
 
           {/* Cost Filter */}
-          <div>
-            <label htmlFor="cost-filter" className="block text-sm font-medium text-gray-700 mb-1">Cost</label>
-            <select
-              id="cost-filter"
-              name="cost-filter"
-              value={filters.cost}
-              onChange={(e) => handleFilterChange('cost', e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm"
-            >
-              {filterOptions.cost.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
+          <Grid item xs={12} md={3}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="cost-filter-label">Cost</InputLabel>
+              <Select
+                labelId="cost-filter-label"
+                id="cost-filter"
+                value={filters.cost}
+                label="Cost"
+                onChange={(e) => handleFilterChange('cost', e.target.value)}
+              >
+                {filterOptions.cost.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+      </Paper>
 
       {/* Components List Section */}
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Available Components ({displayedComponents.length})</h2>
+      <Box role="region" aria-label="Available Components">
+        <Typography variant="h5" fontWeight={600} mb={3}>
+          Available Components ({displayedComponents.length})
+        </Typography>
         {displayedComponents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Grid container spacing={4}>
             {displayedComponents.map(component => (
-              <div key={component.id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h3 className="text-xl font-semibold text-indigo-700 mb-2">{component.name}</h3>
-                <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Type:</span> {component.type}</p>
-                <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Compliance:</span> {component.compliance}</p>
-                <p className="text-sm text-gray-600 mb-3"><span className="font-medium">Cost:</span> {component.cost}</p>
-                <p className="text-gray-700 mb-4 text-sm">{component.description}</p>
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded transition-colors text-sm">
-                  View Details / Add to Workflow
-                </button>
-              </div>
+              <Grid item xs={12} md={6} lg={4} key={component.id}>
+                <Paper sx={{ p: 3, borderRadius: 2, boxShadow: 1, height: '100%', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }}>
+                  <Typography variant="h6" color="primary" fontWeight={600} mb={1}>{component.name}</Typography>
+                  <Typography variant="body2" color="text.secondary" mb={0.5}><strong>Type:</strong> {component.type}</Typography>
+                  <Typography variant="body2" color="text.secondary" mb={0.5}><strong>Compliance:</strong> {component.compliance}</Typography>
+                  <Typography variant="body2" color="text.secondary" mb={1}><strong>Cost:</strong> {component.cost}</Typography>
+                  <Typography variant="body2" color="text.primary" mb={2}>{component.description}</Typography>
+                  <Button variant="contained" color="success" fullWidth sx={{ fontWeight: 500 }}>
+                    View Details / Add to Workflow
+                  </Button>
+                </Paper>
+              </Grid>
             ))}
-          </div>
+          </Grid>
         ) : (
-          <p className="text-center text-gray-500 py-8">No components match your current filters. Try adjusting your search criteria.</p>
+          <Alert severity="info" sx={{ textAlign: 'center', py: 6 }} role="region" aria-label="No Components">
+            No components match your current filters. Try adjusting your search criteria.
+          </Alert>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

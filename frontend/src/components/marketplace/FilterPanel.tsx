@@ -20,8 +20,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, sear
     <div style={{ width: 240, padding: 16, borderRight: '1px solid #eee', background: '#fafbfc' }}>
       <h3>Filters</h3>
       <div style={{ marginBottom: 16 }}>
-        <label>Type:</label>
+        <label htmlFor="type-select">Type:</label>
         <select
+          id="type-select"
           value={filters.type}
           onChange={e => onFilterChange({ type: e.target.value })}
           style={{ width: '100%', marginTop: 4 }}
@@ -33,28 +34,33 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, sear
         </select>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <label>Compliance:</label>
-        <div style={{ marginTop: 4 }}>
-          {complianceOptions.map(option => (
-            <div key={option}>
-              <input
-                type="checkbox"
-                checked={filters.compliance.includes(option)}
-                onChange={e => {
-                  const newCompliance = e.target.checked
-                    ? [...filters.compliance, option]
-                    : filters.compliance.filter(c => c !== option);
-                  onFilterChange({ compliance: newCompliance });
-                }}
-              />
-              <span style={{ marginLeft: 8 }}>{option}</span>
-            </div>
-          ))}
-        </div>
+        <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend style={{ fontWeight: 500, marginBottom: 4 }}>Compliance:</legend>
+          <div style={{ marginTop: 4 }}>
+            {complianceOptions.map(option => (
+              <div key={option}>
+                <input
+                  id={`compliance-${option}`}
+                  type="checkbox"
+                  checked={filters.compliance.includes(option)}
+                  onChange={e => {
+                    const newCompliance = e.target.checked
+                      ? [...filters.compliance, option]
+                      : filters.compliance.filter(c => c !== option);
+                    onFilterChange({ compliance: newCompliance });
+                  }}
+                  aria-label={option}
+                />
+                <label htmlFor={`compliance-${option}`} style={{ marginLeft: 8 }}>{option}</label>
+              </div>
+            ))}
+          </div>
+        </fieldset>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <label>Cost:</label>
+        <label htmlFor="cost-select">Cost:</label>
         <select
+          id="cost-select"
           value={filters.cost}
           onChange={e => onFilterChange({ cost: e.target.value })}
           style={{ width: '100%', marginTop: 4 }}
@@ -66,8 +72,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange, sear
         </select>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <label>Search:</label>
+        <label htmlFor="search-input">Search:</label>
         <input
+          id="search-input"
           type="text"
           value={searchTerm}
           onChange={e => onSearchChange(e.target.value)}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Box, Button, TextField, Paper, Stack } from '@mui/material';
 
 interface QuickAccessToolbarProps {
   onCreateNew?: () => void; // Optional callback for Create New button
@@ -34,32 +35,38 @@ const QuickAccessToolbar: React.FC<QuickAccessToolbarProps> = ({
   };
 
   return (
-    <div className="p-4 bg-gray-100 rounded-lg shadow mb-6 flex items-center justify-between">
+    <Paper sx={{ p: 2, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderRadius: 2, boxShadow: 1 }}>
       {/* Create New Button */}
-      <button
+      <Button
+        variant="contained"
+        color="primary"
         onClick={handleCreateNewClick}
-        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        sx={{ fontWeight: 'bold', borderRadius: 1 }}
       >
         Create New Workflow
-      </button>
+      </Button>
 
       {/* Global Search Form */}
-      <form onSubmit={handleSearchSubmit} className="flex items-center">
-        <input
+      <Box component="form" onSubmit={handleSearchSubmit} sx={{ display: 'flex', alignItems: 'center' }}>
+        <TextField
           type="search"
           placeholder="Global Search..."
           value={searchTerm}
           onChange={handleSearchChange}
-          className="px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          size="small"
+          sx={{ mr: 1, minWidth: 220 }}
+          inputProps={{ 'aria-label': 'Global Search' }}
         />
-        <button
+        <Button
           type="submit"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-r-md"
+          variant="contained"
+          color="secondary"
+          sx={{ fontWeight: 'bold', borderRadius: 1 }}
         >
           Search
-        </button>
-      </form>
-    </div>
+        </Button>
+      </Box>
+    </Paper>
   );
 };
 

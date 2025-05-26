@@ -1,5 +1,7 @@
 import React from 'react';
-import { ComponentSummary } from '../../pages/MarketplacePage';
+import { ComponentSummary } from '../../services/api';
+import Card from '../common/Card';
+import Typography from '@mui/material/Typography';
 
 interface ComponentCardProps {
   component: ComponentSummary;
@@ -8,30 +10,23 @@ interface ComponentCardProps {
 
 const ComponentCard: React.FC<ComponentCardProps> = ({ component, onSelect }) => {
   return (
-    <div
+    <Card
       onClick={onSelect}
-      style={{
-        border: '1px solid #ddd',
-        borderRadius: 8,
-        padding: 16,
-        background: '#fff',
-        cursor: 'pointer',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-        transition: 'box-shadow 0.2s',
-      }}
+      sx={{ cursor: 'pointer', transition: 'box-shadow 0.2s' }}
+      title={`${component.name} (v${component.version})`}
     >
-      <h4 style={{ margin: 0 }}>{component.name} <small style={{ color: '#888' }}>(v{component.version})</small></h4>
-      <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{component.type}</div>
-      <p style={{ fontSize: 14, minHeight: 40 }}>{component.description.substring(0, 100)}...</p>
+      <Typography variant="body2" sx={{ minHeight: 40 }}>
+        {component.description.substring(0, 100)}...
+      </Typography>
       <div style={{ marginBottom: 8 }}>
-        {component.tags?.map(tag => (
+        {component.tags?.map((tag: string) => (
           <span key={tag} style={{ background: '#e0e7ff', color: '#3730a3', borderRadius: 4, padding: '2px 8px', fontSize: 12, marginRight: 4 }}>{tag}</span>
         ))}
       </div>
       {component.rating !== undefined && (
-        <div style={{ fontSize: 12, color: '#f59e42' }}>★ {component.rating.toFixed(1)}</div>
+        <Typography variant="body2" color="warning.main">★ {component.rating.toFixed(1)}</Typography>
       )}
-    </div>
+    </Card>
   );
 };
 
