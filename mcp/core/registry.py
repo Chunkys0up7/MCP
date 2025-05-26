@@ -1,5 +1,6 @@
 import uuid
 from typing import Any, Dict, List, Optional
+from pathlib import Path
 
 from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
@@ -16,6 +17,9 @@ from .python_script import PythonScriptMCP
 from .types import MCPType  # Union of all config types
 from .types import (AIAssistantConfig, JupyterNotebookConfig, LLMPromptConfig,
                     PythonScriptConfig)
+
+# Export MCP_REGISTRY_FILE for test compatibility
+MCP_REGISTRY_FILE = Path(".mcp_data/mcp_storage.json")
 
 # MCP server registry and persistence
 # STORAGE_DIR = Path(__file__).resolve().parent.parent.parent / ".mcp_data" # Adjusted path relative to this file

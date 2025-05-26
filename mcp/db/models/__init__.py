@@ -51,3 +51,6 @@ __all__ = [
     "Review",
     "User",
 ]
+
+# Export EMBEDDING_DIM for test compatibility
+EMBEDDING_DIM = 384

@@ -312,3 +312,19 @@ class WorkflowStepGantt(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Add WorkflowStatus and WorkflowStepStatus enums for test and code compatibility
+class WorkflowStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCESS = "SUCCESS"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+class WorkflowStepStatus(str, Enum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"

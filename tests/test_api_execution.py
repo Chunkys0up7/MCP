@@ -5,7 +5,7 @@ from mcp.api.main import app
 
 
 @pytest.mark.asyncio
-def test_execute_chain():
+async def test_execute_chain():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Create a chain first (or use a fixture)
         payload = {
@@ -22,7 +22,7 @@ def test_execute_chain():
 
 
 @pytest.mark.asyncio
-def test_get_execution_status():
+async def test_get_execution_status():
     async with AsyncClient(app=app, base_url="http://test") as ac:
         # Assume a chain exists
         response = await ac.get("/chains/1/status")
@@ -31,3 +31,10 @@ def test_get_execution_status():
 
 
 # Add more tests for stop, error cases
+
+@pytest.mark.asyncio
+async def test_api_execution():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Add your test logic here
+        response = await ac.get("/health")
+        assert response.status_code == 200
