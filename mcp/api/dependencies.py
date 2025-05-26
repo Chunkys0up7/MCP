@@ -15,7 +15,7 @@ from mcp.db.models.apikey import APIKey
 from mcp.db.models.user import User
 
 from .auth_utils import get_api_key, verify_access_token
-from .dependencies import get_db
+from mcp.db.session import get_db_session
 from .routers.auth import UserRole
 
 # Load environment variables from .env file
@@ -149,3 +149,12 @@ async def get_current_user_or_apikey(
     raise HTTPException(
         status_code=401, detail="Not authenticated: provide Bearer JWT or X-API-KEY"
     )
+
+
+def get_db():
+    """Dependency that provides a SQLAlchemy session for FastAPI routes."""
+    db = get_db_session()
+    try:
+        yield db
+    finally:
+        db.close()
