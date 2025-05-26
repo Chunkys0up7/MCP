@@ -158,3 +158,5 @@ async def get_current_user_or_apikey(
     raise HTTPException(
         status_code=401, detail="Not authenticated: provide Bearer JWT or X-API-KEY"
     )
+
+require_admin = require_role(UserRole.ADMIN)
