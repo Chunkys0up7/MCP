@@ -10,7 +10,7 @@ The Model Context Protocol (MCP) is a modular, extensible framework for managing
 - **Component Registry:** Manages MCP definitions, versions, and metadata.
 - **Monitoring & Metrics:** Real-time system and workflow monitoring, Prometheus integration, alerting, and visualization.
 - **AI Co-Pilot:** Workflow builder assistant for intelligent suggestions and automation.
-- **Frontend (planned):** Streamlit/React UI for workflow design, monitoring, and visualization.
+- **Frontend:** Modern React UI for workflow design, monitoring, and visualization.
 
 ## Key Features & Modules
 - **MCP Registry:**

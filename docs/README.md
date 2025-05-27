@@ -15,7 +15,7 @@ MCP provides a unified interface for:
 - **Unified Interface**: Manage all your model-based tasks through a single, consistent interface
 - **Type Safety**: Built with Pydantic for robust type checking and validation
 - **Extensible**: Easy to add new MCP types and functionality
-- **User-Friendly UI**: Streamlit-based interface for easy configuration and monitoring
+- **User-Friendly UI**: Modern React (MUI/ReactFlow) interface for easy configuration, monitoring, and workflow design
 - **Robust Error Handling**: Comprehensive error handling and logging
 - **Configuration Management**: Centralized configuration with environment variable support
 

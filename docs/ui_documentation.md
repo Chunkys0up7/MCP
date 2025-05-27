@@ -1,7 +1,9 @@
 # MCP Chain Builder UI Documentation
 
+> **Note:** This documentation is being updated for the new React (MUI/ReactFlow) UI. The previous Streamlit UI is deprecated and no longer supported.
+
 ## Overview
-The MCP Chain Builder is a visual interface for creating, managing, and executing chains of Managed Component Providers (MCPs). The interface is built using Streamlit and provides an intuitive way to compose complex workflows.
+The MCP Chain Builder is a visual interface for creating, managing, and executing workflows of Managed Component Providers (MCPs). The interface is built using React (MUI/ReactFlow) and provides an intuitive way to compose complex workflows.
 
 ## UI Components
 

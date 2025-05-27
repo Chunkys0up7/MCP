@@ -206,7 +206,7 @@
 - [x] 11. Add/expand code docstrings and inline comments for maintainability. (All new/changed code and core modules have clear docstrings and inline comments; codebase is well-documented and maintainable.)
 - [x] 12. Ensure consistent type hinting and typing throughout the Python codebase. (All core models and major modules are now fully type-annotated and mypy-compliant, except for a known SQLAlchemy base warning. Remaining utility/session modules can be addressed separately.)
 - [x] 13. Standardize on `httpx.AsyncClient` for async API tests. (All async API tests now use httpx.AsyncClient and MockTransport for mocking; aiohttp and related mocks removed.)
-- [ ] 14. Audit and improve API key/JWT handling for security best practices.
-- [ ] 15. Remove any remaining Streamlit/React ambiguity in documentation and README.
+- [x] 14. Audit and improve API key/JWT handling for security best practices. (API key/JWT logic refactored, all endpoints audited, tests updated, dependency injection for security implemented. See code and test plan.)
+- [x] 15. Remove any remaining Streamlit/React ambiguity in documentation and README. (All references updated; React is now the only supported UI.)
 
 _(This checklist will be updated and checked off as work progresses. Each item will be committed and pushed frequently for traceability.)_ 
