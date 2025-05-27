@@ -3,6 +3,7 @@ import traceback
 from typing import Any, Dict, List, Optional
 
 import requests
+import httpx
 
 from ..core.config import config
 from ..core.types import MCPResult
@@ -218,23 +219,39 @@ class MCPClient:
         )
         return self._handle_response(response)
 
+    async def _handle_async_response(self, response: httpx.Response) -> Dict[str, Any]:
+        """Handle async API response and raise appropriate exceptions."""
+        if response.status_code == 404:
+            raise MCPNotFoundError(f"Resource not found: {response.url}")
+        elif response.status_code == 400:
+            raise MCPValidationError(f"Validation error: {response.text}")
+        elif response.status_code >= 400:
+            raise MCPAPIError(f"API error: {response.text}")
+        try:
+            return response.json()
+        except Exception as e:
+            raise MCPAPIError(f"Failed to decode JSON response: {str(e)}")
+
     async def execute_llm_prompt(self, config, inputs):
-        MCP_CLIENT_SPECIFIC_LOGGER.debug(
-            f"execute_llm_prompt called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}"
-        )
-        return self.execute_server(config.id, inputs)
+        """Async: Execute LLM prompt using httpx.AsyncClient."""
+        url = f"{self.base_url}/context/{config.id}/execute"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=self.headers, json=inputs)
+            return await self._handle_async_response(response)
 
     async def execute_notebook(self, config, inputs):
-        MCP_CLIENT_SPECIFIC_LOGGER.debug(
-            f"execute_notebook called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}"
-        )
-        return self.execute_server(config.id, inputs)
+        """Async: Execute notebook using httpx.AsyncClient."""
+        url = f"{self.base_url}/context/{config.id}/execute"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=self.headers, json=inputs)
+            return await self._handle_async_response(response)
 
     async def execute_script(self, config, inputs):
-        MCP_CLIENT_SPECIFIC_LOGGER.debug(
-            f"execute_script called. Logger type: {type(MCP_CLIENT_SPECIFIC_LOGGER)}, ID: {id(MCP_CLIENT_SPECIFIC_LOGGER)}"
-        )
-        return self.execute_server(config.id, inputs)
+        """Async: Execute script using httpx.AsyncClient."""
+        url = f"{self.base_url}/context/{config.id}/execute"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=self.headers, json=inputs)
+            return await self._handle_async_response(response)
 
 
 # Remove global client instance
