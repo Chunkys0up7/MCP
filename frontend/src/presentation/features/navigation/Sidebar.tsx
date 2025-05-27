@@ -102,6 +102,7 @@ const Sidebar: React.FC = () => {
             onClick={() => handleNavigation('/')}
             aria-label="Dashboard"
             sx={{
+              minHeight: 44,
               '&.Mui-selected': {
                 bgcolor: 'rgba(11, 121, 238, 0.1)',
                 '&:hover': {
@@ -128,6 +129,7 @@ const Sidebar: React.FC = () => {
             onClick={() => handleNavigation('/create-mcp')}
             aria-label="Create MCP"
             sx={{
+              minHeight: 44,
               '&.Mui-selected': {
                 bgcolor: 'rgba(11, 121, 238, 0.1)',
                 '&:hover': {
@@ -154,6 +156,7 @@ const Sidebar: React.FC = () => {
             onClick={() => handleNavigation('/manage-mcps')}
             aria-label="Manage MCPs"
             sx={{
+              minHeight: 44,
               '&.Mui-selected': {
                 bgcolor: 'rgba(11, 121, 238, 0.1)',
                 '&:hover': {
@@ -180,6 +183,7 @@ const Sidebar: React.FC = () => {
             onClick={() => handleNavigation('/test-mcps')}
             aria-label="Test MCPs"
             sx={{
+              minHeight: 44,
               '&.Mui-selected': {
                 bgcolor: 'rgba(11, 121, 238, 0.1)',
                 '&:hover': {

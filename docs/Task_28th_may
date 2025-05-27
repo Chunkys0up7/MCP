@@ -1,0 +1,58 @@
+# Tasks - 28th May
+
+## 1. Improve Dashboard Responsiveness and Accessibility
+- **Refactor Dashboard Layout for Responsiveness:**
+  - [x] Implement a collapsible sidebar that hides or becomes a drawer on small screens (mobile/tablet). (Sidebar now uses MUI Drawer: permanent on desktop, temporary on mobile, toggled by hamburger menu in TopBar.)
+  - [x] Add a hamburger menu button to the TopBar for toggling the sidebar on mobile.
+  - [x] Adjust main content area to account for sidebar width and overlay behavior responsively.
+  - [ ] Test layout on multiple screen sizes (mobile, tablet, desktop) and browsers.
+- **Audit and Enhance Accessibility:**
+  - [x] Review dashboard Card and Chip components for accessibility and interactivity (DONE: see code review).
+  - [x] Ensure all dashboard Card and Chip components have proper ARIA roles, keyboard navigation (tab order), and visible focus states. (Card now has ARIA, keyboard, and focus ring; Chip used for tags.)
+  - [x] Refactor any span-based tags (e.g., in ComponentCard) to use MUI Chip for consistency and accessibility.
+  - [x] Add a test plan for accessibility (manual and automated: axe, Lighthouse, keyboard navigation, screen reader):
+    - [x] Run axe and Lighthouse audits on the dashboard and key screens; address any critical or serious issues.
+    - [x] Manually tab through all interactive elements (sidebar, cards, chips, buttons) to ensure logical tab order and visible focus states.
+    - [x] Use a screen reader (NVDA, VoiceOver, or ChromeVox) to verify navigation, card, and button announcements (check ARIA roles/labels).
+    - [x] Confirm all clickable elements are keyboard-activatable (Enter/Space).
+    - [x] Document any remaining issues or improvements needed.
+  - [ ] Check and improve color contrast for all text, icons, and UI elements (use tools like axe or Lighthouse).
+    - [ ] Review theme colors for primary, secondary, info, warning, and text for sufficient contrast (see theme.ts).
+    - [ ] Adjust palette or component overrides as needed to meet WCAG AA contrast ratios.
+  - [x] Ensure TopBar IconButtons have minimum 44x44px touch target and aria-labels for accessibility.
+  - [x] Review Sidebar ListItemButton and all dashboard action buttons for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
+  - [ ] Review all dashboard action buttons (e.g., in Cards, Panels) for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
+  - [ ] Ensure all interactive elements are accessible via keyboard (tab order, focus states, ARIA labels where needed).
+  - [ ] Add or improve screen reader support for navigation, cards, and action buttons (use semantic HTML and ARIA roles/labels).
+- **Clarify and Enhance Interactivity:**
+  - [ ] Make it visually clear which cards, tags, and buttons are clickable (hover/focus states, cursor changes, button styles).
+  - [ ] Add tooltips or accessible descriptions for icons and less obvious actions.
+  - [ ] Ensure feedback is provided for all user actions (e.g., loading spinners, error messages, success toasts).
+
+## 2. Clarify and Document UI Interaction Patterns
+- **Update UI Documentation:**
+  - For each major dashboard action (e.g., clicking a recommendation card, using global search, creating a new workflow), describe:
+    - The user intent and expected outcome.
+    - The navigation flow (where the user is taken, what changes on the screen).
+    - Any confirmation dialogs, loading states, or error handling involved.
+  - Document the behavior of interactive elements (cards, tags, buttons, sidebar links) including hover/focus/active states.
+- **Add Visual Aids:**
+  - Create diagrams or flowcharts for key user journeys (e.g., "From Dashboard to Workflow Builder via card click").
+  - Include annotated screenshots or wireframes if possible to illustrate navigation and action flows.
+- **Review and Cross-Reference:**
+  - Ensure documentation is consistent with the current UI implementation.
+  - Cross-link relevant sections between UI_overview, Dashboard docs, and codeReview for easy navigation.
+
+## 3. Standardize and Audit Project Naming and Dependencies
+- **Complete "Chain" to "Workflow" Migration:**
+  - Search the entire codebase (code, docs, UI) for any remaining uses of "Chain" and update to "Workflow" where appropriate.
+  - Update variable names, function names, file names, and documentation for consistency.
+  - Review test cases and test data for naming consistency.
+- **Audit and Unify Dependencies:**
+  - Compare dependency versions across requirements.txt, requirements-dev.txt, and setup.py; update to ensure consistency.
+  - Remove deprecated or unused packages (e.g., react-flow-renderer, Streamlit if not used).
+  - Run `pip-audit` and `npm audit` to check for vulnerabilities and address any issues found.
+  - Document the finalized dependency versions and management approach in codeReview.
+- **Document Project Terminology and Conventions:**
+  - Add a section to codeReview summarizing the standardized terminology (e.g., "Workflow" vs. "Chain"), naming conventions, and dependency management practices.
+  - Ensure all contributors are aware of and follow these conventions going forward. 

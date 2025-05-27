@@ -41,7 +41,8 @@ const QuickAccessToolbar: React.FC<QuickAccessToolbarProps> = ({
         variant="contained"
         color="primary"
         onClick={handleCreateNewClick}
-        sx={{ fontWeight: 'bold', borderRadius: 1 }}
+        sx={{ fontWeight: 'bold', borderRadius: 1, minWidth: 44, minHeight: 44 }}
+        aria-label="Create New Workflow"
       >
         Create New Workflow
       </Button>
@@ -61,7 +62,8 @@ const QuickAccessToolbar: React.FC<QuickAccessToolbarProps> = ({
           type="submit"
           variant="contained"
           color="secondary"
-          sx={{ fontWeight: 'bold', borderRadius: 1 }}
+          sx={{ fontWeight: 'bold', borderRadius: 1, minWidth: 44, minHeight: 44 }}
+          aria-label="Search"
         >
           Search
         </Button>
