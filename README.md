@@ -1,7 +1,7 @@
 # Model Context Protocol (MCP)
 
 ## Overview
-MCP is a modular framework for managing, executing, and monitoring AI model contexts, including LLM prompts, Jupyter notebooks, and Python scripts. It provides a FastAPI backend and a Streamlit dashboard frontend.
+MCP is a modular framework for managing, executing, and monitoring AI model contexts, including LLM prompts, Jupyter notebooks, and Python scripts. It provides a FastAPI backend and a modern React (MUI/ReactFlow) dashboard frontend (see `frontend/`).
 
 ## Features
 - Register and manage different types of MCPs (LLM prompts, notebooks, scripts)
@@ -41,11 +41,13 @@ uvicorn mcp.api.main:app --reload
 
 ### Start the frontend
 ```bash
-streamlit run mcp/ui/app.py
+cd frontend
+npm install
+npm run dev
 ```
 
 ## Usage
-- Access the dashboard at [http://localhost:8501](http://localhost:8501)
+- Access the dashboard at [http://localhost:5173](http://localhost:5173) (default React dev server)
 - Create, manage, and test MCPs from the UI
 - Monitor health and stats from the sidebar
 - Use the AI Co-Pilot for workflow optimization
@@ -90,7 +92,7 @@ pytest
 
 ## Project Structure
 - `mcp/api/` - FastAPI backend
-- `mcp/ui/` - Streamlit frontend
+- `frontend/` - React (MUI/ReactFlow) frontend (primary UI)
 - `mcp/core/` - Core MCP types and logic
 - `mcp/db/` - Database management and optimization
 - `mcp/monitoring/` - System monitoring and metrics
@@ -225,4 +227,8 @@ The Execution Monitor now includes the following panels (with mock data, ready f
 - **Performance Suggestions Panel:** See optimization and bottleneck suggestions.
 - **Real-Time Metrics Dashboard:** Monitor live metrics (CPU, memory, throughput, etc.).
 
-These panels are integrated into the workflow Execution Monitor and will display real data once backend support is available. 
+These panels are integrated into the workflow Execution Monitor and will display real data once backend support is available.
+
+## Deprecation Notice
+
+The Streamlit UI (`mcp/ui/`) is deprecated and will be removed in a future release. Please use the React frontend in `frontend/` for all new development and usage. 
