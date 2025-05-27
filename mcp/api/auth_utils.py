@@ -6,13 +6,11 @@ from fastapi import HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 from jose import JWTError, jwt
 
+from mcp.config.settings import settings  # <-- Import global settings
+
 # --- JWT Configuration ---
-# TODO: Move these to environment variables or a secure settings management system
-JWT_SECRET_KEY = (
-    "a_very_secure_random_secret_key_for_mcp_project"  # CHANGE THIS IN PRODUCTION!
-)
-JWT_ALGORITHM = "HS256"
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# All secrets/config are now loaded from settings.security
+# settings.security.secret_key, settings.security.algorithm, settings.security.access_token_expire_minutes
 
 # API Key header scheme
 api_key_header_scheme = APIKeyHeader(name="X-API-KEY", auto_error=False)
@@ -22,7 +20,7 @@ async def get_api_key(
     api_key_header_value: str = Security(api_key_header_scheme),
 ) -> str:
     """Validate API key from header."""
-    API_KEY = os.getenv("MCP_API_KEY")  # Load API key dynamically
+    API_KEY = os.getenv("MCP_API_KEY") or settings.security.secret_key  # Fallback to settings if env not set
     if api_key_header_value != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return api_key_header_value
@@ -36,10 +34,12 @@ def create_access_token(
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(
-            minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=settings.security.access_token_expire_minutes
         )
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.security.secret_key, algorithm=settings.security.algorithm
+    )
     return encoded_jwt
 
 
@@ -52,7 +52,7 @@ def verify_access_token(
     Raises credentials_exception if the token is invalid or expired.
     """
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(token, settings.security.secret_key, algorithms=[settings.security.algorithm])
         return payload
     except JWTError:
         # Log the specific JWTError for debugging if needed

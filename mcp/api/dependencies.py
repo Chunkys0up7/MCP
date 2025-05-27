@@ -17,6 +17,7 @@ from mcp.db.models.user import User
 from .auth_utils import get_api_key, verify_access_token
 from mcp.db.session import get_db_session
 from .routers.auth import UserRole
+from mcp.config.settings import settings  # <-- Import global settings
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,7 +35,7 @@ async def get_api_key(
     api_key_header_value: str = Security(api_key_header_scheme),
 ) -> str:
     """Validate API key from header."""
-    API_KEY = os.getenv("MCP_API_KEY")  # Load API key dynamically
+    API_KEY = os.getenv("MCP_API_KEY") or settings.security.secret_key  # Fallback to settings if env not set
     if api_key_header_value != API_KEY:
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return api_key_header_value

@@ -205,7 +205,7 @@
 - [x] 10. Complete backend integration for advanced UI panels (Resource Usage, Debugging, etc.). (REST and WebSocket endpoints for resource usage, logs, execution status, and history implemented with mock data; ready for frontend integration.)
 - [x] 11. Add/expand code docstrings and inline comments for maintainability. (All new/changed code and core modules have clear docstrings and inline comments; codebase is well-documented and maintainable.)
 - [x] 12. Ensure consistent type hinting and typing throughout the Python codebase. (All core models and major modules are now fully type-annotated and mypy-compliant, except for a known SQLAlchemy base warning. Remaining utility/session modules can be addressed separately.)
-- [ ] 13. Standardize on `httpx.AsyncClient` for async API tests.
+- [x] 13. Standardize on `httpx.AsyncClient` for async API tests. (All async API tests now use httpx.AsyncClient and MockTransport for mocking; aiohttp and related mocks removed.)
 - [ ] 14. Audit and improve API key/JWT handling for security best practices.
 - [ ] 15. Remove any remaining Streamlit/React ambiguity in documentation and README.
 
