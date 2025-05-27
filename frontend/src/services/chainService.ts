@@ -1,3 +1,4 @@
+// DEPRECATED: Use workflowService.ts instead. This file will be removed.
 import axios from 'axios';
 import type { ChainService, Chain, ChainConfig } from '../types';
 

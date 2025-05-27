@@ -1,3 +1,4 @@
+// DEPRECATED: Use workflowService.ts instead. This file will be removed.
 import { ApiClient } from '../api/client';
 import type { Chain, ChainConfig, ChainInfo } from '../types/chain';
 import type { ChainNode, ChainEdge } from '../types/chain';

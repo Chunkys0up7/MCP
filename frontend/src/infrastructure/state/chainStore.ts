@@ -1,3 +1,4 @@
+// DEPRECATED: Use workflowStore.ts instead. This file will be removed.
 import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
 
