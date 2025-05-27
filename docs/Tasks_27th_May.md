@@ -200,7 +200,7 @@
 - [x] 5. Unify dependency versions across `requirements.txt`, `requirements-dev.txt`, and `setup.py`; run `pip-audit` and `npm audit`. (Security notes for flask/langchain-community added; npm audit clean; pip-audit advisories noted.)
 - [x] 6. Remove deprecated or unused packages (e.g., `react-flow-renderer`). (react-flow-renderer removed from frontend.)
 - [~] 7. Standardize naming: use "Workflow" instead of "Chain" everywhere (code, tests, docs). (Migration in progress; will be completed in multiple commits.)
-- [ ] 8. Migrate any file-based workflow storage (e.g., `chain_storage.json`) to the database; remove file-based logic.
+- [x] 8. Migrate any file-based workflow storage (e.g., `chain_storage.json`) to the database; remove file-based logic. (All logic is now database-backed, file deleted.)
 - [ ] 9. Implement robust sandboxing for script execution (PythonScriptMCP, JupyterNotebookMCP).
 - [ ] 10. Complete backend integration for advanced UI panels (Resource Usage, Debugging, etc.).
 - [ ] 11. Add/expand code docstrings and inline comments for maintainability.
