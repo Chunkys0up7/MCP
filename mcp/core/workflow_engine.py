@@ -207,6 +207,7 @@ class WorkflowEngine:
                 error_msg = f"Workflow contains cycles: {cycles}"
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
+                    workflow_id=workflow.workflow_id,
                     status="FAILED",
                     error_message=error_msg,
                     step_results=[],
@@ -221,6 +222,7 @@ class WorkflowEngine:
                 )
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
+                    workflow_id=workflow.workflow_id,
                     status="FAILED",
                     error_message=error_msg,
                     step_results=[],
@@ -239,6 +241,7 @@ class WorkflowEngine:
                 error_msg = f"Execution mode '{workflow.execution_mode}' not supported."
                 logger.error(error_msg)
                 return WorkflowExecutionResult(
+                    workflow_id=workflow.workflow_id,
                     status="FAILED",
                     error_message=error_msg,
                     step_results=[],
@@ -249,6 +252,7 @@ class WorkflowEngine:
             error_msg = f"Workflow execution failed: {str(e)}\n{traceback.format_exc()}"
             logger.error(error_msg)
             return WorkflowExecutionResult(
+                workflow_id=workflow.workflow_id,
                 status="FAILED",
                 error_message=error_msg,
                 step_results=[],
@@ -296,7 +300,7 @@ class WorkflowEngine:
         workflow_context = (
             {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
         )
-        step_results = []
+        step_results: List[Dict[str, Any]] = []
 
         for step in workflow.steps:
             step_result = await self._execute_workflow_step(
@@ -306,6 +310,7 @@ class WorkflowEngine:
 
             if step_result["status"] == "FAILED":
                 return WorkflowExecutionResult(
+                    workflow_id=workflow.workflow_id,
                     status="FAILED",
                     error_message=step_result["error"],
                     step_results=step_results,
@@ -315,6 +320,7 @@ class WorkflowEngine:
         # If we get here, all steps succeeded
         final_outputs = step_results[-1]["outputs_generated"] if step_results else None
         return WorkflowExecutionResult(
+            workflow_id=workflow.workflow_id,
             status="SUCCESS",
             error_message=None,
             step_results=step_results,
@@ -350,7 +356,7 @@ class WorkflowEngine:
         workflow_context = (
             {"workflow_initial_inputs": initial_inputs} if initial_inputs else {}
         )
-        step_results = []
+        step_results: List[Dict[str, Any]] = []
 
         # Get parallel execution groups
         execution_groups = self.dag_optimizer.optimize_parallel_execution()
@@ -374,22 +380,31 @@ class WorkflowEngine:
                     error_msg = f"Step execution failed: {str(result)}"
                     logger.error(error_msg)
                     return WorkflowExecutionResult(
+                        workflow_id=workflow.workflow_id,
                         status="FAILED",
                         error_message=error_msg,
                         step_results=step_results,
                         final_outputs=None,
                     )
-
+                if not isinstance(result, dict):
+                    error_msg = f"Step execution returned non-dict result: {result}"
+                    logger.error(error_msg)
+                    return WorkflowExecutionResult(
+                        workflow_id=workflow.workflow_id,
+                        status="FAILED",
+                        error_message=error_msg,
+                        step_results=step_results,
+                        final_outputs=None,
+                    )
                 step_results.append(result)
                 if result["status"] == "FAILED":
                     return WorkflowExecutionResult(
+                        workflow_id=workflow.workflow_id,
                         status="FAILED",
                         error_message=result["error"],
                         step_results=step_results,
                         final_outputs=None,
                     )
-
-                # Update workflow context with step outputs
                 workflow_context[result["step_id"]] = {
                     "outputs": result["outputs_generated"]
                 }
@@ -397,6 +412,7 @@ class WorkflowEngine:
         # If we get here, all steps succeeded
         final_outputs = step_results[-1]["outputs_generated"] if step_results else None
         return WorkflowExecutionResult(
+            workflow_id=workflow.workflow_id,
             status="SUCCESS",
             error_message=None,
             step_results=step_results,

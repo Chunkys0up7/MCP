@@ -9,45 +9,45 @@ from pydantic_settings import BaseSettings
 class DatabaseSettings(BaseSettings):
     """Database configuration settings."""
 
-    host: str = Field(default="localhost", env="DB_HOST")
-    port: int = Field(default=5432, env="DB_PORT")
-    database: str = Field(default="mcp", env="DB_NAME")
-    user: str = Field(default="postgres", env="DB_USER")
-    password: str = Field(default="postgres", env="DB_PASSWORD")
-    pool_size: int = Field(default=5, env="DB_POOL_SIZE")
-    max_overflow: int = Field(default=10, env="DB_MAX_OVERFLOW")
-    pool_timeout: int = Field(default=30, env="DB_POOL_TIMEOUT")
-    pool_recycle: int = Field(default=1800, env="DB_POOL_RECYCLE")
+    host: str = Field(default="localhost", validation_alias="DB_HOST")
+    port: int = Field(default=5432, validation_alias="DB_PORT")
+    database: str = Field(default="mcp", validation_alias="DB_NAME")
+    user: str = Field(default="postgres", validation_alias="DB_USER")
+    password: str = Field(default="postgres", validation_alias="DB_PASSWORD")
+    pool_size: int = Field(default=5, validation_alias="DB_POOL_SIZE")
+    max_overflow: int = Field(default=10, validation_alias="DB_MAX_OVERFLOW")
+    pool_timeout: int = Field(default=30, validation_alias="DB_POOL_TIMEOUT")
+    pool_recycle: int = Field(default=1800, validation_alias="DB_POOL_RECYCLE")
 
 
 class RedisSettings(BaseSettings):
     """Redis configuration settings."""
 
-    host: str = Field(default="localhost", env="REDIS_HOST")
-    port: int = Field(default=6379, env="REDIS_PORT")
-    db: int = Field(default=0, env="REDIS_DB")
-    password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    host: str = Field(default="localhost", validation_alias="REDIS_HOST")
+    port: int = Field(default=6379, validation_alias="REDIS_PORT")
+    db: int = Field(default=0, validation_alias="REDIS_DB")
+    password: Optional[str] = Field(default=None, validation_alias="REDIS_PASSWORD")
 
 
 class SecuritySettings(BaseSettings):
     """Security configuration settings."""
 
-    secret_key: str = Field(default="your-secret-key-here", env="SECRET_KEY")
-    algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
+    secret_key: str = Field(default="your-secret-key-here", validation_alias="SECRET_KEY")
+    algorithm: str = Field(default="HS256", validation_alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(
-        default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES"
+        default=30, validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES"
     )
-    refresh_token_expire_days: int = Field(default=7, env="REFRESH_TOKEN_EXPIRE_DAYS")
+    refresh_token_expire_days: int = Field(default=7, validation_alias="REFRESH_TOKEN_EXPIRE_DAYS")
 
 
 class LoggingSettings(BaseSettings):
     """Logging configuration settings."""
 
-    level: str = Field(default="INFO", env="LOG_LEVEL")
+    level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
     format: str = Field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", env="LOG_FORMAT"
+        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", validation_alias="LOG_FORMAT"
     )
-    file: Optional[str] = Field(default=None, env="LOG_FILE")
+    file: Optional[str] = Field(default=None, validation_alias="LOG_FILE")
 
 
 class StreamlitSettings(BaseSettings):
@@ -61,23 +61,23 @@ class StreamlitSettings(BaseSettings):
             "textColor": "#262730",
             "font": "sans serif",
         },
-        env="STREAMLIT_THEME",
+        validation_alias="STREAMLIT_THEME",
     )
-    page_title: str = Field(default="MCP Builder", env="STREAMLIT_PAGE_TITLE")
-    page_icon: str = Field(default="🤖", env="STREAMLIT_PAGE_ICON")
+    page_title: str = Field(default="MCP Builder", validation_alias="STREAMLIT_PAGE_TITLE")
+    page_icon: str = Field(default="🤖", validation_alias="STREAMLIT_PAGE_ICON")
 
 
 class Settings(BaseSettings):
     """Main application settings."""
 
     # Base settings
-    debug: bool = Field(default=False, env="DEBUG")
-    environment: str = Field(default="development", env="ENVIRONMENT")
+    debug: bool = Field(default=False, validation_alias="DEBUG")
+    environment: str = Field(default="development", validation_alias="ENVIRONMENT")
 
     # Application settings
-    app_name: str = Field(default="MCP Builder", env="APP_NAME")
-    app_version: str = Field(default="1.0.0", env="APP_VERSION")
-    api_prefix: str = Field(default="/api/v1", env="API_PREFIX")
+    app_name: str = Field(default="MCP Builder", validation_alias="APP_NAME")
+    app_version: str = Field(default="1.0.0", validation_alias="APP_VERSION")
+    api_prefix: str = Field(default="/api/v1", validation_alias="API_PREFIX")
 
     # Component settings
     database: DatabaseSettings = DatabaseSettings()

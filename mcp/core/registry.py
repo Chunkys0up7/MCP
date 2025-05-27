@@ -41,7 +41,7 @@ print(
 # Initialize embedding model (ensure this model is downloaded/available)
 # Using a smaller, efficient model for local dev. Consider larger models for production.
 try:
-    embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+    embedding_model: Optional[SentenceTransformer] = SentenceTransformer("all-MiniLM-L6-v2")
 except Exception as e:
     print(
         f"Error loading SentenceTransformer model: {e}. Semantic search features might not work."
@@ -90,12 +90,10 @@ def _generate_mcp_embedding(
 
     # If it's an update and some fields are not provided, use existing MCP's values if available
     if isinstance(mcp_data, MCPUpdate) and existing_mcp:
-        if mcp_data.name is None and existing_mcp.name:
-            # If name was in text_parts due to mcp_data.name being None initially then being set to empty string,
-            # ensure we don't double add. A bit complex, simpler to reconstruct text_parts for update.
-            current_name = existing_mcp.name
+        if mcp_data.name is None and existing_mcp and existing_mcp.name:
+            current_name = str(existing_mcp.name)
         else:
-            current_name = mcp_data.name or (existing_mcp.name if existing_mcp else "")
+            current_name = str(mcp_data.name or (existing_mcp.name if existing_mcp else ""))
 
         current_description = (
             mcp_data.description
@@ -117,7 +115,8 @@ def _generate_mcp_embedding(
     if not any(text_parts):
         return None
 
-    full_text = " ".join(filter(None, text_parts))
+    # Ensure text_parts is List[Optional[str]] for filter(None, ...)
+    full_text = " ".join(filter(None, [str(part) if part is not None else None for part in text_parts]))
     if not full_text.strip():
         return None
 

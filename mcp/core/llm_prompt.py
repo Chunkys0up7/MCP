@@ -124,7 +124,7 @@ class ClaudeLLM:
             "content-type": "application/json",
         }
 
-        request_data = {"model": self.model_name, "messages": messages}
+        request_data: Dict[str, Any] = {"model": self.model_name, "messages": messages}
 
         if self.system_prompt:
             request_data["system"] = self.system_prompt
@@ -194,6 +194,7 @@ class LLMPromptMCP(BaseMCPServer):
             config (LLMPromptConfig): The configuration for this MCP.
         """
         super().__init__(config)
+        self.config: LLMPromptConfig = config  # Ensure type for self.config
         self.llm = self._get_llm()
 
     @property
@@ -203,7 +204,7 @@ class LLMPromptMCP(BaseMCPServer):
         Returns:
             str: The MCP's name.
         """
-        return self._name
+        return self.config.name
 
     @property
     def description(self) -> Optional[str]:
@@ -212,7 +213,7 @@ class LLMPromptMCP(BaseMCPServer):
         Returns:
             Optional[str]: The MCP's description, if any.
         """
-        return self._description
+        return self.config.description
 
     def _get_llm(self) -> ClaudeLLM:
         """Get the LLM client instance.
@@ -333,7 +334,6 @@ class LLMPromptMCP(BaseMCPServer):
                 "model": self.config.model_name,
                 "prompt": formatted_prompt,
                 "system_message": self.config.system_prompt,
-                "context": self.config.context or {},
             }
         except ValueError as ve:
             return {"success": False, "result": None, "error": str(ve)}

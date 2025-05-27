@@ -9,9 +9,10 @@ from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSock
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 import json
+import asyncio
 
 from mcp.cache.redis_manager import RedisCacheManager
 from mcp.core import registry as mcp_registry_service
@@ -362,16 +363,63 @@ logger.info("MCP API Application configured and starting...")
 @app.websocket("/ws/execution")
 async def websocket_execution_endpoint(websocket: WebSocket):
     await websocket.accept()
+    workflow_id = None
     try:
         while True:
             data = await websocket.receive_text()
             try:
                 message = json.loads(data)
-                # Echo the message back as JSON
-                await websocket.send_text(json.dumps({"type": "echo", "payload": message, "timestamp": int(__import__('time').time())}))
+                # If the message is a status subscription, start sending updates
+                if message.get("type") == "status" and "workflowId" in message.get("payload", {}):
+                    workflow_id = message["payload"]["workflowId"]
+                    # Start sending periodic updates (mock)
+                    for i in range(5):  # Send 5 updates for demo; remove limit for real
+                        await asyncio.sleep(1)
+                        # Resource update
+                        await websocket.send_text(json.dumps({
+                            "type": "resource_update",
+                            "payload": {
+                                "cpu": 30 + i * 5,
+                                "memory": 100 + i * 10,
+                                "network": {"bytesIn": 1000 + i * 100, "bytesOut": 500 + i * 50}
+                            },
+                            "timestamp": int(time.time())
+                        }))
+                        # Execution update
+                        await websocket.send_text(json.dumps({
+                            "type": "execution_update",
+                            "payload": {
+                                "nodeId": f"step-{i+1}",
+                                "status": "running" if i < 4 else "completed",
+                                "progress": (i+1)*20,
+                                "startTime": int(time.time()) - 10 + i,
+                                "endTime": int(time.time()) if i == 4 else None
+                            },
+                            "timestamp": int(time.time())
+                        }))
+                        # Log message
+                        await websocket.send_text(json.dumps({
+                            "type": "log",
+                            "payload": {
+                                "timestamp": datetime.now().isoformat(),
+                                "level": "INFO",
+                                "message": f"Step {i+1} running",
+                                "step_id": f"step-{i+1}"
+                            },
+                            "timestamp": int(time.time())
+                        }))
+                    # After updates, send a final status
+                    await websocket.send_text(json.dumps({
+                        "type": "status",
+                        "payload": {"connected": True, "workflowId": workflow_id},
+                        "timestamp": int(time.time())
+                    }))
+                else:
+                    # Echo the message back as JSON
+                    await websocket.send_text(json.dumps({"type": "echo", "payload": message, "timestamp": int(time.time())}))
             except json.JSONDecodeError:
                 # Send an error message in JSON format
-                await websocket.send_text(json.dumps({"type": "error", "payload": {"error": "Invalid JSON received"}, "timestamp": int(__import__('time').time())}))
+                await websocket.send_text(json.dumps({"type": "error", "payload": {"error": "Invalid JSON received"}, "timestamp": int(time.time())}))
     except WebSocketDisconnect:
         print("WebSocket disconnected")
 
@@ -430,4 +478,54 @@ async def dashboard_collaborations():
             "collaborators": ["Charlie"],
             "type": "component"
         }
+    ]
+
+class ResourceUsageEntry(BaseModel):
+    step_id: str
+    label: str
+    cpu: float  # percent
+    memory: float  # MB
+
+class LogEntry(BaseModel):
+    timestamp: str
+    level: str
+    message: str
+    step_id: str = None
+
+class StepHistoryEntry(BaseModel):
+    step_id: str
+    status: str
+    started_at: str
+    finished_at: str
+    result: Any = None
+    error: str = None
+
+@app.get("/api/execution/runs/{run_id}/resource-usage", response_model=List[ResourceUsageEntry])
+async def get_resource_usage(run_id: str):
+    """Get resource usage (CPU, memory, etc.) for each step in a workflow run. (Mock data)"""
+    # TODO: Integrate with real resource tracking
+    return [
+        ResourceUsageEntry(step_id="step-1", label="Step 1", cpu=32, memory=120),
+        ResourceUsageEntry(step_id="step-2", label="Step 2", cpu=68, memory=210),
+        ResourceUsageEntry(step_id="step-3", label="Step 3", cpu=15, memory=80),
+    ]
+
+@app.get("/api/execution/runs/{run_id}/logs", response_model=List[LogEntry])
+async def get_run_logs(run_id: str):
+    """Get logs for a workflow run. (Mock data, filter from log file in future)"""
+    # TODO: Integrate with real log filtering by run_id
+    return [
+        LogEntry(timestamp="2024-05-30T10:00:00Z", level="INFO", message="Step 1 started", step_id="step-1"),
+        LogEntry(timestamp="2024-05-30T10:00:01Z", level="INFO", message="Step 1 completed", step_id="step-1"),
+        LogEntry(timestamp="2024-05-30T10:00:02Z", level="INFO", message="Step 2 started", step_id="step-2"),
+        LogEntry(timestamp="2024-05-30T10:00:03Z", level="ERROR", message="Step 2 failed: OOM", step_id="step-2"),
+    ]
+
+@app.get("/api/execution/runs/{run_id}/history", response_model=List[StepHistoryEntry])
+async def get_run_history(run_id: str):
+    """Get step-by-step execution history for a workflow run. (Mock data)"""
+    # TODO: Integrate with real execution history
+    return [
+        StepHistoryEntry(step_id="step-1", status="completed", started_at="2024-05-30T10:00:00Z", finished_at="2024-05-30T10:00:01Z", result={"output": "ok"}),
+        StepHistoryEntry(step_id="step-2", status="failed", started_at="2024-05-30T10:00:02Z", finished_at="2024-05-30T10:00:03Z", error="OOM"),
     ]

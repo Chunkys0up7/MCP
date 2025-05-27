@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Any
 
 from mcp.core.workflow_engine import WorkflowExecutionResult, WorkflowStep
 from mcp.db.models import WorkflowDefinition
@@ -190,9 +190,9 @@ class DAGWorkflowEngine:
             Dict[str, WorkflowExecutionResult]: Results of all step executions
         """
         self.build_dag(workflow)
-        results = {}
-        running_steps = set()
-        completed_steps = set()
+        results: Dict[str, Any] = {}
+        running_steps: set[str] = set()
+        completed_steps: set[str] = set()
 
         while len(completed_steps) < len(self.steps):
             # Find steps that can be executed
@@ -226,9 +226,9 @@ class DAGWorkflowEngine:
     async def _execute_and_track(
         self,
         step_id: str,
-        results: Dict[str, WorkflowExecutionResult],
-        running_steps: Set[str],
-        completed_steps: Set[str],
+        results: Dict[str, Any],
+        running_steps: set[str],
+        completed_steps: set[str],
     ) -> None:
         """
         Execute a step and track its completion.

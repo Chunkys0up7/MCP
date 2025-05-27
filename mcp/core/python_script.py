@@ -14,16 +14,17 @@ import subprocess
 import sys
 import tempfile
 import traceback
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set
 
 from mcp.core.types import PythonScriptConfig
+from .sandbox import run_sandboxed_subprocess
 
 from .base import BaseMCPServer
 
 logger = logging.getLogger(__name__)
 
 # Store paths of temporary files created for script_content
-_temporary_script_files = set()
+_temporary_script_files: Set[str] = set()
 
 
 def _cleanup_temporary_files():
@@ -98,7 +99,12 @@ class PythonScriptMCP(BaseMCPServer):
             )
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Executes the Python script with the given inputs."""
+        """Executes the Python script with the given inputs in a sandboxed subprocess.
+
+        This method prepares input/output files, constructs the command, and uses
+        run_sandboxed_subprocess to enforce resource and environment limits.
+        Returns a result dict with success, result, error, stdout, and stderr.
+        """
         if not self._script_path_to_execute or not os.path.exists(
             self._script_path_to_execute
         ):
@@ -113,6 +119,10 @@ class PythonScriptMCP(BaseMCPServer):
 
         # This will run in a separate thread via asyncio.to_thread
         def _run_script_sync():
+            """
+            Synchronously runs the script in a sandboxed subprocess.
+            Handles temp file creation, command construction, and result parsing.
+            """
             python_exe = sys.executable or "python"
             script_to_run_str = str(self._script_path_to_execute)
 
@@ -123,12 +133,14 @@ class PythonScriptMCP(BaseMCPServer):
             process_return_code = -1  # Default error code
 
             try:
+                # Write inputs to a temp file for the script to read
                 with tempfile.NamedTemporaryFile(
                     mode="w", suffix=".json", delete=False, encoding="utf-8"
                 ) as tmp_input_f_obj:
                     json.dump(inputs, tmp_input_f_obj)
                     tmp_input_file_path = tmp_input_f_obj.name
 
+                # Prepare a temp file for the script to write outputs
                 with tempfile.NamedTemporaryFile(
                     mode="r", suffix=".json", delete=False, encoding="utf-8"
                 ) as tmp_output_f_obj:
@@ -137,25 +149,26 @@ class PythonScriptMCP(BaseMCPServer):
                     tmp_output_file_path
                 )  # Ensure cleanup even if script fails before writing
 
+                # Build the command to run the script
                 command = [
                     python_exe,
                     script_to_run_str,
                     tmp_input_file_path,
                     tmp_output_file_path,
                 ]
-                logger.debug(f"Executing PythonScriptMCP sync command: {command}")
+                logger.debug(f"Executing PythonScriptMCP sync command (sandboxed): {command}")
 
-                process = subprocess.run(
+                # --- SANDBOXED EXECUTION ---
+                # Use run_sandboxed_subprocess to enforce resource limits and isolation
+                process_return_code, stdout_str, stderr_str = run_sandboxed_subprocess(
                     command,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",  # Ensure consistent encoding
-                    check=False,  # We check returncode manually
+                    timeout=self.config.timeout if hasattr(self.config, 'timeout') else 600,
+                    memory_limit_mb=512,  # You may want to make this configurable
+                    cpu_time_limit_sec=60,  # You may want to make this configurable
                 )
-                stdout_str = process.stdout.strip()
-                stderr_str = process.stderr.strip()
-                process_return_code = process.returncode
+                # --- END SANDBOXED EXECUTION ---
 
+                # Log output for debugging
                 if stdout_str:
                     logger.info(
                         f"Script stdout for '{self.config.name}':\n{stdout_str}"
@@ -165,6 +178,7 @@ class PythonScriptMCP(BaseMCPServer):
                         f"Script stderr for '{self.config.name}':\n{stderr_str}"
                     )
 
+                # Parse the output file if execution succeeded
                 if process_return_code == 0:
                     if os.path.exists(tmp_output_file_path):
                         with open(tmp_output_file_path, "r", encoding="utf-8") as f_out:
@@ -268,6 +282,9 @@ class PythonScriptMCP(BaseMCPServer):
 
     def _prepare_script(self, inputs: Dict[str, Any]) -> str:
         """Prepare the script content by injecting input parameters at the beginning."""
+        # Only open script_path if it is not None
+        if self.config.script_path is None:
+            raise ValueError("script_path is None when attempting to open it.")
         with open(self.config.script_path, "r", encoding="utf-8") as f:
             original_script_content = f.read()
 

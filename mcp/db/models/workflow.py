@@ -18,12 +18,13 @@ The models support:
 - Error handling
 """
 
+from uuid import UUID as PyUUID
 import uuid
-from uuid import UUID
+from datetime import datetime
 
 from sqlalchemy import (JSON, Column, DateTime, ForeignKey, Integer, String,
                         Text)
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID as SA_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from mcp.db.models.base import BaseModel, TimestampMixin, UUIDMixin
@@ -55,23 +56,19 @@ class WorkflowDefinition(BaseModel, UUIDMixin, TimestampMixin):
 
     __tablename__ = "workflow_definitions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False, unique=True)
-    description = Column(Text)
-    steps = Column(JSON, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
-    input_schema = Column(JSON, nullable=False)
-    output_schema = Column(JSON, nullable=False)
-    error_strategy = Column(
-        String, nullable=False
-    )  # Enum in DB, can be mapped to Enum if needed
-    execution_mode = Column(
-        String, nullable=False
-    )  # Enum in DB, can be mapped to Enum if needed
+    id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    steps: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    input_schema: Mapped[dict] = mapped_column(JSON, nullable=False)
+    output_schema: Mapped[dict] = mapped_column(JSON, nullable=False)
+    error_strategy: Mapped[str] = mapped_column(String, nullable=False)
+    execution_mode: Mapped[str] = mapped_column(String, nullable=False)
 
     # Relationships
-    runs = relationship(
+    runs: Mapped[list["WorkflowRun"]] = relationship(
         "WorkflowRun", back_populates="workflow", cascade="all, delete-orphan"
     )
 
@@ -110,24 +107,24 @@ class WorkflowRun(BaseModel, UUIDMixin, TimestampMixin):
 
     __tablename__ = "workflow_runs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workflow_id = Column(
-        UUID(as_uuid=True), ForeignKey("workflow_definitions.id"), nullable=False
+    id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workflow_id: Mapped[PyUUID] = mapped_column(
+        SA_UUID(as_uuid=True), ForeignKey("workflow_definitions.id"), nullable=False
     )
-    status = Column(String, nullable=False)
-    started_at = Column(DateTime, nullable=False)
-    finished_at = Column(DateTime)
-    inputs = Column(JSON)
-    outputs = Column(JSON)
-    error = Column(String)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    inputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    outputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     # Relationships
-    workflow = relationship(
+    workflow: Mapped["WorkflowDefinition"] = relationship(
         "WorkflowDefinition", back_populates="runs", foreign_keys=[workflow_id]
     )
-    step_runs = relationship(
+    step_runs: Mapped[list["WorkflowStepRun"]] = relationship(
         "WorkflowStepRun", back_populates="workflow_run", cascade="all, delete-orphan"
     )
 
@@ -169,29 +166,27 @@ class WorkflowStepRun(BaseModel, UUIDMixin, TimestampMixin):
 
     __tablename__ = "workflow_step_runs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    workflow_run_id = Column(
-        UUID(as_uuid=True), ForeignKey("workflow_runs.id"), nullable=False
+    id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workflow_run_id: Mapped[PyUUID] = mapped_column(
+        SA_UUID(as_uuid=True), ForeignKey("workflow_runs.id"), nullable=False
     )
-    step_id = Column(String, nullable=False)
-    mcp_id = Column(UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
-    status = Column(
-        String, nullable=False
-    )  # Enum in DB, can be mapped to Enum if needed
-    inputs = Column(JSON, nullable=False)
-    outputs = Column(JSON)
-    error = Column(String)
-    started_at = Column(DateTime)
-    finished_at = Column(DateTime)
-    retry_count = Column(Integer, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    step_id: Mapped[str] = mapped_column(String, nullable=False)
+    mcp_id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False)
+    inputs: Mapped[dict] = mapped_column(JSON, nullable=False)
+    outputs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(String, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     resource_usage: Mapped[dict] = mapped_column(
         JSON, nullable=False, default=dict
     )  # Stores CPU/memory usage and other metrics
 
     # Relationships
-    workflow_run = relationship(
+    workflow_run: Mapped["WorkflowRun"] = relationship(
         "WorkflowRun", back_populates="step_runs", foreign_keys=[workflow_run_id]
     )
 

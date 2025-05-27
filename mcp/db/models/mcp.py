@@ -13,12 +13,13 @@ The models support:
 5. Configuration management
 """
 
+from uuid import UUID as PyUUID
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Enum, ForeignKey, String, Table
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy import JSON, Enum, ForeignKey, String, Table, DateTime, Column
+from sqlalchemy.dialects.postgresql import UUID as SA_UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...schemas.mcp import MCPStatus, MCPType
 from ..base_models import Base
@@ -27,12 +28,12 @@ from ..base_models import Base
 mcp_tags = Table(
     "mcp_tags",
     Base.metadata,
-    Column("mcp_id", UUID(as_uuid=True), ForeignKey("mcps.id")),
+    Column("mcp_id", SA_UUID(as_uuid=True), ForeignKey("mcps.id")),
     Column("tag", String),
 )
 
 
-class MCP(Base):
+class MCP(Base):  # type: ignore[misc, valid-type]
     """
     Represents a Model Context Protocol (MCP) definition in the database.
 
@@ -57,22 +58,22 @@ class MCP(Base):
 
     __tablename__ = "mcps"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    description = Column(String)
-    type = Column(Enum(MCPType), nullable=False)
-    current_version_id = Column(UUID(as_uuid=True), ForeignKey("mcp_versions.id"))
+    id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    type: Mapped[MCPType] = mapped_column(Enum(MCPType), nullable=False)
+    current_version_id: Mapped[PyUUID | None] = mapped_column(SA_UUID(as_uuid=True), ForeignKey("mcp_versions.id"), nullable=True)
     # tags = relationship('Tag', secondary=mcp_tags, backref='mcps')  # Commented out: Tag model not defined
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    versions = relationship(
+    versions: Mapped[list["MCPVersion"]] = relationship(
         "MCPVersion", back_populates="mcp", foreign_keys="MCPVersion.mcp_id"
     )
-    current_version = relationship("MCPVersion", foreign_keys=[current_version_id])
+    current_version: Mapped["MCPVersion" | None] = relationship("MCPVersion", foreign_keys=[current_version_id])
 
 
-class MCPVersion(Base):
+class MCPVersion(Base):  # type: ignore[misc, valid-type]
     """
     Represents a specific version of an MCP definition.
 
@@ -100,15 +101,15 @@ class MCPVersion(Base):
 
     __tablename__ = "mcp_versions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mcp_id = Column(UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
-    version = Column(String, nullable=False)
-    definition = Column(JSON, nullable=False)
-    status = Column(Enum(MCPStatus), default=MCPStatus.DRAFT)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    mcp_id: Mapped[PyUUID] = mapped_column(SA_UUID(as_uuid=True), ForeignKey("mcps.id"), nullable=False)
+    version: Mapped[str] = mapped_column(String, nullable=False)
+    definition: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[MCPStatus] = mapped_column(Enum(MCPStatus), default=MCPStatus.DRAFT)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    mcp = relationship("MCP", back_populates="versions", foreign_keys=[mcp_id])
+    mcp: Mapped["MCP"] = relationship("MCP", back_populates="versions", foreign_keys=[mcp_id])
 
 
 # Ensure mcp.db.base_class.Base is correctly defined, e.g.:

@@ -1,11 +1,14 @@
 import os
 import tempfile
+import sys
+import logging
 from typing import Any, Dict, Optional
 
 import nbformat
 import papermill as pm
 
 from mcp.core.types import JupyterNotebookConfig
+from .sandbox import run_sandboxed_subprocess
 
 from .base import BaseMCPServer
 
@@ -26,26 +29,60 @@ class JupyterNotebookMCP(BaseMCPServer):
             ValueError: If the notebook file is not found.
         """
         super().__init__(config)
+        self.config: JupyterNotebookConfig = config  # Ensure type for self.config
         if not os.path.exists(self.config.notebook_path):
             raise ValueError(f"Notebook not found: {self.config.notebook_path}")
 
     async def execute(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the Jupyter notebook with given inputs.
+        """Execute the Jupyter notebook with given inputs in a sandboxed subprocess.
 
-        Uses self.config.notebook_path and self.config.timeout from types.JupyterNotebookConfig.
+        This method builds a papermill CLI command and uses run_sandboxed_subprocess
+        to enforce resource and environment limits. Returns a result dict with output,
+        results, execution_time, success, and error.
         """
         with tempfile.NamedTemporaryFile(suffix=".ipynb", delete=False) as temp:
             output_path = temp.name
 
         try:
+            # --- SANDBOXED EXECUTION ---
+            # Build papermill CLI command with parameters
+            import json
+            import shlex
+            param_str = " ".join([
+                f"-p {shlex.quote(str(k))} {shlex.quote(json.dumps(v))}" for k, v in inputs.items()
+            ]) if inputs else ""
+            command = [
+                sys.executable, "-m", "papermill",
+                self.config.notebook_path,
+                output_path,
+            ]
+            if param_str:
+                command += shlex.split(param_str)
+            if hasattr(self.config, 'timeout'):
+                command += ["--execution-timeout", str(self.config.timeout)]
 
-            pm.execute_notebook(
-                input_path=self.config.notebook_path,
-                output_path=output_path,
-                parameters=inputs,
-                timeout=self.config.timeout,
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Executing JupyterNotebookMCP with sandboxed papermill: {command}")
+
+            # Use run_sandboxed_subprocess to enforce resource limits and isolation
+            returncode, stdout, stderr = run_sandboxed_subprocess(
+                command,
+                timeout=self.config.timeout if hasattr(self.config, 'timeout') else 600,
+                memory_limit_mb=1024,  # Notebooks may need more memory
+                cpu_time_limit_sec=120,  # Notebooks may run longer
             )
+            # --- END SANDBOXED EXECUTION ---
 
+            if returncode != 0:
+                return {
+                    "output": None,
+                    "results": None,
+                    "execution_time": None,
+                    "success": False,
+                    "error": f"Notebook execution failed (rc={returncode}): {stderr}",
+                }
+
+            # Parse the output notebook for results
             with open(output_path, "r") as f:
                 nb = nbformat.read(f, as_version=4)
 

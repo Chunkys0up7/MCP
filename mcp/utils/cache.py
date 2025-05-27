@@ -106,7 +106,7 @@ class Cache:
         Returns:
             Cache statistics
         """
-        stats = {
+        stats: Dict[str, Any] = {
             "total_files": 0,
             "total_size": 0,
             "oldest_entry": None,
@@ -114,8 +114,8 @@ class Cache:
         }
 
         for cache_file in self.cache_dir.glob("*.json"):
-            stats["total_files"] += 1
-            stats["total_size"] += cache_file.stat().st_size
+            stats["total_files"] = int(stats["total_files"]) + 1
+            stats["total_size"] = int(stats["total_size"]) + cache_file.stat().st_size
 
             try:
                 with open(cache_file, "r") as f:

@@ -73,7 +73,7 @@ class DAGOptimizer:
         Returns:
             Dict[str, float]: Dictionary mapping step IDs to their total costs (including dependencies).
         """
-        total_costs = {}
+        total_costs: Dict[str, float] = {}
 
         # Calculate total cost for each node
         for node in nx.topological_sort(self.graph):

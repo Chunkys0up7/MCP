@@ -20,8 +20,8 @@ class ArchitecturalConstraints(BaseModel):
         default=None,
         description="If specified, MCPs of these types are prohibited in the workflow.",
     )
-    max_workflow_steps: Optional[conint(ge=1)] = Field(
-        default=None, description="Maximum number of steps allowed in a workflow."
+    max_workflow_steps: Optional[int] = Field(
+        default=None, ge=1, description="Maximum number of steps allowed in a workflow."
     )
     # Example: max_total_execution_time_seconds: Optional[conint(ge=1)] = None
     # Example: max_cost_usd: Optional[confloat(ge=0.0)] = None
