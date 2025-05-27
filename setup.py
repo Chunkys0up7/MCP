@@ -7,7 +7,6 @@ setup(
     install_requires=[
         "fastapi>=0.109.2",
         "uvicorn>=0.27.1",
-        "streamlit>=1.31.1",
         "langchain>=0.1.9",
         "langchain-openai>=0.0.8",
         "papermill>=2.4.0",

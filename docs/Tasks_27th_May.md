@@ -193,7 +193,7 @@
 
 ## Code Tidy Up Checklist (from codeReview, 30 May)
 
-- [ ] 1. Decide and clarify the primary UI stack (React or Streamlit); remove unused UI dependencies from backend/frontend as appropriate.
+- [x] 1. Decide and clarify the primary UI stack (React or Streamlit); remove unused UI dependencies from backend/frontend as appropriate. (React is now primary UI, Streamlit deprecated in docs. Next: remove Streamlit from requirements and codebase.)
 - [ ] 2. Move all test scripts from `scripts/` to `tests/` directory; ensure all tests are discoverable by pytest.
 - [ ] 3. Implement missing/incomplete DB CRUD and relationship tests.
 - [ ] 4. Refactor all hardcoded credentials (DB, Redis, etc.) to use environment variables; ensure `.env` is loaded in all entry points.
