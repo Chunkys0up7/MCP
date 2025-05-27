@@ -187,4 +187,26 @@
 - Check in code and update documentation after each major step for visibility and collaboration.
 - Prioritize Workflow Builder and design system for immediate visible improvement.
 - All code should be accessible, responsive, and visually consistent.
-- Recent: All major screens now use MUI for layout, cards, and feedback states. Current focus: standardize and enhance loading, empty, and error states across all major screens. Regular check-ins and documentation updates ongoing. 
+- Recent: All major screens now use MUI for layout, cards, and feedback states. Current focus: standardize and enhance loading, empty, and error states across all major screens. Regular check-ins and documentation updates ongoing.
+
+---
+
+## Code Tidy Up Checklist (from codeReview, 30 May)
+
+- [ ] 1. Decide and clarify the primary UI stack (React or Streamlit); remove unused UI dependencies from backend/frontend as appropriate.
+- [ ] 2. Move all test scripts from `scripts/` to `tests/` directory; ensure all tests are discoverable by pytest.
+- [ ] 3. Implement missing/incomplete DB CRUD and relationship tests.
+- [ ] 4. Refactor all hardcoded credentials (DB, Redis, etc.) to use environment variables; ensure `.env` is loaded in all entry points.
+- [ ] 5. Unify dependency versions across `requirements.txt`, `requirements-dev.txt`, and `setup.py`; run `pip-audit` and `npm audit`.
+- [ ] 6. Remove deprecated or unused packages (e.g., `react-flow-renderer`).
+- [ ] 7. Standardize naming: use "Workflow" instead of "Chain" everywhere (code, tests, docs).
+- [ ] 8. Migrate any file-based workflow storage (e.g., `chain_storage.json`) to the database; remove file-based logic.
+- [ ] 9. Implement robust sandboxing for script execution (PythonScriptMCP, JupyterNotebookMCP).
+- [ ] 10. Complete backend integration for advanced UI panels (Resource Usage, Debugging, etc.).
+- [ ] 11. Add/expand code docstrings and inline comments for maintainability.
+- [ ] 12. Ensure consistent type hinting and typing throughout the Python codebase.
+- [ ] 13. Standardize on `httpx.AsyncClient` for async API tests.
+- [ ] 14. Audit and improve API key/JWT handling for security best practices.
+- [ ] 15. Remove any remaining Streamlit/React ambiguity in documentation and README.
+
+_(This checklist will be updated and checked off as work progresses. Each item will be committed and pushed frequently for traceability.)_ 
