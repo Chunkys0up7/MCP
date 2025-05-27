@@ -20,3 +20,7 @@ setup(
     ],
     python_requires=">=3.8",
 )
+
+# (If flask or langchain-community are used, ensure they are at least at the following versions for security:)
+# flask>=3.1.1
+# langchain-community>=0.2.9

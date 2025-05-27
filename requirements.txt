@@ -65,4 +65,8 @@ pytest-cov>=4.1.0
 black>=21.7b0
 isort>=5.9.0
 flake8>=3.9.0
-mypy>=0.910 
+mypy>=0.910
+
+# (If flask or langchain-community are used, ensure they are at least at the following versions for security:)
+# flask>=3.1.1
+# langchain-community>=0.2.9 

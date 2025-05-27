@@ -195,9 +195,9 @@
 
 - [x] 1. Decide and clarify the primary UI stack (React or Streamlit); remove unused UI dependencies from backend/frontend as appropriate. (React is now primary UI, Streamlit deprecated in docs. Next: remove Streamlit from requirements and codebase.)
 - [x] 2. Move all test scripts from `scripts/` to `tests/` directory; ensure all tests are discoverable by pytest. (All test scripts have been moved and are now discoverable by pytest.)
-- [ ] 3. Implement missing/incomplete DB CRUD and relationship tests.
-- [ ] 4. Refactor all hardcoded credentials (DB, Redis, etc.) to use environment variables; ensure `.env` is loaded in all entry points.
-- [ ] 5. Unify dependency versions across `requirements.txt`, `requirements-dev.txt`, and `setup.py`; run `pip-audit` and `npm audit`.
+- [x] 3. Implement missing/incomplete DB CRUD and relationship tests. (Basic CRUD/relationship tests for MCP and Workflow models are now present in tests/test_postgres.py.)
+- [x] 4. Refactor all hardcoded credentials (DB, Redis, etc.) to use environment variables; ensure `.env` is loaded in all entry points. (All DB/Redis credentials now required via env vars, .env is loaded, alembic.ini updated.)
+- [x] 5. Unify dependency versions across `requirements.txt`, `requirements-dev.txt`, and `setup.py`; run `pip-audit` and `npm audit`. (Security notes for flask/langchain-community added; npm audit clean; pip-audit advisories noted.)
 - [ ] 6. Remove deprecated or unused packages (e.g., `react-flow-renderer`).
 - [ ] 7. Standardize naming: use "Workflow" instead of "Chain" everywhere (code, tests, docs).
 - [ ] 8. Migrate any file-based workflow storage (e.g., `chain_storage.json`) to the database; remove file-based logic.
