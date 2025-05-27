@@ -121,6 +121,9 @@ def get_db():
         db.close()
 
 
+# --- Deprecated: Only for internal/testing use, not for production endpoints ---
+# This dependency allows either JWT or API key authentication. All production endpoints should use JWT only.
+# Remove or refactor as needed in the future.
 async def get_current_user_or_apikey(
     request: Request,
     db: Session = Depends(get_db),
