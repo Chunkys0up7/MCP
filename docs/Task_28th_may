@@ -5,7 +5,18 @@
   - [x] Implement a collapsible sidebar that hides or becomes a drawer on small screens (mobile/tablet). (Sidebar now uses MUI Drawer: permanent on desktop, temporary on mobile, toggled by hamburger menu in TopBar.)
   - [x] Add a hamburger menu button to the TopBar for toggling the sidebar on mobile.
   - [x] Adjust main content area to account for sidebar width and overlay behavior responsively.
-  - [ ] Test layout on multiple screen sizes (mobile, tablet, desktop) and browsers.
+  - [ ] Test layout on multiple screen sizes (mobile, tablet, desktop) and browsers. **In Progress**
+    - [ ] Manually test dashboard on the following breakpoints:
+      - Mobile: 320px, 375px, 414px, 480px (portrait/landscape)
+      - Tablet: 600px, 768px, 834px, 1024px
+      - Desktop: 1280px, 1440px, 1920px+
+    - [ ] Use Chrome DevTools Device Mode to simulate devices and orientations.
+    - [ ] Check sidebar, header, cards, and all dashboard sections for correct stacking, spacing, and visibility.
+    - [ ] Verify that all interactive elements remain accessible and usable at all sizes.
+    - [ ] Test in at least Chrome, Firefox, and Edge (optionally Safari).
+    - [ ] Optionally use BrowserStack or Sauce Labs for cross-browser/device testing.
+    - [ ] Document any layout issues and refactor as needed (grid/flex adjustments, breakpoints, overflow fixes).
+    - [ ] Mark as complete when UI is confirmed responsive and usable on all target devices.
 - **Audit and Enhance Accessibility:**
   - [x] Review dashboard Card and Chip components for accessibility and interactivity (DONE: see code review).
   - [x] Ensure all dashboard Card and Chip components have proper ARIA roles, keyboard navigation (tab order), and visible focus states. (Card now has ARIA, keyboard, and focus ring; Chip used for tags.)
@@ -16,9 +27,22 @@
     - [x] Use a screen reader (NVDA, VoiceOver, or ChromeVox) to verify navigation, card, and button announcements (check ARIA roles/labels).
     - [x] Confirm all clickable elements are keyboard-activatable (Enter/Space).
     - [x] Document any remaining issues or improvements needed.
-  - [ ] Check and improve color contrast for all text, icons, and UI elements (use tools like axe or Lighthouse).
-    - [ ] Review theme colors for primary, secondary, info, warning, and text for sufficient contrast (see theme.ts).
-    - [ ] Adjust palette or component overrides as needed to meet WCAG AA contrast ratios.
+  - [ ] Check and improve color contrast for all text, icons, and UI elements (use tools like axe or Lighthouse). **Pending frontend availability**
+    - [ ] Key color pairs to check for WCAG AA compliance:
+      - Primary (#4A90E2) on white (#FFFFFF)
+      - Secondary (#17A2B8) on white
+      - Info (#17A2B8) on white
+      - Warning (#FFC107) on white
+      - Error (#DC3545) on white
+      - Text primary (#343A40) on white
+      - Text secondary (#6C757D) on white
+      - Disabled text (#9CA3AF) on white
+      - Any colored text on colored backgrounds (e.g., chips, tags, alerts)
+    - [ ] Run the following command when frontend is up:
+      ```
+      npx lighthouse http://localhost:3000 --only-categories=accessibility --output=json --output-path=./lighthouse-accessibility-report.json
+      ```
+    - [ ] Review and address any color contrast issues found in the report.
   - [x] Ensure TopBar IconButtons have minimum 44x44px touch target and aria-labels for accessibility.
   - [x] Review Sidebar ListItemButton and all dashboard action buttons for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
   - [x] Review all dashboard action buttons (e.g., in Cards, Panels) for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
@@ -26,9 +50,14 @@
   - [x] Add or improve screen reader support for navigation, cards, and action buttons (use semantic HTML and ARIA roles/labels).
     - [x] All major interactive elements (navigation, cards, buttons, panels) have been reviewed and are accessible via keyboard and screen reader.
 - **Clarify and Enhance Interactivity:**
-  - [ ] Make it visually clear which cards, tags, and buttons are clickable (hover/focus states, cursor changes, button styles).
-  - [ ] Add tooltips or accessible descriptions for icons and less obvious actions.
-  - [ ] Ensure feedback is provided for all user actions (e.g., loading spinners, error messages, success toasts).
+  - [x] Make it visually clear which cards, tags, and buttons are clickable (hover/focus states, cursor changes, button styles) for cards and tags. (Hover/focus/cursor styles and tooltips added.)
+    - [x] Ensure all clickable cards and tags have a pointer cursor and visible hover/focus style (e.g., box-shadow, border, background change).
+    - [x] Use tooltips or accessible descriptions for tags.
+    - [ ] Add hover/focus/active styles to all buttons and interactive icons.
+    - [ ] Use tooltips or accessible descriptions for icons and less obvious actions (e.g., IconButton, status icons).
+    - [ ] Provide feedback for all user actions (e.g., loading spinners, error messages, success toasts) where appropriate.
+    - [ ] Review and update any ambiguous or non-obvious UI elements to clarify their purpose.
+    - [ ] Mark as complete when all interactive elements are visually and functionally clear.
 
 ## 2. Clarify and Document UI Interaction Patterns
 - **Update UI Documentation:**

@@ -9,10 +9,19 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MenuIcon from '@mui/icons-material/Menu';
 import useTheme from '@mui/material/styles/useTheme';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import Tooltip from '@mui/material/Tooltip';
 
 interface TopBarProps {
   onMenuClick?: () => void;
 }
+
+const iconButtonSx = {
+  width: 44,
+  height: 44,
+  transition: 'background 0.2s, box-shadow 0.2s',
+  '&:hover': { background: '#f3f6fa', boxShadow: 3 },
+  '&:focus': { background: '#e3eefd', boxShadow: '0 0 0 3px #1976d2' },
+};
 
 const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
   const theme = useTheme();
@@ -21,28 +30,36 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick }) => {
     <AppBar position="static" color="default" elevation={1} sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
       <Toolbar>
         {isMobile && (
-          <IconButton
-            color="inherit"
-            aria-label="open navigation menu"
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 2, display: { md: 'none' }, width: 44, height: 44 }}
-          >
-            <MenuIcon />
-          </IconButton>
+          <Tooltip title="Open navigation menu" arrow>
+            <IconButton
+              color="inherit"
+              aria-label="open navigation menu"
+              edge="start"
+              onClick={onMenuClick}
+              sx={{ mr: 2, display: { md: 'none' }, ...iconButtonSx }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
         )}
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           AI Ops Console
         </Typography>
-        <IconButton color="inherit" aria-label="search" sx={{ width: 44, height: 44 }}>
-          <SearchIcon />
-        </IconButton>
-        <IconButton color="inherit" aria-label="notifications" sx={{ width: 44, height: 44 }}>
-          <NotificationsIcon />
-        </IconButton>
-        <IconButton color="inherit" aria-label="account" sx={{ width: 44, height: 44 }}>
-          <AccountCircle />
-        </IconButton>
+        <Tooltip title="Search" arrow>
+          <IconButton color="inherit" aria-label="search" sx={iconButtonSx}>
+            <SearchIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Notifications" arrow>
+          <IconButton color="inherit" aria-label="notifications" sx={iconButtonSx}>
+            <NotificationsIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Account" arrow>
+          <IconButton color="inherit" aria-label="account" sx={iconButtonSx}>
+            <AccountCircle />
+          </IconButton>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   );
