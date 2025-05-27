@@ -1,11 +1,17 @@
 const { Pool } = require('pg');
 
+const requiredEnv = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE'];
+for (const key of requiredEnv) {
+  if (!process.env[key]) {
+    throw new Error(`Environment variable ${key} must be set for database connection.`);
+  }
+}
 const pool = new Pool({
-  host: process.env.PGHOST || 'localhost',
-  port: process.env.PGPORT || 5432,
-  user: process.env.PGUSER || 'postgres',
-  password: process.env.PGPASSWORD || 'postgres',
-  database: process.env.PGDATABASE || 'mcp',
+  host: process.env.PGHOST,
+  port: Number(process.env.PGPORT),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
 });
 
 async function query(text, params) {

@@ -1,10 +1,11 @@
-# from dotenv import load_dotenv
-# load_dotenv()
+from dotenv import load_dotenv
+load_dotenv()
 import logging
 import socket
 import sys
 import time
 from typing import Optional
+import os
 
 import uvicorn
 
@@ -38,8 +39,8 @@ def start_server(port: int, max_retries: int = 3, retry_delay: int = 2) -> None:
             )
             uvicorn.run(
                 "mcp.api.main:app",
-                host="127.0.0.1",
-                port=port,
+                host=os.getenv("MCP_API_HOST", "127.0.0.1"),
+                port=int(os.getenv("MCP_API_PORT", port)),
                 reload=True,
                 reload_dirs=["mcp"],
                 reload_delay=1.0,
