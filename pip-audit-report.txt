@@ -1,0 +1,10 @@
+Name                Version ID                  Fix Versions
+------------------- ------- ------------------- ------------
+flask               3.1.0   GHSA-4grg-w6v8-c28g 3.1.1
+langchain-community 0.0.20  GHSA-3hjh-jh2h-vrg6 0.2.5
+langchain-community 0.0.20  GHSA-q25c-c977-4cmh 0.2.9
+langchain-community 0.0.20  GHSA-f2jm-rw3h-6phg 0.2.4
+Name         Skip Reason
+------------ ---------------------------------------------------------------------------
+mcp          Dependency not found on PyPI and could not be audited: mcp (0.1.0)
+perplexityai Dependency not found on PyPI and could not be audited: perplexityai (1.0.5)
