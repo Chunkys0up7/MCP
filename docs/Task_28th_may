@@ -21,9 +21,10 @@
     - [ ] Adjust palette or component overrides as needed to meet WCAG AA contrast ratios.
   - [x] Ensure TopBar IconButtons have minimum 44x44px touch target and aria-labels for accessibility.
   - [x] Review Sidebar ListItemButton and all dashboard action buttons for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
-  - [ ] Review all dashboard action buttons (e.g., in Cards, Panels) for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
-  - [ ] Ensure all interactive elements are accessible via keyboard (tab order, focus states, ARIA labels where needed).
-  - [ ] Add or improve screen reader support for navigation, cards, and action buttons (use semantic HTML and ARIA roles/labels).
+  - [x] Review all dashboard action buttons (e.g., in Cards, Panels) for minimum 44x44px size and accessibility (touch target, aria-labels, focus states).
+  - [x] Ensure all interactive elements are accessible via keyboard (tab order, focus states, ARIA labels where needed).
+  - [x] Add or improve screen reader support for navigation, cards, and action buttons (use semantic HTML and ARIA roles/labels).
+    - [x] All major interactive elements (navigation, cards, buttons, panels) have been reviewed and are accessible via keyboard and screen reader.
 - **Clarify and Enhance Interactivity:**
   - [ ] Make it visually clear which cards, tags, and buttons are clickable (hover/focus states, cursor changes, button styles).
   - [ ] Add tooltips or accessible descriptions for icons and less obvious actions.
