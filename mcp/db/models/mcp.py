@@ -16,6 +16,7 @@ The models support:
 from uuid import UUID as PyUUID
 import uuid
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import JSON, Enum, ForeignKey, String, Table, DateTime, Column
 from sqlalchemy.dialects.postgresql import UUID as SA_UUID
@@ -63,6 +64,8 @@ class MCP(Base):  # type: ignore[misc, valid-type]
     description: Mapped[str | None] = mapped_column(String, nullable=True)
     type: Mapped[MCPType] = mapped_column(Enum(MCPType), nullable=False)
     current_version_id: Mapped[PyUUID | None] = mapped_column(SA_UUID(as_uuid=True), ForeignKey("mcp_versions.id"), nullable=True)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    embedding: Mapped[dict] = mapped_column(JSON, nullable=True)
     # tags = relationship('Tag', secondary=mcp_tags, backref='mcps')  # Commented out: Tag model not defined
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -70,7 +73,7 @@ class MCP(Base):  # type: ignore[misc, valid-type]
     versions: Mapped[list["MCPVersion"]] = relationship(
         "MCPVersion", back_populates="mcp", foreign_keys="MCPVersion.mcp_id"
     )
-    current_version: Mapped["MCPVersion" | None] = relationship("MCPVersion", foreign_keys=[current_version_id])
+    current_version: Mapped[Optional["MCPVersion"]] = relationship("MCPVersion", foreign_keys=[current_version_id])
 
 
 class MCPVersion(Base):  # type: ignore[misc, valid-type]
@@ -97,6 +100,9 @@ class MCPVersion(Base):  # type: ignore[misc, valid-type]
         created_at (datetime): When the version was created
         updated_at (datetime): When the version was last updated
         mcp (MCP): Reference to the parent MCP
+        version_str (str): Version string
+        description (str): Description of the version
+        config_snapshot (dict): Configuration snapshot
     """
 
     __tablename__ = "mcp_versions"
@@ -108,6 +114,9 @@ class MCPVersion(Base):  # type: ignore[misc, valid-type]
     status: Mapped[MCPStatus] = mapped_column(Enum(MCPStatus), default=MCPStatus.DRAFT)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    version_str: Mapped[str] = mapped_column(String, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    config_snapshot: Mapped[dict] = mapped_column(JSON, nullable=True)
 
     mcp: Mapped["MCP"] = relationship("MCP", back_populates="versions", foreign_keys=[mcp_id])
 

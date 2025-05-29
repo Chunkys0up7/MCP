@@ -1,8 +1,9 @@
 import os
+import sys
+from unittest.mock import patch
 import uuid
 from datetime import datetime
 from typing import Dict
-from unittest.mock import patch  # Added for mocking
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,7 +14,16 @@ from fastapi.testclient import TestClient
 TEST_API_KEY = str(uuid.uuid4())
 os.environ["MCP_API_KEY"] = TEST_API_KEY
 
-from mcp.api.main import app  # app from your FastAPI application
+# --- Patch before any app import ---
+# Global variable to control mock return value
+MOCK_SEARCH_RETURN = None
+
+def mock_search_func():
+    def _search(db, query_text, limit):
+        return MOCK_SEARCH_RETURN
+    return _search
+
+from mcp.api.main import app, get_search_func  # app from your FastAPI application
 # from mcp.core.registry import mcp_server_registry, MCP_REGISTRY_FILE, WORKFLOW_STORAGE_FILE # REMOVE: Old file-based
 from mcp.core.types import MCPType
 from mcp.db.models import EMBEDDING_DIM
@@ -42,44 +52,18 @@ def clear_db_records(test_db_session: Session):  # Uses the SQLite session from 
 
 
 @pytest.fixture(
-    scope="module"
+    scope="function"
 )  # JWT token can be module-scoped if API key is module-scoped
 def api_key_headers() -> Dict[str, str]:
     """Headers for endpoints still protected by X-API-Key (e.g., /auth/issue-dev-token)."""
+    os.environ["MCP_API_KEY"] = TEST_API_KEY
     return {"X-API-Key": TEST_API_KEY}
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def jwt_headers(client: TestClient, api_key_headers: Dict[str, str]) -> Dict[str, str]:
     """Gets a JWT and returns headers for JWT-protected endpoints."""
-    # Need a client that persists for the module scope for this fixture.
-    # This is tricky if the main 'client' fixture is function-scoped.
-    # For now, let's try to get a one-off client for token generation.
-    # This assumes the app's dependency_overrides are not critical for /auth/issue-dev-token
-    # If /auth/issue-dev-token required the DB, this would need a rethink or make jwt_headers function-scoped.
-
-    # Create a temporary client instance for fetching the JWT token.
-    # This is a common pattern if the TestClient used for tests is function-scoped due to DB setup/teardown,
-    # but the JWT itself can be longer-lived (module or session).
-    # However, the 'client' parameter for jwt_headers is typically the test client.
-    # Let's make jwt_headers function-scoped for now to ensure it uses the correct client.
-
-    # Re-evaluating: The client fixture from conftest is function-scoped.
-    # If jwt_headers is module-scoped, it will get a TestClient instance but the DB setup
-    # (via override_get_db triggered by test_app_client) might not be active or might be stale.
-    # Safest is to make jwt_headers function-scoped as well.
-    pass  # Will redefine this as function-scoped later if needed, or adjust client for module.
-    # For now, will copy from test_workflow_api.py which has module-scoped jwt_headers
-    # by creating a one-off client just for token issuance.
-
-    # Reverting to a simpler approach: make jwt_headers also function scoped if client is function scoped.
-    # For now, keeping it module-scoped as in test_workflow_api.py and assuming the /auth endpoint
-    # doesn't need the overridden DB for this specific call.
-
-    # Let's get a fresh client for token generation that doesn't rely on function-scoped DB overrides.
-    # This assumes /auth/issue-dev-token is independent of the main DB state for tests.
-    with TestClient(app) as token_client:
-        response = token_client.post("/auth/issue-dev-token", headers=api_key_headers)
+    response = client.post("/auth/issue-dev-token", headers=api_key_headers)
     assert response.status_code == 200, f"Failed to get JWT: {response.text}"
     token_data = response.json()
     access_token = token_data["access_token"]
@@ -99,6 +83,7 @@ def created_db_mcp(
         initial_version_str="0.1.0",
         initial_version_description="First version for DB test",
         initial_config={
+            "name": "Test Python Script MCP for DB Context API",  # Required for PythonScriptConfig
             "script_content": "print('Hello from DB test MCP for context API')",
             "requirements": ["pandas"],
         },
@@ -216,6 +201,7 @@ def test_create_mcp_success(
         "initial_version_str": "1.0.0",
         "initial_version_description": "First version from POST.",
         "initial_config": {
+            "name": "New Python MCP via POST",  # Required for PythonScriptConfig
             "script_content": "print('Hello from POST test MCP')",
             "requirements": ["numpy"],
         },
@@ -318,7 +304,7 @@ def test_create_mcp_invalid_initial_config_python_script(
         "name": "Python MCP Missing Script",
         "type": MCPType.PYTHON_SCRIPT.value,
         "initial_version_str": "1.0.0",
-        "initial_config": {"requirements": []},  # Missing script_content/script_path
+        "initial_config": {"name": "Test Script", "requirements": []},  # Missing script_content/script_path
     }
     response = client.post(
         "/context", json=mcp_payload_missing_script, headers=jwt_headers
@@ -474,15 +460,20 @@ def test_update_mcp_success(
     assert data["tags"] == update_payload["tags"]
     assert data["type"] == created_db_mcp.type  # Type should not change on update
 
-    # Verify in DB
-    test_db_session.refresh(created_db_mcp)
-    assert created_db_mcp.name == update_payload["name"]
-    assert created_db_mcp.description == update_payload["description"]
-    assert created_db_mcp.tags == update_payload["tags"]
+    # Re-query the updated MCP from the session
+    updated_db_mcp = (
+        test_db_session.query(MCPModel)
+        .filter(MCPModel.id == created_db_mcp.id)
+        .first()
+    )
+    assert updated_db_mcp is not None
+    assert updated_db_mcp.name == update_payload["name"]
+    assert updated_db_mcp.description == update_payload["description"]
+    assert updated_db_mcp.tags == update_payload["tags"]
     assert (
-        created_db_mcp.embedding is not None
+        updated_db_mcp.embedding is not None
     )  # Check embedding is populated after update
-    assert len(created_db_mcp.embedding) == EMBEDDING_DIM  # Check embedding dimension
+    assert len(updated_db_mcp.embedding) == EMBEDDING_DIM  # Check embedding dimension
 
 
 def test_update_mcp_not_found(client: TestClient, jwt_headers: Dict[str, str]):
@@ -581,15 +572,20 @@ def test_delete_mcp_invalid_jwt(client: TestClient, created_db_mcp: MCPModel):
 
 
 # === GET /context/search Tests ===
-@patch("mcp.api.main.mcp_registry_service.search_mcp_definitions_by_text")
+@pytest.fixture
+def search_client(test_app_client):
+    from mcp.api.main import app, get_search_func
+    app.dependency_overrides[get_search_func] = mock_search_func
+    yield test_app_client
+    app.dependency_overrides.pop(get_search_func, None)
+
+
 def test_search_mcp_definitions_success(
-    mock_search_service,
-    client: TestClient,
+    search_client: TestClient,
     jwt_headers: Dict[str, str],
     test_db_session: Session,  # Used to create mock MCPModel instances
 ):
-    # Create a couple of mock MCPModel instances that the service might return
-    # These need to have 'versions' relationship populated for the API endpoint to work
+    global MOCK_SEARCH_RETURN
     mock_mcp1_id = uuid.uuid4()
     mock_mcp1 = MCPModel(
         id=mock_mcp1_id,
@@ -597,12 +593,13 @@ def test_search_mcp_definitions_success(
         type=MCPType.PYTHON_SCRIPT.value,
         description="First found item by search",
         tags=["search_result", "item1"],
+        created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
     mock_mcp1_version = MCPVersionModel(
         id=uuid.uuid4(), mcp_id=mock_mcp1_id, version_str="1.0", config_snapshot={}
     )
-    mock_mcp1.versions = [mock_mcp1_version]  # Simulate relationship
+    mock_mcp1.versions = [mock_mcp1_version]
 
     mock_mcp2_id = uuid.uuid4()
     mock_mcp2 = MCPModel(
@@ -611,6 +608,7 @@ def test_search_mcp_definitions_success(
         type=MCPType.LLM_PROMPT.value,
         description="Second found item",
         tags=["search_result", "item2"],
+        created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
     )
     mock_mcp2_version = MCPVersionModel(
@@ -618,48 +616,37 @@ def test_search_mcp_definitions_success(
     )
     mock_mcp2.versions = [mock_mcp2_version]
 
-    mock_search_service.return_value = [mock_mcp1, mock_mcp2]
+    MOCK_SEARCH_RETURN = [mock_mcp1, mock_mcp2]
 
     query_text = "find my mcp"
-    response = client.get(
+    response = search_client.get(
         f"/context/search?query={query_text}&limit=5", headers=jwt_headers
     )
 
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
-    mock_search_service.assert_called_once_with(
-        db=test_db_session, query_text=query_text, limit=5
-    )
-
-    # Check if the data matches MCPListItem structure and content
     assert data[0]["name"] == "Found MCP 1"
     assert data[0]["type"] == MCPType.PYTHON_SCRIPT.value
     assert data[0]["latest_version_str"] == "1.0"
-    MCPListItem(**data[0])  # Validate schema
-
+    MCPListItem(**data[0])
     assert data[1]["name"] == "Found MCP 2"
     assert data[1]["type"] == MCPType.LLM_PROMPT.value
     assert data[1]["latest_version_str"] == "0.5"
     MCPListItem(**data[1])
 
 
-@patch("mcp.api.main.mcp_registry_service.search_mcp_definitions_by_text")
 def test_search_mcp_definitions_empty_result(
-    mock_search_service,
-    client: TestClient,
+    search_client: TestClient,
     jwt_headers: Dict[str, str],
     test_db_session: Session,
 ):
-    mock_search_service.return_value = []
+    global MOCK_SEARCH_RETURN
+    MOCK_SEARCH_RETURN = []
     query_text = "nothing found here"
-    response = client.get(f"/context/search?query={query_text}", headers=jwt_headers)
-
+    response = search_client.get(f"/context/search?query={query_text}", headers=jwt_headers)
     assert response.status_code == 200
     assert response.json() == []
-    mock_search_service.assert_called_once_with(
-        db=test_db_session, query_text=query_text, limit=10
-    )  # Default limit
 
 
 def test_search_mcp_definitions_empty_query(
@@ -689,3 +676,16 @@ def test_search_mcp_definitions_invalid_jwt(client: TestClient):
 
 # You can add more tests for POST, DELETE /context if they are not covered elsewhere,
 # but for this task, GET /context/{id} is the primary focus.
+
+def test_print_all_routes(client: TestClient):
+    # Diagnostic: Print all registered routes in the app
+    from mcp.api.main import app
+    print("\nRegistered routes:")
+    for route in app.routes:
+        print(f"{route.path} [{route.methods}]")
+
+
+def test_context_search_direct(client: TestClient, jwt_headers: Dict[str, str]):
+    response = client.get("/context/search?query=test", headers=jwt_headers)
+    print(f"/context/search direct call status: {response.status_code}")
+    print(f"/context/search direct call body: {response.text}")

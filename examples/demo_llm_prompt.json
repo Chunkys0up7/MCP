@@ -1,0 +1,11 @@
+{
+  "name": "Demo LLM Prompt",
+  "type": "llm_prompt",
+  "description": "Ask the LLM to describe what MCP is.",
+  "input_variables": [],
+  "template": "What is the Model Context Protocol (MCP) and what are its main features?",
+  "model_name": "claude-3-sonnet-20240229",
+  "temperature": 0.7,
+  "max_tokens": 256,
+  "system_prompt": null
+} 

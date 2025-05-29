@@ -231,4 +231,8 @@ These panels are integrated into the workflow Execution Monitor and will display
 
 ## Deprecation Notice
 
-The Streamlit UI (`mcp/ui/`) is deprecated and will be removed in a future release. Please use the React frontend in `frontend/` for all new development and usage. 
+The Streamlit UI (`mcp/ui/`) is deprecated and will be removed in a future release. Please use the React frontend in `frontend/` for all new development and usage.
+
+## UI Notice
+
+The React frontend in `frontend/` is now the only supported UI. The previous Streamlit UI has been removed. Please use the React app for all development and usage. 

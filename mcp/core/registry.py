@@ -17,6 +17,8 @@ from .python_script import PythonScriptMCP
 from .types import MCPType  # Union of all config types
 from .types import (AIAssistantConfig, JupyterNotebookConfig, LLMPromptConfig,
                     PythonScriptConfig)
+from pydantic import ValidationError
+from fastapi import HTTPException
 
 # Export MCP_REGISTRY_FILE for test compatibility
 MCP_REGISTRY_FILE = Path(".mcp_data/mcp_storage.json")
@@ -136,13 +138,11 @@ def save_mcp_definition_to_db(db: Session, mcp_data: MCPCreate) -> MCP:
 
     _, config_class = _MCP_TYPE_TO_CLASS_AND_CONFIG[mcp_type_enum]
 
+    # Only wrap config_class validation errors
     try:
-        # Validate and parse the initial_config using the specific MCP's config model
-        # Pydantic will raise ValidationError if initial_config doesn't match config_class
         validated_initial_config = config_class(**mcp_data.initial_config)
-    except Exception as e:  # Catch Pydantic ValidationError or other issues
-        # Consider more specific exception handling for ValidationError if needed
-        raise ValueError(f"Invalid initial_config for MCP type {mcp_type_enum}: {e}")
+    except (ValidationError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid initial_config: {e}")
 
     db_mcp = MCP(
         name=mcp_data.name,
@@ -161,9 +161,11 @@ def save_mcp_definition_to_db(db: Session, mcp_data: MCPCreate) -> MCP:
 
     db_initial_version = MCPVersion(
         mcp=db_mcp,  # Associate with the MCP object
+        version=mcp_data.initial_version_str,
         version_str=mcp_data.initial_version_str,
         description=mcp_data.initial_version_description,
         config_snapshot=validated_initial_config.model_dump(),  # Store the validated and structured config
+        definition=validated_initial_config.model_dump(),
     )
 
     # Add MCP first, so it gets an ID if not already set by default factory (though it should)
@@ -233,6 +235,9 @@ def delete_mcp_definition_from_db(db: Session, mcp_id_str: str) -> bool:
     db_mcp = db.query(MCP).filter(MCP.id == mcp_uuid).first()
     if not db_mcp:
         return False  # MCP not found
+
+    # Delete all related MCPVersion rows first to avoid NOT NULL constraint errors
+    db.query(MCPVersion).filter(MCPVersion.mcp_id == db_mcp.id).delete()
 
     try:
         db.delete(db_mcp)
@@ -358,6 +363,8 @@ def get_mcp_instance_from_db(
         # mcp_instance.mcp_version_id = mcp_version.id
 
         return mcp_instance
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid initial_config: {e}")
     except Exception:
         # Log error during config parsing or MCP instantiation (e.g., Pydantic ValidationError)
         # print(f"Error instantiating MCP {mcp_id_str} version {mcp_version_str}: {e}")

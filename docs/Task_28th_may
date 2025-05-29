@@ -53,9 +53,9 @@
   - [x] Make it visually clear which cards, tags, and buttons are clickable (hover/focus states, cursor changes, button styles) for cards and tags. (Hover/focus/cursor styles and tooltips added.)
     - [x] Ensure all clickable cards and tags have a pointer cursor and visible hover/focus style (e.g., box-shadow, border, background change).
     - [x] Use tooltips or accessible descriptions for tags.
-    - [ ] Add hover/focus/active styles to all buttons and interactive icons.
-    - [ ] Use tooltips or accessible descriptions for icons and less obvious actions (e.g., IconButton, status icons).
-    - [ ] Provide feedback for all user actions (e.g., loading spinners, error messages, success toasts) where appropriate.
+    - [x] Add hover/focus/active styles to all buttons and interactive icons. (TopBar, dashboard toolbar updated.)
+    - [x] Use tooltips or accessible descriptions for icons and less obvious actions (TopBar, dashboard toolbar updated.)
+    - [x] Provide feedback for all user actions (spinners, alerts, success/error toasts) in dashboard, workflow builder, and execution monitor. (Review Marketplace and custom modals for consistency.)
     - [ ] Review and update any ambiguous or non-obvious UI elements to clarify their purpose.
     - [ ] Mark as complete when all interactive elements are visually and functionally clear.
 

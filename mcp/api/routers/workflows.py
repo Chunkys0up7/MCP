@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from mcp.core.types import MCPType  # For type checking in MCP if needed
+from mcp.core.types import MCPType, MCPConfig as MCPConfigType  # Modified import
 from mcp.db.base_models import log_audit_action
 from mcp.db.models import (  # Workflow models and MCP for checking existence
     WorkflowDefinition, WorkflowRun, WorkflowStepRun)
@@ -28,6 +28,9 @@ from ...core.workflow_engine import WorkflowEngine  # Added import
 # from ..main import get_api_key, mcp_server_registry # OLD IMPORT - REMOVE/COMMENT
 from ..dependencies import \
     get_current_subject  # Changed from get_api_key to get_current_subject
+
+# --- MCP Configs Directory ---
+MCP_CONFIGS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "examples"
 
 # Placeholder for get_api_key and mcp_server_registry for standalone router testing
 # In real integration, these would come from the main app
@@ -152,6 +155,31 @@ async def list_workflow_definitions(
 ):
     workflows = db.query(WorkflowDefinition).offset(skip).limit(limit).all()
     return workflows
+
+
+@router.get("/mcp_configs/", response_model=List[MCPConfigType])
+async def list_mcp_configs(
+    current_user_sub: str = Depends(get_current_subject),
+):
+    """Lists all available MCP configurations from the examples directory."""
+    configs = []
+    if not MCP_CONFIGS_DIR.exists() or not MCP_CONFIGS_DIR.is_dir():
+        return configs
+
+    for file_path in MCP_CONFIGS_DIR.glob("*.json"):
+        try:
+            with open(file_path, "r") as f:
+                data = json.load(f)
+                # Try to parse as a generic MCPConfig first to get the type
+                # Pydantic should handle routing to the correct sub-model
+                mcp_config = MCPConfigType(**data)
+                configs.append(mcp_config)
+        except json.JSONDecodeError:
+            print(f"Error decoding JSON from {file_path}. Skipping.")
+        except Exception as e: # Catch Pydantic validation errors and others
+            print(f"Error processing MCP config file {file_path}: {e}. Skipping.")
+            
+    return configs
 
 
 @router.get("/{workflow_id}", response_model=WorkflowSchema)

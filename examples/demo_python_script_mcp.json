@@ -1,0 +1,11 @@
+{
+  "name": "Demo Python Script",
+  "type": "python_script",
+  "description": "Runs a script that prints a hello message to MCP.",
+  "input_variables": [],
+  "script_path": "mcp/scripts/hello_world.py",
+  "script_content": null,
+  "requirements": [],
+  "virtual_env": true,
+  "timeout": 600
+} 

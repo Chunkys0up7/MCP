@@ -63,7 +63,7 @@ class MCPCreate(MCPBase):
         ..., description="The configuration for the first version of this MCP."
     )
     initial_version_str: str = Field(
-        default="0.1.0", description="Version string for the initial version."
+        ..., description="Version string for the initial version."
     )
     initial_version_description: Optional[str] = Field(
         default=None, description="Description for the initial version."

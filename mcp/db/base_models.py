@@ -12,7 +12,7 @@ It includes:
 
 import os
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from uuid import uuid4, UUID as PyUUID
 
 from sqlalchemy import (JSON, CheckConstraint, DateTime, ForeignKey, Integer,
@@ -213,7 +213,7 @@ class MCPChain(BaseModel):
     )
 
     # Relationships
-    parent: Mapped["MCPChain" | None] = relationship(
+    parent: Mapped[Optional["MCPChain"]] = relationship(
         "MCPChain", remote_side="MCPChain.id", back_populates="child_chains"
     )
     child_chains: Mapped[list["MCPChain"]] = relationship(

@@ -1,0 +1,10 @@
+{
+  "name": "Demo Notebook Analysis",
+  "type": "jupyter_notebook",
+  "description": "Runs a notebook that demonstrates data analysis and LLM call.",
+  "input_variables": [],
+  "notebook_path": "mcp/notebooks/example.ipynb",
+  "execute_all": true,
+  "cells_to_execute": null,
+  "timeout": 600
+} 

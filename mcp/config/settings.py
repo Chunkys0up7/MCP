@@ -50,23 +50,6 @@ class LoggingSettings(BaseSettings):
     file: Optional[str] = Field(default=None, validation_alias="LOG_FILE")
 
 
-class StreamlitSettings(BaseSettings):
-    """Streamlit configuration settings."""
-
-    theme: Dict[str, Any] = Field(
-        default={
-            "primaryColor": "#FF4B4B",
-            "backgroundColor": "#FFFFFF",
-            "secondaryBackgroundColor": "#F0F2F6",
-            "textColor": "#262730",
-            "font": "sans serif",
-        },
-        validation_alias="STREAMLIT_THEME",
-    )
-    page_title: str = Field(default="MCP Builder", validation_alias="STREAMLIT_PAGE_TITLE")
-    page_icon: str = Field(default="🤖", validation_alias="STREAMLIT_PAGE_ICON")
-
-
 class Settings(BaseSettings):
     """Main application settings."""
 
@@ -84,7 +67,6 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     security: SecuritySettings = SecuritySettings()
     logging: LoggingSettings = LoggingSettings()
-    streamlit: StreamlitSettings = StreamlitSettings()
 
     # File paths
     base_dir: Path = Path(__file__).parent.parent.parent

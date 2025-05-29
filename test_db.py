@@ -1,5 +1,7 @@
 from mcp.cache.redis_manager import RedisCacheManager
 from mcp.db.session import SessionLocal
+import pytest
+import os
 
 
 def test_postgres():
@@ -9,6 +11,10 @@ def test_postgres():
     print("PostgreSQL test placeholder - no operations implemented.")
 
 
+@pytest.mark.skipif(
+    os.environ.get("SKIP_REDIS_TESTS", "1") == "1",
+    reason="Redis is not running or SKIP_REDIS_TESTS is set."
+)
 def test_redis():
     print("\nTesting Redis...")
     redis = RedisCacheManager()

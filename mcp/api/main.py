@@ -4,12 +4,13 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+import uuid
 
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.orm import Session
 import json
 import asyncio
@@ -29,6 +30,7 @@ from .routers import auth as auth_router
 from .routers import components as components_router
 from .routers import reviews as reviews_router
 from .routers import workflows as workflow_router
+from .routers import execution as execution_router
 
 # Rate limiting middleware (simple in-memory)
 RATE_LIMIT = 100  # requests per minute
@@ -70,6 +72,7 @@ app.include_router(auth_router.router)
 app.include_router(reviews_router.router)
 app.include_router(components_router.router)
 app.include_router(apikey_router.router)
+app.include_router(execution_router.router)
 
 
 # API Request model for creating MCPs
@@ -116,28 +119,32 @@ async def list_mcp_definitions(
     return response_items
 
 
-@app.post("/context", response_model=MCPDetail)
+@app.post("/context", response_model=MCPDetail, status_code=201)
 async def create_mcp_definition(
     mcp_data: MCPCreate,
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     _: List[str] = Depends(require_any_role([UserRole.DEVELOPER, UserRole.ADMIN])),
+    response: Response = None,
 ):
     """Creates a new MCP definition."""
+    db_mcp = mcp_registry_service.save_mcp_definition_to_db(
+        db=db, mcp_data=mcp_data
+    )
+    # Only log audit if subject is a valid UUID
     try:
-        db_mcp = mcp_registry_service.save_mcp_definition_to_db(
-            db=db, mcp_data=mcp_data
-        )
+        user_id_val = uuid.UUID(current_user_sub)
+    except Exception:
+        user_id_val = None
+    if user_id_val:
         log_audit_action(
             db,
-            user_id=current_user_sub,
+            user_id=user_id_val,
             action_type="create_mcp",
             target_id=db_mcp.id,
             details=mcp_data.dict(),
         )
-        return db_mcp
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return db_mcp
 
 
 @app.get("/context/{mcp_id}", response_model=MCPDetail)
@@ -188,15 +195,21 @@ async def update_mcp_definition(
         db_mcp = mcp_registry_service.update_mcp_definition_in_db(
             db=db, mcp_id_str=mcp_id, mcp_data=mcp_data
         )
-        if db_mcp is None:
-            raise HTTPException(status_code=404, detail="MCP definition not found")
-        log_audit_action(
-            db,
-            user_id=current_user_sub,
-            action_type="update_mcp",
-            target_id=db_mcp.id,
-            details=mcp_data.dict(),
-        )
+        if not db_mcp:
+            raise HTTPException(status_code=404, detail="MCP definition not found for update")
+        # Only log audit if subject is a valid UUID
+        try:
+            user_id_val = uuid.UUID(current_user_sub)
+        except Exception:
+            user_id_val = None
+        if user_id_val:
+            log_audit_action(
+                db,
+                user_id=user_id_val,
+                action_type="update_mcp",
+                target_id=db_mcp.id,
+                details=mcp_data.dict(),
+            )
         return db_mcp
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -215,16 +228,26 @@ async def delete_mcp_definition(
             db=db, mcp_id_str=mcp_id
         )
         if not success:
-            raise HTTPException(status_code=404, detail="MCP definition not found")
-        log_audit_action(
-            db,
-            user_id=current_user_sub,
-            action_type="delete_mcp",
-            target_id=mcp_id,
-            details={"mcp_id": mcp_id},
-        )
+            raise HTTPException(status_code=404, detail="MCP definition not found for deletion")
+        # Only log audit if subject is a valid UUID
+        try:
+            user_id_val = uuid.UUID(current_user_sub)
+        except Exception:
+            user_id_val = None
+        if user_id_val:
+            log_audit_action(
+                db,
+                user_id=user_id_val,
+                action_type="delete_mcp",
+                target_id=mcp_id,
+                details={"mcp_id": mcp_id},
+            )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+def get_search_func():
+    return mcp_registry_service.search_mcp_definitions_by_text
 
 
 @app.get("/context/search", response_model=List[MCPListItem])
@@ -233,6 +256,7 @@ async def search_mcp_definitions(
     db: Session = Depends(get_db_session),
     current_user_sub: str = Depends(get_current_subject),
     limit: int = 10,
+    search_func=Depends(get_search_func),
 ):
     """
     Searches for MCP definitions using semantic text search based on the query.
@@ -241,10 +265,7 @@ async def search_mcp_definitions(
     if not query or not query.strip():
         raise HTTPException(status_code=400, detail="Search query cannot be empty.")
 
-    # Use the mcp_registry_service alias consistent with other /context endpoints
-    db_mcps = mcp_registry_service.search_mcp_definitions_by_text(
-        db=db, query_text=query, limit=limit
-    )
+    db_mcps = search_func(db=db, query_text=query, limit=limit)
 
     response_items = []
     for mcp in db_mcps:
@@ -266,7 +287,7 @@ async def search_mcp_definitions(
                 # MCPListItem does not include embedding
             )
         )
-    return response_items
+    return response_items  # Always return 200 with a list (possibly empty)
 
 
 @app.get("/health")
